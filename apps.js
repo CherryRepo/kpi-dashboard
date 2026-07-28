@@ -885,21 +885,17 @@ function renderCredito(panel, s){
    ============================================================ */
 function renderOpsAml(panel, s){
   const rows = s.rows;
-  const isAlto = (r)=> String(r.fascia_rischio||'').toLowerCase().includes('alt'); // copre "Alto"/"Alta"
+  const isAlto = (r)=> String(r.fascia_rischio||'').toLowerCase().includes('alt');
   const altoRows = rows.filter(isAlto);
   const isDone = (r)=> !!toDate(r.data_uscita);
   const completedAlto = altoRows.filter(isDone);
   const pendingAlto = altoRows.filter(r=> !isDone(r));
 
-  // tutti i conteggi sono su NDG distinti (un cliente può avere più righe/cicli di verifica)
-  const totalNdg = distinctCount(rows);
   const altoNdg = distinctCount(altoRows);
   const completedAltoNdg = distinctCount(completedAlto);
   const pendingAltoNdg = distinctCount(pendingAlto);
 
-  const byFascia = mapToSorted(countDistinctBy(rows, 'fascia_rischio'));
-
-  // tempo medio di lavorazione (data_uscita - data_inserimento) per le completate a rischio alto
+  // Tempo medio di lavorazione per le completate a rischio alto
   const giorniAlto = completedAlto.map(r=>{
     const din = toDate(r.data_inserimento);
     const dout = toDate(r.data_uscita);
@@ -908,12 +904,12 @@ function renderOpsAml(panel, s){
   }).filter(v=> v!==null && v>=0);
   const avgGiorniAlto = giorniAlto.length ? giorniAlto.reduce((a,b)=>a+b,0)/giorniAlto.length : 0;
 
-  // scadute: rischio alto, ancora in lavorazione, con data_scadenza_adv nel passato (conteggio NDG distinti)
+  // Scadute: rischio alto, ancora in lavorazione, con data_scadenza_adv nel passato
   const today = new Date();
   const scaduteRows = pendingAlto.filter(r=>{ const d = toDate(r.data_scadenza_adv); return d && d < today; });
   const scaduteNdg = distinctCount(scaduteRows);
 
-  // trend mensile completate a rischio alto (per data_uscita, NDG distinti per mese)
+  // Trend mensile completate a rischio alto
   const byMonthSet = new Map();
   completedAlto.forEach(r=>{
     const d = toDate(r.data_uscita);
@@ -928,40 +924,34 @@ function renderOpsAml(panel, s){
   const byWorkflow = mapToSorted(countDistinctBy(altoRows, 'workflow'));
   const byTipoVerifica = mapToSorted(countDistinctBy(altoRows, 'tipo_verifica'));
 
-  const pctAlto = totalNdg ? altoNdg/totalNdg*100 : 0;
-  const pctCompletateAlto = altoNdg ? completedAltoNdg/altoNdg*100 : 0;
-
   panel.innerHTML = structHeaderHtml(s, 'OPS AML') + `
-    <p class="panel-sub">Conteggi su NDG distinti (un cliente può comparire più volte per cicli di verifica diversi).</p>
+    <div class="section-title">Adeguate verifiche a rischio alto nel tempo <span class="count-badge">${fmtInt.format(altoNdg)} NDG</span></div>
+    <p class="section-desc">Focus sulle posizioni in fascia di rischio alto: avanzamento delle adeguate verifiche e tempi di lavorazione.</p>
+    
     <div class="kpi-row">
-      <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">NDG totali</div><div class="val">${fmtInt.format(totalNdg)}</div></div>
-      <div class="kpi" style="--kc:${PALETTE.danger}"><div class="lbl">NDG rischio alto</div><div class="val">${fmtInt.format(altoNdg)}</div><div class="sub">${fmtDec.format(pctAlto)}% del totale</div></div>
-      <div class="kpi" style="--kc:${PALETTE.accent}"><div class="lbl">Verifiche completate (alto)</div><div class="val">${fmtInt.format(completedAltoNdg)}</div><div class="sub">${fmtDec.format(pctCompletateAlto)}% del rischio alto</div></div>
-      <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">In lavorazione (alto)</div><div class="val">${fmtInt.format(pendingAltoNdg)}</div></div>
+      <div class="kpi" style="--kc:${PALETTE.accent}"><div class="lbl">Verifiche completate</div><div class="val">${fmtInt.format(completedAltoNdg)}</div><div class="sub">${fmtDec.format(altoNdg ? completedAltoNdg/altoNdg*100 : 0)}% del rischio alto</div></div>
+      <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">In lavorazione</div><div class="val">${fmtInt.format(pendingAltoNdg)}</div><div class="sub">${fmtDec.format(altoNdg ? pendingAltoNdg/altoNdg*100 : 0)}% del rischio alto</div></div>
+      <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Tempo medio</div><div class="val">${fmtDec.format(avgGiorniAlto)} gg</div><div class="sub">data uscita − inserimento</div></div>
+      <div class="kpi" style="--kc:${PALETTE.danger}"><div class="lbl">Scadute e non completate</div><div class="val">${fmtInt.format(scaduteNdg)}</div><div class="sub">data scadenza ADV superata</div></div>
     </div>
 
-    <div class="section-title">Adeguate verifiche a rischio alto nel tempo <span class="count-badge">${fmtInt.format(altoNdg)} NDG</span></div>
-    <p class="section-desc">Focus sulle posizioni in fascia di rischio alto: avanzamento delle adeguate verifiche completate (data uscita valorizzata) e tempi di lavorazione.</p>
-    <div class="kpi-row">
-      <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Tempo medio lavorazione</div><div class="val">${fmtDec.format(avgGiorniAlto)} gg</div><div class="sub">data uscita − data inserimento</div></div>
-      <div class="kpi" style="--kc:${PALETTE.danger}"><div class="lbl">Scadute e non completate</div><div class="val">${fmtInt.format(scaduteNdg)}</div><div class="sub">data scadenza ADV superata</div></div>
-      <div class="kpi" style="--kc:${PALETTE.violet}"><div class="lbl">Cluster coinvolti</div><div class="val">${byCluster.length}</div></div>
-      <div class="kpi" style="--kc:${PALETTE.accent}"><div class="lbl">Business unit coinvolte</div><div class="val">${byBU.length}</div></div>
-    </div>
     <div class="card" style="margin-bottom:16px">
       <h3>Verifiche completate per mese</h3><p class="card-sub">rischio alto, NDG distinti per mese su data uscita</p>
       <canvas id="amlTrendChart"></canvas>
     </div>
+
     <div class="grid cols-2" style="margin-bottom:16px">
       <div class="card"><h3>Rischio alto per Business Unit</h3><p class="card-sub">NDG distinti</p><canvas id="amlBuChart"></canvas></div>
       <div class="card"><h3>Rischio alto per cluster</h3><p class="card-sub">NDG distinti</p><canvas id="amlClusterChart"></canvas></div>
     </div>
+
     <div class="grid cols-2">
       <div class="card"><h3>Stato workflow (rischio alto)</h3><p class="card-sub">NDG distinti</p><canvas id="amlWorkflowChart"></canvas></div>
       <div class="card"><h3>Tipo verifica (rischio alto)</h3><p class="card-sub">NDG distinti</p><canvas id="amlTipoChart"></canvas></div>
     </div>
   `;
 
+  // GRAFICI
   mkChart('amlTrendChart', {type:'bar', data:{labels:months, datasets:[{label:'NDG completati', data:months.map(m=>byMonthSet.get(m).size), backgroundColor:PALETTE.danger}]},
     options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
 
