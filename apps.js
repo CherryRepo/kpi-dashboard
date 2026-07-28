@@ -1520,6 +1520,13 @@ function renderMonetica(panel){
     if(assCircolari(r)) operByFilialeType[fil].circolari++;
   });
 
+  // Preparazione dati per il grafico filiale (non stacked)
+  const filialeDatasets = [
+    {label:'Cambiali', data:filialArray.map(f=>operByFilialeType[f]?.cambiali||0), backgroundColor:PALETTE.info},
+    {label:'Tesoreria', data:filialArray.map(f=>operByFilialeType[f]?.tesoreria||0), backgroundColor:PALETTE.warn},
+    {label:'Circolari', data:filialArray.map(f=>operByFilialeType[f]?.circolari||0), backgroundColor:PALETTE.violet}
+  ];
+
   /* ============================================================ CASSETTE ============================================================ */
   const cassette2026 = cassetteRows.filter(r=>{
     const d = toDate(r.dta_rapporto_apert);
@@ -1631,11 +1638,11 @@ function renderMonetica(panel){
 
   mkChart('monVolumeBonificiChart',{type:'bar', data:{labels:months, datasets:[{label:'Volume (€)',data:months.map(m=>volumeMonth[m]||0),backgroundColor:PALETTE.accent}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
 
-  mkChart('monCassaOperChart',{type:'bar', data:{labels:months, datasets:[{label:'Cambiali',data:months.map(m=>cassaMonthByType[m]?.cambiali||0),backgroundColor:PALETTE.info},{label:'Tesoreria',data:months.map(m=>cassaMonthByType[m]?.tesoreria||0),backgroundColor:PALETTE.accent},{label:'Circolari',data:months.map(m=>cassaMonthByType[m]?.circolari||0),backgroundColor:PALETTE.violet}]}, options:{scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,grid:{color:PALETTE.grid}}}, plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10.5}}}}}});
+  mkChart('monCassaOperChart',{type:'bar', data:{labels:months, datasets:[{label:'Cambiali',data:months.map(m=>cassaMonthByType[m]?.cambiali||0),backgroundColor:PALETTE.info},{label:'Tesoreria',data:months.map(m=>cassaMonthByType[m]?.tesoreria||0),backgroundColor:PALETTE.warn},{label:'Circolari',data:months.map(m=>cassaMonthByType[m]?.circolari||0),backgroundColor:PALETTE.violet}]}, options:{scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,grid:{color:PALETTE.grid}}}, plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10.5}}}}}});
 
-  mkChart('monCassaVolChart',{type:'bar', data:{labels:months, datasets:[{label:'Cambiali',data:months.map(m=>cassaVolMonthByType[m]?.cambiali||0),backgroundColor:PALETTE.info},{label:'Tesoreria',data:months.map(m=>cassaVolMonthByType[m]?.tesoreria||0),backgroundColor:PALETTE.accent},{label:'Circolari',data:months.map(m=>cassaVolMonthByType[m]?.circolari||0),backgroundColor:PALETTE.violet}]}, options:{scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,grid:{color:PALETTE.grid}}}, plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10.5}}}}}});
+  mkChart('monCassaVolChart',{type:'bar', data:{labels:months, datasets:[{label:'Cambiali',data:months.map(m=>cassaVolMonthByType[m]?.cambiali||0),backgroundColor:PALETTE.info},{label:'Tesoreria',data:months.map(m=>cassaVolMonthByType[m]?.tesoreria||0),backgroundColor:PALETTE.warn},{label:'Circolari',data:months.map(m=>cassaVolMonthByType[m]?.circolari||0),backgroundColor:PALETTE.violet}]}, options:{scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,grid:{color:PALETTE.grid}}}, plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10.5}}}}}});
 
-  mkChart('monFilialeChart',{type:'bar', data:{labels:filialArray, datasets:[{label:'Cambiali',data:filialArray.map(f=>operByFilialeType[f]?.cambiali||0),backgroundColor:PALETTE.info},{label:'Tesoreria',data:filialArray.map(f=>operByFilialeType[f]?.tesoreria||0),backgroundColor:PALETTE.accent},{label:'Circolari',data:filialArray.map(f=>operByFilialeType[f]?.circolari||0),backgroundColor:PALETTE.violet}]}, options:{indexAxis:'y', scales:{x:{stacked:true,grid:{color:PALETTE.grid}},y:{grid:{display:false},ticks:{font:{size:10}}}}, plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10.5}}}}}});
+  mkChart('monFilialeChart',{type:'bar', data:{labels:filialArray, datasets:filialeDatasets}, options:{scales:{x:{grid:{display:false}},y:{grid:{color:PALETTE.grid}, ticks:{font:{size:10}}}}, plugins:{legend:{position:'bottom', labels:{boxWidth:10, font:{size:10.5}}}}}});
 
   mkChart('monCassetteChart',{type:'bar', data:{labels:months, datasets:[{label:'Cassette',data:months.map(m=>cassetteMonth[m]||0),backgroundColor:PALETTE.warn}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
 
