@@ -387,7 +387,7 @@ function buildSidebar(){
   if(STATE.domainSheets.some(s=>moneticaTypes.includes(s.type))){
     items.push({
       key:'monetica',
-      label:'Monetica',
+      label:'OPS Incassi, Pagamenti e Monetica',
       tag:'MON'
     });
   }
@@ -446,7 +446,7 @@ function buildTabs(){
   });
 
   if(hasDigital) tabDefs.push({key:'digital', label:'Digital Bank'});
-  if(hasMonetica) tabDefs.push({key:'monetica', label:'Monetica'});
+  if(hasMonetica) tabDefs.push({key:'monetica', label:'OPS Incassi, Pagamenti e Monetica'});
 
   tabDefs.forEach(t=>{
     const tab = el('div','tab',`<span>${t.label}</span>`);
@@ -1487,20 +1487,6 @@ function renderMonetica(panel){
     else if(assCircolari(r)) cassaMonthByType[k].circolari++;       // ✅ else if!
   });
 
-  // Grafico importi per mese e tipo
-  const cassaVolMonthByType = {};
-  cassa2026.forEach(r=>{
-    const d = toDate(r.d_data_cont);
-    const k = monthKey(d);
-    const importoStr = String(r.e_importo1 || '0').replace(',', '.');
-    const importo = Math.abs(parseFloat(r.e_importo1)||0);
-    if(!cassaVolMonthByType[k]) cassaVolMonthByType[k] = {cambiali:0, tesoreria:0, circolari:0};
-    
-    if(cambiali76(r)) cassaVolMonthByType[k].cambiali += importo;
-    else if(operTesoreria(r)) cassaVolMonthByType[k].tesoreria += importo;    // ✅ else if!
-    else if(assCircolari(r)) cassaVolMonthByType[k].circolari += importo;     // ✅ else if!
-  });
-
   // Operazioni per filiale e tipo
   const operByFilialeType = {};
   cassa2026.forEach(r=>{
@@ -1548,34 +1534,29 @@ function renderMonetica(panel){
 
     <div class="kpi-row">
       <div class="kpi" style="--kc:${PALETTE.info}">
-        <div class="lbl">Bonifici 2026</div>
+        <div class="lbl">Bonifici banca 2026</div>
         <div class="val">${fmtInt.format(bonifici2026.length)}</div>
       </div>
       <div class="kpi" style="--kc:${PALETTE.accent}">
-        <div class="lbl">Volume bonifici</div>
+        <div class="lbl">Volume bonifici banca</div>
         <div class="val">€ ${fmtInt.format(Object.values(volumeMonth).reduce((a,b)=>a+b,0))}</div>
+      </div>
+      <div class="kpi" style="--kc:${PALETTE.danger}">
+        <div class="lbl">Operazioni cassa 2026 (Ass. Circolari, Cambiali, Op. Tesoreria)</div>
+        <div class="val">${fmtInt.format(cassa2026.length)}</div>
       </div>
       <div class="kpi" style="--kc:${PALETTE.warn}">
         <div class="lbl">Cassette aperte 2026</div>
         <div class="val">${fmtInt.format(cassette2026.length)}</div>
       </div>
-      <div class="kpi" style="--kc:${PALETTE.danger}">
-        <div class="lbl">Operazioni cassa 2026</div>
-        <div class="val">${fmtInt.format(cassa2026.length)}</div>
-      </div>
     </div>
 
-    <div class="section-title">Bonifici <span class="count-badge">${fmtInt.format(bonifici2026.length)} operazioni</span></div>
+    <div class="section-title">Bonifici banca <span class="count-badge">${fmtInt.format(bonifici2026.length)} operazioni</span></div>
     <div class="grid cols-2">
       <div class="card">
         <h3>Bonifici per mese</h3>
         <p class="card-sub">Numero operazioni - 2026</p>
         <canvas id="monBonificiChart"></canvas>
-      </div>
-      <div class="card">
-        <h3>Volume bonifici per mese</h3>
-        <p class="card-sub">Importo totale - 2026</p>
-        <canvas id="monVolumeBonificiChart"></canvas>
       </div>
     </div>
 
@@ -1612,7 +1593,7 @@ function renderMonetica(panel){
       <canvas id="monFilialeChart"></canvas>
     </div>
 
-    <div class="section-title">Cassette <span class="count-badge">${fmtInt.format(cassette2026.length)} rapporti</span></div>
+    <div class="section-title">Cassette di sicurezza <span class="count-badge">${fmtInt.format(cassette2026.length)} rapporti</span></div>
     <div class="grid cols-2">
       <div class="card">
         <h3>Cassette aperte per mese</h3>
@@ -1632,8 +1613,6 @@ function renderMonetica(panel){
   mkChart('monVolumeBonificiChart',{type:'bar', data:{labels:months, datasets:[{label:'Volume (€)',data:months.map(m=>volumeMonth[m]||0),backgroundColor:PALETTE.accent}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
 
   mkChart('monCassaOperChart',{type:'bar', data:{labels:months, datasets:[{label:'Cambiali',data:months.map(m=>cassaMonthByType[m]?.cambiali||0),backgroundColor:PALETTE.navy},{label:'Tesoreria',data:months.map(m=>cassaMonthByType[m]?.tesoreria||0),backgroundColor:PALETTE.warn},{label:'Circolari',data:months.map(m=>cassaMonthByType[m]?.circolari||0),backgroundColor:PALETTE.pos}]}, options:{scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,grid:{color:PALETTE.grid}}}, plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10.5}}}}}});
-
-  mkChart('monCassaVolChart',{type:'bar', data:{labels:months, datasets:[{label:'Cambiali',data:months.map(m=>cassaVolMonthByType[m]?.cambiali||0),backgroundColor:PALETTE.navy},{label:'Tesoreria',data:months.map(m=>cassaVolMonthByType[m]?.tesoreria||0),backgroundColor:PALETTE.warn},{label:'Circolari',data:months.map(m=>cassaVolMonthByType[m]?.circolari||0),backgroundColor:PALETTE.pos}]}, options:{scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,grid:{color:PALETTE.grid}}}, plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10.5}}}}}});
 
   mkChart('monFilialeChart',{type:'bar', data:{labels:filialArray, datasets:[{label:'Cambiali',data:filialArray.map(f=>operByFilialeType[f]?.cambiali||0),backgroundColor:PALETTE.navy},{label:'Tesoreria',data:filialArray.map(f=>operByFilialeType[f]?.tesoreria||0),backgroundColor:PALETTE.warn},{label:'Circolari',data:filialArray.map(f=>operByFilialeType[f]?.circolari||0),backgroundColor:PALETTE.pos}]}, options:{scales:{x:{grid:{display:false}},y:{grid:{color:PALETTE.grid}, ticks:{font:{size:10}}}}, plugins:{legend:{position:'bottom', labels:{boxWidth:10, font:{size:10.5}}}}}});
 
