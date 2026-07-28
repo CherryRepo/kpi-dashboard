@@ -1,85 +1,180 @@
-// Aspetta che XLSX sia caricato
-function aspettaXLSX(callback, tentivi = 0) {
+/* ============================================================
+   CONFIGURAZIONE LIBRERIA XLSX
+   ============================================================ */
+
+function initXLSX(callback) {
   if (typeof XLSX !== 'undefined') {
+    console.log('✅ XLSX caricato correttamente');
     callback();
-  } else if (tentivi < 100) {
-    setTimeout(() => aspettaXLSX(callback, tentivi + 1), 50);
   } else {
-    console.error('❌ XLSX non caricato');
-    alert('❌ Errore: libreria Excel non disponibile. Ricarica la pagina.');
+    console.error('❌ XLSX non disponibile');
+    alert('❌ Errore: La libreria Excel non è stata caricata.\nRicarica la pagina e riprova.');
   }
 }
-/* ============================================================
-   STATE
-   ============================================================ */
-const PALETTE = {
-  accent:'#6e8c9c', info:'#6e8c9c', warn:'#b89f84', danger:'#b5615a', violet:'#b89f84',
-  navy:'#2e4857', pos:'#6f9277', neg:'#b5615a',
-  text:'#6e8c9c', grid:'rgba(46,72,87,0.08)'
-};
-const CHART_SERIES = ['#2e4857','#6e8c9c','#a4b8c1','#dbcab6','#b89f84','#6f9277','#b5615a','#9fb8d6'];
 
+/* ============================================================
+   CONFIGURAZIONE TEMA E STILI
+   ============================================================ */
+
+const PALETTE = {
+  accent: '#6e8c9c',
+  info: '#6e8c9c',
+  warn: '#b89f84',
+  danger: '#b5615a',
+  violet: '#b89f84',
+  navy: '#2e4857',
+  pos: '#6f9277',
+  neg: '#b5615a',
+  text: '#6e8c9c',
+  grid: 'rgba(46,72,87,0.08)'
+};
+
+const CHART_SERIES = [
+  '#2e4857', '#6e8c9c', '#a4b8c1', '#dbcab6',
+  '#b89f84', '#6f9277', '#b5615a', '#9fb8d6'
+];
+
+// Configurazione Chart.js
 Chart.defaults.color = PALETTE.text;
 Chart.defaults.font.family = "'Inter', sans-serif";
 Chart.defaults.font.size = 11.5;
 Chart.defaults.borderColor = PALETTE.grid;
 
+/* ============================================================
+   STATE GLOBALE
+   ============================================================ */
+
 let STATE = {
   dimRows: [],
   dimHeaders: [],
-  domainSheets: [], // {sheetName, type, headers, rows, dimRow}
-  charts: {}, // name -> Chart instance
+  domainSheets: [],
+  charts: {},
   activeTab: null,
 };
 
+/* ============================================================
+   FORMATTATORI
+   ============================================================ */
+
 const fmtInt = new Intl.NumberFormat('it-IT');
-const fmtDec = new Intl.NumberFormat('it-IT', {maximumFractionDigits:1, minimumFractionDigits:1});
-const fmtDate = (d)=> d instanceof Date && !isNaN(d) ? d.toLocaleDateString('it-IT') : '—';
+const fmtDec = new Intl.NumberFormat('it-IT', {
+  maximumFractionDigits: 1,
+  minimumFractionDigits: 1
+});
+const fmtDate = (d) => d instanceof Date && !isNaN(d) ? d.toLocaleDateString('it-IT') : '—';
 
 /* ============================================================
-   FILE LOADING
+   GESTIONE FILE
    ============================================================ */
-function setupFileHandling(){
+
+function setupFileHandling() {
   const fileInput = document.getElementById('fileInput');
-  const dropZone = document.getElementById('dropZone');
+  const dropZone = document.getElementById('dropZone') || document.body;
+  const btnLoad = document.getElementById('btnLoad');
+  const btnReplace = document.getElementById('btnReplace');
+
+  // Click sui pulsanti
+  if (btnLoad) btnLoad.onclick = () => fileInput.click();
+  if (btnReplace) btnReplace.onclick = () => fileInput.click();
   
-  document.getElementById('btnLoad').onclick = ()=> fileInput.click();
-  document.getElementById('btnReplace').onclick = ()=> fileInput.click();
-  dropZone.onclick = ()=> fileInput.click();
-  
-  ['dragover','dragenter'].forEach(ev=> dropZone.addEventListener(ev, e=>{e.preventDefault();dropZone.classList.add('drag');}));
-  ['dragleave','drop'].forEach(ev=> dropZone.addEventListener(ev, e=>{e.preventDefault();dropZone.classList.remove('drag');}));
-  
-  dropZone.addEventListener('drop', e=>{
-    e.preventDefault();
-    const f = e.dataTransfer.files[0];
-    if(f) handleFile(f);
+  // Click sulla drop zone
+  dropZone.onclick = () => fileInput.click();
+
+  // Drag & drop
+  ['dragover', 'dragenter'].forEach(ev => {
+    dropZone.addEventListener(ev, (e) => {
+      e.preventDefault();
+      dropZone.classList.add('drag');
+    });
   });
-  
-  fileInput.addEventListener('change', e=>{
-    const f = e.target.files[0];
-    if(f) handleFile(f);
+
+  ['dragleave', 'drop'].forEach(ev => {
+    dropZone.addEventListener(ev, (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('drag');
+    });
+  });
+
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  });
+
+  // Change input
+  fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) handleFile(file);
   });
 }
 
-function handleFile(file){
-  document.getElementById('fileName').textContent = 'Elaborazione: ' + file.name;
+function handleFile(file) {
+  console.log('📂 File selezionato:', file.name);
+  
+  // Verifica XLSX
+  if (typeof XLSX === 'undefined') {
+    console.error('❌ XLSX non è disponibile');
+    alert('❌ Errore: Libreria Excel non caricata.\nRicarica la pagina.');
+    return;
+  }
+
+  const fileInfo = document.getElementById('fileInfo');
+  if (fileInfo) fileInfo.textContent = '⏳ Elaborazione: ' + file.name;
+
   const reader = new FileReader();
-  reader.onload = (e)=>{
-    try{
+
+  reader.onload = (e) => {
+    try {
+      console.log('📖 Inizio lettura file...');
+      
       const data = new Uint8Array(e.target.result);
-      const wb = XLSX.read(data, {type:'array', cellDates:true});
+      const wb = XLSX.read(data, {
+        type: 'array',
+        cellDates: true
+      });
+
+      console.log('✅ Workbook caricato');
+      console.log('📄 Fogli trovati:', wb.SheetNames);
+
       parseWorkbook(wb);
-      document.getElementById('fileName').textContent = file.name;
-      document.getElementById('btnReplace').style.display = 'inline-flex';
-    }catch(err){
-      console.error(err);
-      document.getElementById('fileName').textContent = 'Errore lettura file';
-      alert('Non è stato possibile leggere il file. Verifica che sia un .xlsx valido.\n' + err.message);
+
+      if (fileInfo) fileInfo.textContent = '✅ ' + file.name;
+      console.log('✅ Dashboard aggiornato con successo');
+
+    } catch (err) {
+      console.error('❌ Errore:', err);
+      if (fileInfo) fileInfo.textContent = '❌ Errore lettura file';
+      alert(
+        '❌ Impossibile leggere il file.\n\n' +
+        'Verifica che:\n' +
+        '✓ Il file sia un .xlsx valido\n' +
+        '✓ Non sia corrotto\n' +
+        '✓ Contiene almeno una riga di dati\n\n' +
+        'Dettagli: ' + err.message
+      );
     }
   };
+
+  reader.onerror = () => {
+    console.error('❌ Errore FileReader');
+    if (fileInfo) fileInfo.textContent = '❌ Errore lettura';
+    alert('❌ Errore nella lettura del file. Riprova.');
+  };
+
   reader.readAsArrayBuffer(file);
 }
+
+/* ============================================================
+   INIZIALIZZAZIONE
+   ============================================================ */
+
+window.addEventListener('DOMContentLoaded', () => {
+  console.log('🚀 Pagina caricata');
+  initXLSX(() => {
+    setupFileHandling();
+  });
+});
+
 
 /* ============================================================
    PARSE WORKBOOK -> classify sheets
