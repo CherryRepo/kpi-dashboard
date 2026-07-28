@@ -111,58 +111,40 @@ function setupFileHandling() {
 function handleFile(file) {
   console.log('📂 File selezionato:', file.name);
   
-  // Verifica XLSX
-  if (typeof XLSX === 'undefined') {
-    console.error('❌ XLSX non è disponibile');
-    alert('❌ Errore: Libreria Excel non caricata.\nRicarica la pagina.');
-    return;
-  }
-
   const fileInfo = document.getElementById('fileInfo');
   if (fileInfo) fileInfo.textContent = '⏳ Elaborazione: ' + file.name;
 
   const reader = new FileReader();
 
   reader.onload = (e) => {
-    try {
-      console.log('📖 Inizio lettura file...');
-      
-      const data = new Uint8Array(e.target.result);
-      const wb = XLSX.read(data, {
-        type: 'array',
-        cellDates: true
-      });
+    const arrayBuffer = e.target.result;
+    const startTime = performance.now();
 
-      console.log('✅ Workbook caricato');
-      console.log('📄 Fogli trovati:', wb.SheetNames);
+    // Usa Web Worker per non bloccare l'interfaccia
+    const worker = new Worker('worker.js');
+    
+    worker.onmessage = (msg) => {
+      if (msg.data.success) {
+        console.log('✅ Elaborazione completata in', (performance.now() - startTime).toFixed(0) + 'ms');
+        parseWorkbook(msg.data.workbook);
+        if (fileInfo) fileInfo.textContent = '✅ ' + file.name;
+      } else {
+        alert('❌ Errore: ' + msg.data.error);
+        if (fileInfo) fileInfo.textContent = '❌ Errore';
+      }
+      worker.terminate();
+    };
 
-      parseWorkbook(wb);
-
-      if (fileInfo) fileInfo.textContent = '✅ ' + file.name;
-      console.log('✅ Dashboard aggiornato con successo');
-
-    } catch (err) {
-      console.error('❌ Errore:', err);
-      if (fileInfo) fileInfo.textContent = '❌ Errore lettura file';
-      alert(
-        '❌ Impossibile leggere il file.\n\n' +
-        'Verifica che:\n' +
-        '✓ Il file sia un .xlsx valido\n' +
-        '✓ Non sia corrotto\n' +
-        '✓ Contiene almeno una riga di dati\n\n' +
-        'Dettagli: ' + err.message
-      );
-    }
+    worker.postMessage(arrayBuffer);
   };
 
   reader.onerror = () => {
-    console.error('❌ Errore FileReader');
-    if (fileInfo) fileInfo.textContent = '❌ Errore lettura';
-    alert('❌ Errore nella lettura del file. Riprova.');
+    alert('❌ Errore nella lettura del file.');
   };
 
   reader.readAsArrayBuffer(file);
 }
+
 
 /* ============================================================
    INIZIALIZZAZIONE
