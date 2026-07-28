@@ -922,10 +922,6 @@ function renderOpsAml(panel, s){
       <div class="kpi" style="--kc:${PALETTE.accent}"><div class="lbl">Verifiche completate (alto)</div><div class="val">${fmtInt.format(completedAltoNdg)}</div><div class="sub">${fmtDec.format(pctCompletateAlto)}% del rischio alto</div></div>
       <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">In lavorazione (alto)</div><div class="val">${fmtInt.format(pendingAltoNdg)}</div></div>
     </div>
-    <div class="card" style="margin-bottom:16px">
-      <h3>Distribuzione per fascia di rischio</h3><p class="card-sub">NDG distinti, tutte le posizioni censite</p>
-      <canvas id="amlFasciaChart"></canvas>
-    </div>
 
     <div class="section-title">Adeguate verifiche a rischio alto nel tempo <span class="count-badge">${fmtInt.format(altoNdg)} NDG</span></div>
     <p class="section-desc">Focus sulle posizioni in fascia di rischio alto: avanzamento delle adeguate verifiche completate (data uscita valorizzata) e tempi di lavorazione.</p>
@@ -949,9 +945,6 @@ function renderOpsAml(panel, s){
     </div>
   `;
 
-  mkChart('amlFasciaChart', {type:'doughnut', data:{labels:byFascia.map(x=>x[0]), datasets:[{data:byFascia.map(x=>x[1]), backgroundColor:CHART_SERIES}]},
-    options:{plugins:{legend:{position:'right', labels:{boxWidth:10, font:{size:10.5}}}}}});
-
   mkChart('amlTrendChart', {type:'bar', data:{labels:months, datasets:[{label:'NDG completati', data:months.map(m=>byMonthSet.get(m).size), backgroundColor:PALETTE.danger}]},
     options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
 
@@ -967,6 +960,7 @@ function renderOpsAml(panel, s){
   mkChart('amlTipoChart', {type:'doughnut', data:{labels:byTipoVerifica.map(x=>x[0]), datasets:[{data:byTipoVerifica.map(x=>x[1]), backgroundColor:CHART_SERIES}]},
     options:{plugins:{legend:{position:'right', labels:{boxWidth:10, font:{size:10.5}}}}}});
 }
+
 
 /* ============================================================
    PANEL: DIGITAL
