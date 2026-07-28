@@ -1491,9 +1491,10 @@ function renderMonetica(panel){
     const d = toDate(r.d_data_cont);
     const k = monthKey(d);
     if(!cassaMonthByType[k]) cassaMonthByType[k] = {cambiali:0, tesoreria:0, circolari:0};
+    
     if(cambiali76(r)) cassaMonthByType[k].cambiali++;
-    if(operTesoreria(r)) cassaMonthByType[k].tesoreria++;
-    if(assCircolari(r)) cassaMonthByType[k].circolari++;
+    else if(operTesoreria(r)) cassaMonthByType[k].tesoreria++;      // ✅ else if!
+    else if(assCircolari(r)) cassaMonthByType[k].circolari++;       // ✅ else if!
   });
 
   // Grafico importi per mese e tipo
@@ -1503,21 +1504,21 @@ function renderMonetica(panel){
     const k = monthKey(d);
     const importo = Math.abs(parseFloat(r.e_importo1)||0);
     if(!cassaVolMonthByType[k]) cassaVolMonthByType[k] = {cambiali:0, tesoreria:0, circolari:0};
+    
     if(cambiali76(r)) cassaVolMonthByType[k].cambiali += importo;
-    if(operTesoreria(r)) cassaVolMonthByType[k].tesoreria += importo;
-    if(assCircolari(r)) cassaVolMonthByType[k].circolari += importo;
+    else if(operTesoreria(r)) cassaVolMonthByType[k].tesoreria += importo;    // ✅ else if!
+    else if(assCircolari(r)) cassaVolMonthByType[k].circolari += importo;     // ✅ else if!
   });
 
   // Operazioni per filiale e tipo
-  const filialSet = new Set(cassa2026.map(r=>r.descrizione_filiale).filter(Boolean));
-  const filialArray = Array.from(filialSet).sort();
   const operByFilialeType = {};
   cassa2026.forEach(r=>{
     const fil = r.descrizione_filiale || 'N.D.';
     if(!operByFilialeType[fil]) operByFilialeType[fil] = {cambiali:0, tesoreria:0, circolari:0};
+    
     if(cambiali76(r)) operByFilialeType[fil].cambiali++;
-    if(operTesoreria(r)) operByFilialeType[fil].tesoreria++;
-    if(assCircolari(r)) operByFilialeType[fil].circolari++;
+    else if(operTesoreria(r)) operByFilialeType[fil].tesoreria++;    // ✅ else if!
+    else if(assCircolari(r)) operByFilialeType[fil].circolari++;     // ✅ else if!
   });
 
   // Preparazione dati per il grafico filiale (non stacked)
