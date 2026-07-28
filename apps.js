@@ -1522,6 +1522,7 @@ function renderMonetica(panel){
   });
 
   // Preparazione dati per il grafico filiale (non stacked)
+  const filialArray = Object.keys(operByFilialeType).sort();
   const filialeDatasets = [
     {label:'Cambiali', data:filialArray.map(f=>operByFilialeType[f]?.cambiali||0), backgroundColor:PALETTE.info},
     {label:'Tesoreria', data:filialArray.map(f=>operByFilialeType[f]?.tesoreria||0), backgroundColor:PALETTE.warn},
