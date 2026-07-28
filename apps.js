@@ -111,39 +111,71 @@ function setupFileHandling() {
 function handleFile(file) {
   console.log('📂 File selezionato:', file.name);
   
+  if (typeof XLSX === 'undefined') {
+    alert('❌ Libreria Excel non caricata.');
+    return;
+  }
+
   const fileInfo = document.getElementById('fileInfo');
   if (fileInfo) fileInfo.textContent = '⏳ Elaborazione: ' + file.name;
 
   const reader = new FileReader();
+  const isCSV = file.name.toLowerCase().endsWith('.csv');
 
   reader.onload = (e) => {
-    const arrayBuffer = e.target.result;
-    const startTime = performance.now();
+    try {
+      console.log('📖 Inizio lettura:', isCSV ? 'CSV' : 'XLSX');
+      const startTime = performance.now();
+      
+      let wb;
 
-    // Usa Web Worker per non bloccare l'interfaccia
-    const worker = new Worker('worker.js');
-    
-    worker.onmessage = (msg) => {
-      if (msg.data.success) {
-        console.log('✅ Elaborazione completata in', (performance.now() - startTime).toFixed(0) + 'ms');
-        parseWorkbook(msg.data.workbook);
-        if (fileInfo) fileInfo.textContent = '✅ ' + file.name;
+      if (isCSV) {
+        // ⚡ CSV: leggi come testo e converti
+        const csv = e.target.result;
+        wb = XLSX.read(csv, {
+          type: 'string',
+          cellDates: true,
+          defval: ''
+        });
       } else {
-        alert('❌ Errore: ' + msg.data.error);
-        if (fileInfo) fileInfo.textContent = '❌ Errore';
+        // XLSX: leggi come array buffer
+        const data = new Uint8Array(e.target.result);
+        wb = XLSX.read(data, {
+          type: 'array',
+          cellDates: true,
+          defval: '',
+          blankrows: false
+        });
       }
-      worker.terminate();
-    };
 
-    worker.postMessage(arrayBuffer);
+      console.log('✅ File caricato in', (performance.now() - startTime).toFixed(0) + 'ms');
+      console.log('📄 Fogli:', wb.SheetNames);
+
+      parseWorkbook(wb);
+
+      const totalTime = (performance.now() - startTime).toFixed(0);
+      if (fileInfo) fileInfo.textContent = '✅ ' + file.name + ' (' + totalTime + 'ms)';
+      console.log('✅ Completato in', totalTime + 'ms');
+
+    } catch (err) {
+      console.error('❌ Errore:', err);
+      if (fileInfo) fileInfo.textContent = '❌ Errore';
+      alert('❌ Errore: ' + err.message);
+    }
   };
 
   reader.onerror = () => {
     alert('❌ Errore nella lettura del file.');
   };
 
-  reader.readAsArrayBuffer(file);
+  // ⚡ Leggi come stringa per CSV, buffer per XLSX
+  if (isCSV) {
+    reader.readAsText(file);
+  } else {
+    reader.readAsArrayBuffer(file);
+  }
 }
+
 
 
 /* ============================================================
