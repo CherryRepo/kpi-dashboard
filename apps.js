@@ -1,3 +1,14 @@
+// Aspetta che XLSX sia caricato
+function aspettaXLSX(callback, tentivi = 0) {
+  if (typeof XLSX !== 'undefined') {
+    callback();
+  } else if (tentivi < 100) {
+    setTimeout(() => aspettaXLSX(callback, tentivi + 1), 50);
+  } else {
+    console.error('❌ XLSX non caricato');
+    alert('❌ Errore: libreria Excel non disponibile. Ricarica la pagina.');
+  }
+}
 /* ============================================================
    STATE
    ============================================================ */
