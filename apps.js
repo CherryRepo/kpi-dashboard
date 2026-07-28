@@ -1558,6 +1558,11 @@ function renderMonetica(panel){
         <p class="card-sub">Numero operazioni - 2026</p>
         <canvas id="monBonificiChart"></canvas>
       </div>
+      <div class="card">
+        <h3>Volume bonifici per mese</h3>
+        <p class="card-sub">Volume operazioni - 2026</p>
+        <canvas id="monVolumeBonificiChart"></canvas>
+      </div>
     </div>
 
     <div class="section-title">Cassa <span class="count-badge">${fmtInt.format(cassa2026.length)} operazioni</span></div>
@@ -1575,17 +1580,10 @@ function renderMonetica(panel){
         <div class="val">${fmtInt.format(totCircolari)}</div>
       </div>
     </div>
-    <div class="grid cols-2">
-      <div class="card">
-        <h3>Operazioni per mese per tipo</h3>
-        <p class="card-sub">Cambiali, tesoreria, circolari - 2026</p>
-        <canvas id="monCassaOperChart"></canvas>
-      </div>
-      <div class="card">
-        <h3>Volume per mese per tipo</h3>
-        <p class="card-sub">Importi (abs) - 2026</p>
-        <canvas id="monCassaVolChart"></canvas>
-      </div>
+    <div class="card" style="margin-top:16px">
+      <h3>Operazioni per mese per tipo</h3>
+      <p class="card-sub">Cambiali, tesoreria, circolari - 2026</p>
+      <canvas id="monCassaOperChart"></canvas>
     </div>
     <div class="card" style="margin-top:16px">
       <h3>Operazioni per filiale e tipo</h3>
