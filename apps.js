@@ -1480,30 +1480,48 @@ function renderMonetica(panel){
   cassa2026.forEach(r=>{
     const d = toDate(r.d_data_cont);
     const k = monthKey(d);
-    if(!cassaMonthByType[k]) cassaMonthByType[k] = {cambiali:0, tesoreria:0, circolari:0};
+    if(!cassaMonthByType[k]) cassaMonthByType[k] = {cambiali:0, tesoreria:0, circolari:0, totale:0};
     
-    if(cambiali76(r)) cassaMonthByType[k].cambiali++;
-    else if(operTesoreria(r)) cassaMonthByType[k].tesoreria++;      // ✅ else if!
-    else if(assCircolari(r)) cassaMonthByType[k].circolari++;       // ✅ else if!
+    if(cambiali76(r)) {
+      cassaMonthByType[k].cambiali++;
+      cassaMonthByType[k].totale++;
+    }
+    else if(operTesoreria(r)) {
+      cassaMonthByType[k].tesoreria++;
+      cassaMonthByType[k].totale++;
+    }
+    else if(assCircolari(r)) {
+      cassaMonthByType[k].circolari++;
+      cassaMonthByType[k].totale++;
+    }
   });
 
-  // Operazioni per filiale e tipo
+  // Operazioni per filiale e tipo (CON VERIFICA)
   const operByFilialeType = {};
   cassa2026.forEach(r=>{
     const fil = r.descrizione_filiale || 'N.D.';
-    if(!operByFilialeType[fil]) operByFilialeType[fil] = {cambiali:0, tesoreria:0, circolari:0};
+    if(!operByFilialeType[fil]) operByFilialeType[fil] = {cambiali:0, tesoreria:0, circolari:0, totale:0};
     
-    if(cambiali76(r)) operByFilialeType[fil].cambiali++;
-    else if(operTesoreria(r)) operByFilialeType[fil].tesoreria++;    // ✅ else if!
-    else if(assCircolari(r)) operByFilialeType[fil].circolari++;     // ✅ else if!
+    if(cambiali76(r)) {
+      operByFilialeType[fil].cambiali++;
+      operByFilialeType[fil].totale++;
+    }
+    else if(operTesoreria(r)) {
+      operByFilialeType[fil].tesoreria++;
+      operByFilialeType[fil].totale++;
+    }
+    else if(assCircolari(r)) {
+      operByFilialeType[fil].circolari++;
+      operByFilialeType[fil].totale++;
+    }
   });
 
   // Preparazione dati per il grafico filiale (non stacked)
   const filialArray = Object.keys(operByFilialeType).sort();
   const filialeDatasets = [
-    {label:'Cambiali', data:filialArray.map(f=>operByFilialeType[f]?.cambiali||0), backgroundColor:PALETTE.info},
-    {label:'Tesoreria', data:filialArray.map(f=>operByFilialeType[f]?.tesoreria||0), backgroundColor:PALETTE.warn},
-    {label:'Circolari', data:filialArray.map(f=>operByFilialeType[f]?.circolari||0), backgroundColor:PALETTE.violet}
+    {label:'Cambiali', data:filialArray.map(f=>operByFilialeType[f].cambiali||0), backgroundColor:PALETTE.info},
+    {label:'Tesoreria', data:filialArray.map(f=>operByFilialeType[f].tesoreria||0), backgroundColor:PALETTE.warn},
+    {label:'Circolari', data:filialArray.map(f=>operByFilialeType[f].circolari||0), backgroundColor:PALETTE.violet}
   ];
 
   /* ============================================================ CASSETTE ============================================================ */
@@ -1529,7 +1547,7 @@ function renderMonetica(panel){
   ])].sort();
 
   const moneticaDimRow = findDimRow(MONETICA_ID);
-  panel.innerHTML = structHeaderHtml({sheetName: MONETICA_ID, dimRow: moneticaDimRow}, 'Monetica') + `
+  panel.innerHTML = structHeaderHtml({sheetName: MONETICA_ID, dimRow: moneticaDimRow}, 'OPS Incassi, Pagamenti e Monetica') + `
     <p class="panel-sub">Monitoraggio KPI Monetica su dati 2026.</p>
 
     <div class="kpi-row">
@@ -1612,12 +1630,13 @@ function renderMonetica(panel){
 
   mkChart('monCassaOperChart',{type:'bar', data:{labels:months, datasets:[{label:'Cambiali',data:months.map(m=>cassaMonthByType[m]?.cambiali||0),backgroundColor:PALETTE.navy},{label:'Tesoreria',data:months.map(m=>cassaMonthByType[m]?.tesoreria||0),backgroundColor:PALETTE.warn},{label:'Circolari',data:months.map(m=>cassaMonthByType[m]?.circolari||0),backgroundColor:PALETTE.pos}]}, options:{scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,grid:{color:PALETTE.grid}}}, plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10.5}}}}}});
 
-  mkChart('monFilialeChart',{type:'bar', data:{labels:filialArray, datasets:[{label:'Cambiali',data:filialArray.map(f=>operByFilialeType[f]?.cambiali||0),backgroundColor:PALETTE.navy},{label:'Tesoreria',data:filialArray.map(f=>operByFilialeType[f]?.tesoreria||0),backgroundColor:PALETTE.warn},{label:'Circolari',data:filialArray.map(f=>operByFilialeType[f]?.circolari||0),backgroundColor:PALETTE.pos}]}, options:{scales:{x:{grid:{display:false}},y:{grid:{color:PALETTE.grid}, ticks:{font:{size:10}}}}, plugins:{legend:{position:'bottom', labels:{boxWidth:10, font:{size:10.5}}}}}});
+  mkChart('monFilialeChart',{type:'bar', data:{labels:filialArray, datasets:[{label:'Cambiali',data:filialArray.map(f=>operByFilialeType[f].cambiali),backgroundColor:PALETTE.navy},{label:'Tesoreria',data:filialArray.map(f=>operByFilialeType[f].tesoreria),backgroundColor:PALETTE.warn},{label:'Circolari',data:filialArray.map(f=>operByFilialeType[f].circolari),backgroundColor:PALETTE.pos}]}, options:{scales:{x:{grid:{display:false}},y:{grid:{color:PALETTE.grid}, ticks:{font:{size:10}}}}, plugins:{legend:{position:'bottom', labels:{boxWidth:10, font:{size:10.5}}}}}});
 
   mkChart('monCassetteChart',{type:'bar', data:{labels:months, datasets:[{label:'Cassette',data:months.map(m=>cassetteMonth[m]||0),backgroundColor:PALETTE.warn}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
 
   mkChart('monBuCassetteChart',{type:'bar', data:{labels:byBuCassette.map(x=>x[0]), datasets:[{label:'Cassette',data:byBuCassette.map(x=>x[1]),backgroundColor:PALETTE.violet}]}, options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false},ticks:{font:{size:10}}}}}});
 }
+
 
 /* ============================================================
    PANEL: GENERIC (unrecognized sheet)
