@@ -1492,6 +1492,7 @@ function renderMonetica(panel){
   cassa2026.forEach(r=>{
     const d = toDate(r.d_data_cont);
     const k = monthKey(d);
+    const importoStr = String(r.e_importo1 || '0').replace(',', '.');
     const importo = Math.abs(parseFloat(r.e_importo1)||0);
     if(!cassaVolMonthByType[k]) cassaVolMonthByType[k] = {cambiali:0, tesoreria:0, circolari:0};
     
