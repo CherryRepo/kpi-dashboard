@@ -176,8 +176,6 @@ function handleFile(file) {
   }
 }
 
-
-
 /* ============================================================
    INIZIALIZZAZIONE
    ============================================================ */
@@ -215,7 +213,7 @@ function parseWorkbook(wb){
     STATE.domainSheets.push({sheetName:name, type, headers, rows, dimRow});
   }
 
-  const typeOrder = ['credito','perfezionamenti','anagrafe','antifrode','ops_aml','generic'];
+  const typeOrder = ['credito','perfezionamenti','anagrafe','antifrode','ops_aml','bancassurance', 'generic'];
   STATE.domainSheets.sort((a, b) => {
     const orderA = typeOrder.indexOf(a.type);
     const orderB = typeOrder.indexOf(b.type);
@@ -234,6 +232,7 @@ function classifySheet(sheetName) {
   if (name.includes('10001100023100042100130v1')) return 'digital_rapporti';
   if (name.includes('10001100023100042100130v2')) return 'digital_frodi';
   if (name.includes('10001100023100042100130v3')) return 'digital_raisin';
+  if (name.includes('10001100023100042100129')) return 'bancassurance';
   if (name.includes('10001100023100034') || name.includes('ops_aml')) return 'ops_aml';
   if (name.includes('10001100023100044')) return 'antifrode';
   if (name.includes('100011000231')) return 'anagrafe';
@@ -358,6 +357,7 @@ function buildSidebar(){
     anagrafe:'Anagrafe',
     antifrode:'Antifrode',
     ops_aml:'OPS AML',
+    bancassurance:'Wealth & Bancassurance',
     generic:'Foglio dati'
   };
   STATE.domainSheets.forEach((s, idx)=>{
@@ -423,7 +423,7 @@ function buildTabs(){
   const digitalTypes = ['digital_rapporti','digital_frodi','digital_raisin'];
   const hasDigital = STATE.domainSheets.some(s => digitalTypes.includes(s.type));
 
-  const labelMap = {credito:'Credito & Factoring', perfezionamenti:'Perfezionamenti credito ordinario', anagrafe:'Anagrafe', antifrode:'Antifrode', ops_aml:'OPS AML'};
+  const labelMap = {credito:'Credito & Factoring', perfezionamenti:'Perfezionamenti credito ordinario', anagrafe:'Anagrafe', antifrode:'Antifrode', ops_aml:'OPS AML', bancassurance:'Wealth & Bancassurance'};
 
   STATE.domainSheets.forEach((s, idx)=>{
     if(digitalTypes.includes(s.type)) return;
@@ -466,6 +466,7 @@ function activateTab(key){
   else if(s.type === 'credito') renderCredito(panel, s);
   else if(s.type === 'ops_aml') renderOpsAml(panel, s);
   else if(s.type === 'perfezionamenti') renderPerfezionamenti(panel, s);
+  else if(s.type === 'bancassurance') renderBancassurance(panel, s);
   else renderGeneric(panel, s);
 }
 
@@ -1405,6 +1406,29 @@ function renderPerfezionamenti(panel, s){
       }
     }
   });
+}
+
+/* ============================================================ PANEL: BANCASSURANCE ============================================================ */
+function renderBancassurance(panel, s){
+  const rows = s.rows;
+  const bancassurance = rows.filter(r => r && r.data_ordine);
+  const statiSet = new Set(bancassurance.map(r => r.descrizione_stato).filter(Boolean));
+  const statiArray = Array.from(statiSet).sort();
+  const statoColorMap = Object.fromEntries(statiArray.map((stato, i) => [stato, CHART_SERIES[i % CHART_SERIES.length]]));
+  const ordiniByMonthStato = {};
+  bancassurance.forEach(r => { const d = toDate(r.data_ordine); const k = monthKey(d); const stato = r.descrizione_stato || 'N.D.'; if (!ordiniByMonthStato[k]) ordiniByMonthStato[k] = {}; ordiniByMonthStato[k][stato] = (ordiniByMonthStato[k][stato] || 0) + 1; });
+  const volumeByMonth = {};
+  bancassurance.forEach(r => { const d = toDate(r.data_ordine); const k = monthKey(d); volumeByMonth[k] = (volumeByMonth[k] || 0) + (parseFloat(r.tot_generale_euro) || 0); });
+  const months = [...new Set([...Object.keys(ordiniByMonthStato), ...Object.keys(volumeByMonth)])].sort();
+  const byStato = Object.entries(bancassurance.reduce((acc, r) => { const stato = r.descrizione_stato || 'N.D.'; acc[stato] = (acc[stato] || 0) + 1; return acc; }, {})).sort((a, b) => b[1] - a[1]);
+  const volumeTotal = Object.values(volumeByMonth).reduce((a, b) => a + b, 0);
+  const volumeAvg = months.length ? volumeTotal / months.length : 0;
+  
+  panel.innerHTML = structHeaderHtml(s, 'Bancassurance') + `<p class="panel-sub">Ordini Bancassurance con data_ordine</p><div class="kpi-row"><div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Ordini totali</div><div class="val">${fmtInt.format(bancassurance.length)}</div></div><div class="kpi" style="--kc:${PALETTE.accent}"><div class="lbl">Volume totale</div><div class="val">€ ${fmtInt.format(volumeTotal)}</div></div><div class="kpi" style="--kc:${PALETTE.violet}"><div class="lbl">Volume medio mensile</div><div class="val">€ ${fmtInt.format(volumeAvg)}</div></div></div><div class="grid cols-2"><div class="card"><h3>Ordini mensili per stato</h3><p class="card-sub">data_ordine, suddiviso per descrizione_stato</p><canvas id="baOrdiniChart"></canvas></div><div class="card"><h3>Volume mensile</h3><p class="card-sub">tot_generale_euro per mese</p><canvas id="baVolumeChart"></canvas></div></div>`;
+
+  mkChart('baOrdiniChart', { type: 'bar', data: { labels: months, datasets: statiArray.map(stato => ({ label: stato, data: months.map(m => ordiniByMonthStato[m]?.[stato] || 0), backgroundColor: statoColorMap[stato], borderColor: statoColorMap[stato], borderWidth: 0 })) }, options: { scales: { x: {stacked: true, grid: {display: false}}, y: {stacked: true, grid: {color: PALETTE.grid}} }, plugins: { legend: {position: 'bottom', labels: {boxWidth: 10, font: {size: 10.5}}} } } });
+
+  mkChart('baVolumeChart', { type: 'bar', data: { labels: months, datasets: [{ label: 'Volume (€)', data: months.map(m => volumeByMonth[m] || 0), backgroundColor: PALETTE.pos, borderColor: PALETTE.pos, borderWidth: 0 }] }, options: { scales: { x: {grid: {display: false}}, y: {grid: {color: PALETTE.grid}} }, plugins: { legend: {display: false} } } });
 }
 
 /* ============================================================
