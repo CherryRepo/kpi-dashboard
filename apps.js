@@ -228,14 +228,15 @@ function parseWorkbook(wb){
 function classifySheet(sheetName) {
   const name = String(sheetName).toLowerCase().trim();
 
-    // Digital Bank, Monetica - tre sorgenti
+    // Digital Bank, Monetica - più sorgenti
   if (name.includes('10001100023100042100130v1')) return 'digital_rapporti';
   if (name.includes('10001100023100042100130v2')) return 'digital_frodi';
   if (name.includes('10001100023100042100130v3')) return 'digital_raisin';
   if (name.includes('10001100023100042100129')) return 'bancassurance';
-  if (name.includes('10001100023100036v1')) return 'monetica_bonifici';
+  if (name.includes('10001100023100036v1')) return 'monetica_bonifici_banca';
   if (name.includes('10001100023100036v2')) return 'monetica_cassa';
   if (name.includes('10001100023100036v3')) return 'monetica_cassette';
+  if (name.includes('10001100023100036v4')) return 'monetica_bonifici_estero';
   if (name.includes('10001100023100034')) return 'ops_aml';
   if (name.includes('10001100023100044')) return 'antifrode';
   if (name.includes('100011000231')) return 'anagrafe';
@@ -354,7 +355,7 @@ function buildSidebar(){
   nav.innerHTML = '';
   const items = [{key:'overview', label:'Panoramica dimensionamento', tag:'DIM'}];
   const digitalTypes = ['digital_rapporti','digital_frodi','digital_raisin'];
-  const moneticaTypes = ['monetica_bonifici','monetica_cassa','monetica_cassette'];
+  const moneticaTypes = ['monetica_bonifici_banca','monetica_cassa','monetica_cassette','monetica_bonifici_estero'];
   const labelMap = {
     credito:'Credito Ordinario & Factoring',
     perfezionamenti:'Perfezionamenti credito ordinario',
@@ -434,7 +435,7 @@ function buildTabs(){
 
   const tabDefs = [{key:'overview', label:'Overview'}];
   const digitalTypes = ['digital_rapporti','digital_frodi','digital_raisin'];
-  const moneticaTypes = ['monetica_bonifici','monetica_cassa','monetica_cassette'];
+  const moneticaTypes = ['monetica_bonifici_banca','monetica_cassa','monetica_cassette', 'monetica_bonifici_estero'];
   const hasDigital = STATE.domainSheets.some(s => digitalTypes.includes(s.type));
   const hasMonetica = STATE.domainSheets.some(s => moneticaTypes.includes(s.type));
 
@@ -1007,7 +1008,6 @@ function renderAnagrafe(panel, s){
       <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Nominativi censiti</div><div class="val">${fmtInt.format(rows.length)}</div></div>
       <div class="kpi" style="--kc:${PALETTE.violet}"><div class="lbl">Nature giuridiche distinte</div><div class="val">${new Set(rows.map(r=>r.des_natura_giuridica)).size}</div></div>
       <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">Periodo censimento</div><div class="val" style="font-size:15px">${fmtDate(minD)} → ${fmtDate(maxD)}</div></div>
-      <div class="kpi" style="--kc:${PALETTE.danger}"><div class="lbl">Deceduti registrati</div><div class="val">${fmtInt.format(nDeceduti)}</div></div>
     </div>
     <div class="card" style="margin-bottom:16px">
       <h3>Trend censimenti nel tempo</h3><p class="card-sub">conteggio mensile per data censimento</p><canvas id="anTrendChart"></canvas>
@@ -1192,7 +1192,7 @@ function renderBancassurance(panel, s){
   const volumeAvg = months.length ? volumeTotal / months.length : 0;
   
   panel.innerHTML = structHeaderHtml(s, 'Wealth & Bancassurance - ORGANIZATION, ICT & HR') + `
-    <div class="section-title">Statistiche su ordini di trasferimento titoli, fondi, ecc...</div>
+    <div class="section-title">Statistiche su ordini di trasferimento titoli, fondi, ecc... 2026</div>
     <div class="kpi-row">
       <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Ordini totali</div><div class="val">${fmtInt.format(bancassurance.length)}</div></div>
       <div class="kpi" style="--kc:${PALETTE.accent}"><div class="lbl">Volume totale</div><div class="val">€ ${fmtInt.format(volumeTotal)}</div></div>
@@ -1461,13 +1461,15 @@ function renderDigital(panel){
 const MONETICA_ID = '10001100023100036';
 
 function renderMonetica(panel){
-  const bonifici = STATE.domainSheets.find(s=>s.type==='monetica_bonifici');
+  const bonifici = STATE.domainSheets.find(s=>s.type==='monetica_bonifici_banca');
   const cassa = STATE.domainSheets.find(s=>s.type==='monetica_cassa');
   const cassette = STATE.domainSheets.find(s=>s.type==='monetica_cassette');
+  const bonifici_estero = STATE.domainSheets.find(s=>s.type==='monetica_bonifici_estero');
 
   const bonificiRows = bonifici ? bonifici.rows : [];
   const cassaRows = cassa ? cassa.rows : [];
   const cassetteRows = cassette ? cassette.rows : [];
+  const bonificiEsteroRows = bonifici_estero ? bonifici_estero.rows : [];
 
   /* ============================================================ BONIFICI ============================================================ */
   const bonifici2026 = bonificiRows.filter(r=>{
@@ -1483,6 +1485,63 @@ function renderMonetica(panel){
     bonificiMonth[k] = (bonificiMonth[k]||0)+1;
     volumeMonth[k] = (volumeMonth[k]||0)+(parseFloat(r.importo_bonifico)||0);
   });
+
+  /* ============================================================ BONIFICI ESTERO ============================================================ */
+  const bonificiDaEstero = bonificiEsteroRows.filter(r=>{
+    const paese = String(r.paese_ord||'').toUpperCase();
+    return paese && paese !== 'IT';
+  });
+
+  const bonificiVersoEstero = bonificiEsteroRows.filter(r=>{
+    const paese = String(r.paese_beneficiario||'').toUpperCase();
+    return paese && paese !== 'IT';
+  });
+
+  // Da estero: per mese
+  const daEsteroMonth = {};
+  const daEsteroVolMonth = {};
+  bonificiDaEstero.forEach(r=>{
+    const d = toDate(r.data_inserimento);
+    if(!d) return;
+    const k = monthKey(d);
+    daEsteroMonth[k] = (daEsteroMonth[k]||0)+1;
+    daEsteroVolMonth[k] = (daEsteroVolMonth[k]||0)+(Math.abs(parseFloat(r.importo)||0));
+  });
+
+  // Da estero: per filiale
+  const daEsteroFiliale = {};
+  bonificiDaEstero.forEach(r=>{
+    const fil = r.filiale || 'N.D.';
+    daEsteroFiliale[fil] = (daEsteroFiliale[fil]||0)+1;
+  });
+
+  // Verso estero: per mese
+  const versoEsteroMonth = {};
+  const versoEsteroVolMonth = {};
+  bonificiVersoEstero.forEach(r=>{
+    const d = toDate(r.data_inserimento);
+    if(!d) return;
+    const k = monthKey(d);
+    versoEsteroMonth[k] = (versoEsteroMonth[k]||0)+1;
+    versoEsteroVolMonth[k] = (versoEsteroVolMonth[k]||0)+(Math.abs(parseFloat(r.importo)||0));
+  });
+
+  // Verso estero: per filiale
+  const versoEsteroFiliale = {};
+  bonificiVersoEstero.forEach(r=>{
+    const fil = r.filiale || 'N.D.';
+    versoEsteroFiliale[fil] = (versoEsteroFiliale[fil]||0)+1;
+  });
+
+  // Union mesi per bonifici estero
+  const mesiEstero = [...new Set([
+    ...Object.keys(daEsteroMonth),
+    ...Object.keys(versoEsteroMonth)
+  ])].sort();
+
+  // Filiali da/verso estero
+  const filialiDaEstero = Object.keys(daEsteroFiliale).sort();
+  const filialiVersoEstero = Object.keys(versoEsteroFiliale).sort();
 
   /* ============================================================ CASSA ============================================================ */
   const cambiali76 = r => String(r.tg04_causale1||'').includes('76');
@@ -1599,20 +1658,78 @@ function renderMonetica(panel){
     <div class="grid cols-2">
       <div class="card">
         <h3>Bonifici per mese</h3>
-        <p class="card-sub">Numero operazioni - 2026</p>
+        <p class="card-sub">Numero operazioni</p>
         <canvas id="monBonificiChart"></canvas>
       </div>
       <div class="card">
         <h3>Volume bonifici per mese</h3>
-        <p class="card-sub">Volume operazioni - 2026</p>
+        <p class="card-sub">Volume operazioni</p>
         <canvas id="monVolumeBonificiChart"></canvas>
       </div>
+    </div>
+
+    <div class="section-title">Bonifici da estero <span class="count-badge">${fmtInt.format(bonificiDaEstero.length)} operazioni</span></div>
+    <div class="kpi-row">
+      <div class="kpi" style="--kc:${PALETTE.info}">
+        <div class="lbl">Bonifici da estero</div>
+        <div class="val">${fmtInt.format(bonificiDaEstero.length)}</div>
+      </div>
+      <div class="kpi" style="--kc:${PALETTE.accent}">
+        <div class="lbl">Volume totale</div>
+        <div class="val">€ ${fmtInt.format(Object.values(daEsteroVolMonth).reduce((a,b)=>a+b,0))}</div>
+      </div>
+    </div>
+    <div class="grid cols-2">
+      <div class="card">
+        <h3>Bonifici da estero per mese</h3>
+        <p class="card-sub">Numero operazioni (data_inserimento)</p>
+        <canvas id="monDaEsteroMonthChart"></canvas>
+      </div>
+      <div class="card">
+        <h3>Volume bonifici da estero per mese</h3>
+        <p class="card-sub">Importo in valore assoluto</p>
+        <canvas id="monDaEsteroVolChart"></canvas>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h3>Bonifici da estero per filiale</h3>
+      <p class="card-sub">Distribuzione per filiale</p>
+      <canvas id="monDaEsteroFilialeChart"></canvas>
+    </div>
+
+    <div class="section-title">Bonifici verso estero <span class="count-badge">${fmtInt.format(bonificiVersoEstero.length)} operazioni</span></div>
+    <div class="kpi-row">
+      <div class="kpi" style="--kc:${PALETTE.violet}">
+        <div class="lbl">Bonifici verso estero</div>
+        <div class="val">${fmtInt.format(bonificiVersoEstero.length)}</div>
+      </div>
+      <div class="kpi" style="--kc:${PALETTE.warn}">
+        <div class="lbl">Volume totale</div>
+        <div class="val">€ ${fmtInt.format(Object.values(versoEsteroVolMonth).reduce((a,b)=>a+b,0))}</div>
+      </div>
+    </div>
+    <div class="grid cols-2">
+      <div class="card">
+        <h3>Bonifici verso estero per mese</h3>
+        <p class="card-sub">Numero operazioni (data_inserimento)</p>
+        <canvas id="monVersoEsteroMonthChart"></canvas>
+      </div>
+      <div class="card">
+        <h3>Volume bonifici verso estero per mese</h3>
+        <p class="card-sub">Importo in valore assoluto</p>
+        <canvas id="monVersoEsteroVolChart"></canvas>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h3>Bonifici verso estero per filiale</h3>
+      <p class="card-sub">Distribuzione per filiale</p>
+      <canvas id="monVersoEsteroFilialeChart"></canvas>
     </div>
 
     <div class="section-title">Cassa <span class="count-badge">${fmtInt.format(cassa2026.length)} operazioni</span></div>
     <div class="kpi-row">
       <div class="kpi" style="--kc:${PALETTE.info}">
-        <div class="lbl">Cambiali (76)</div>
+        <div class="lbl">Cambiali</div>
         <div class="val">${fmtInt.format(totCambiali)}</div>
       </div>
       <div class="kpi" style="--kc:${PALETTE.accent}">
@@ -1620,18 +1737,18 @@ function renderMonetica(panel){
         <div class="val">${fmtInt.format(totTesoreria)}</div>
       </div>
       <div class="kpi" style="--kc:${PALETTE.violet}">
-        <div class="lbl">Ass. circolari (11)</div>
+        <div class="lbl">Ass. circolari</div>
         <div class="val">${fmtInt.format(totCircolari)}</div>
       </div>
     </div>
     <div class="card" style="margin-top:16px">
       <h3>Operazioni per mese per tipo</h3>
-      <p class="card-sub">Cambiali, tesoreria, circolari - 2026</p>
+      <p class="card-sub">Cambiali, tesoreria, circolari</p>
       <canvas id="monCassaOperChart"></canvas>
     </div>
     <div class="card" style="margin-top:16px">
       <h3>Operazioni per filiale e tipo</h3>
-      <p class="card-sub">Distribuzione per descrizione filiale - 2026</p>
+      <p class="card-sub">Distribuzione per filiale</p>
       <canvas id="monFilialeChart"></canvas>
     </div>
 
@@ -1639,12 +1756,12 @@ function renderMonetica(panel){
     <div class="grid cols-2">
       <div class="card">
         <h3>Cassette aperte per mese</h3>
-        <p class="card-sub">Nuove cassette - 2026</p>
+        <p class="card-sub">Nuove cassette</p>
         <canvas id="monCassetteChart"></canvas>
       </div>
       <div class="card">
         <h3>Cassette per business unit</h3>
-        <p class="card-sub">Distribuzione - 2026</p>
+        <p class="card-sub">Distribuzione</p>
         <canvas id="monBuCassetteChart"></canvas>
       </div>
     </div>
@@ -1654,6 +1771,18 @@ function renderMonetica(panel){
 
   mkChart('monVolumeBonificiChart',{type:'bar', data:{labels:months, datasets:[{label:'Volume (€)',data:months.map(m=>volumeMonth[m]||0),backgroundColor:PALETTE.accent}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
 
+  mkChart('monDaEsteroMonthChart',{type:'bar', data:{labels:mesiEstero, datasets:[{label:'Operazioni',data:mesiEstero.map(m=>daEsteroMonth[m]||0),backgroundColor:PALETTE.info}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
+
+  mkChart('monDaEsteroVolChart',{type:'bar', data:{labels:mesiEstero, datasets:[{label:'Volume (€)',data:mesiEstero.map(m=>daEsteroVolMonth[m]||0),backgroundColor:PALETTE.accent}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
+
+  mkChart('monDaEsteroFilialeChart',{type:'bar', data:{labels:filialiDaEstero, datasets:[{label:'Operazioni',data:filialiDaEstero.map(f=>daEsteroFiliale[f]||0),backgroundColor:PALETTE.violet}]}, options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false},ticks:{font:{size:10}}}}}});
+
+  mkChart('monVersoEsteroMonthChart',{type:'bar', data:{labels:mesiEstero, datasets:[{label:'Operazioni',data:mesiEstero.map(m=>versoEsteroMonth[m]||0),backgroundColor:PALETTE.warn}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
+
+  mkChart('monVersoEsteroVolChart',{type:'bar', data:{labels:mesiEstero, datasets:[{label:'Volume (€)',data:mesiEstero.map(m=>versoEsteroVolMonth[m]||0),backgroundColor:PALETTE.pos}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
+
+  mkChart('monVersoEsteroFilialeChart',{type:'bar', data:{labels:filialiVersoEstero, datasets:[{label:'Operazioni',data:filialiVersoEstero.map(f=>versoEsteroFiliale[f]||0),backgroundColor:PALETTE.danger}]}, options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false},ticks:{font:{size:10}}}}}});
+
   mkChart('monCassaOperChart',{type:'bar', data:{labels:months, datasets:[{label:'Cambiali',data:months.map(m=>cassaMonthByType[m]?.cambiali||0),backgroundColor:PALETTE.navy},{label:'Tesoreria',data:months.map(m=>cassaMonthByType[m]?.tesoreria||0),backgroundColor:PALETTE.warn},{label:'Circolari',data:months.map(m=>cassaMonthByType[m]?.circolari||0),backgroundColor:PALETTE.pos}]}, options:{scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,grid:{color:PALETTE.grid}}}, plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10.5}}}}}});
 
   mkChart('monFilialeChart',{type:'bar', data:{labels:filialArray, datasets:[{label:'Cambiali',data:filialArray.map(f=>operByFilialeType[f].cambiali),backgroundColor:PALETTE.navy},{label:'Tesoreria',data:filialArray.map(f=>operByFilialeType[f].tesoreria),backgroundColor:PALETTE.warn},{label:'Circolari',data:filialArray.map(f=>operByFilialeType[f].circolari),backgroundColor:PALETTE.pos}]}, options:{scales:{x:{grid:{display:false}},y:{grid:{color:PALETTE.grid}, ticks:{font:{size:10}}}}, plugins:{legend:{position:'bottom', labels:{boxWidth:10, font:{size:10.5}}}}}});
@@ -1662,7 +1791,6 @@ function renderMonetica(panel){
 
   mkChart('monBuCassetteChart',{type:'bar', data:{labels:byBuCassette.map(x=>x[0]), datasets:[{label:'Cassette',data:byBuCassette.map(x=>x[1]),backgroundColor:PALETTE.violet}]}, options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false},ticks:{font:{size:10}}}}}});
 }
-
 
 /* ============================================================
    PANEL: GENERIC (unrecognized sheet)
