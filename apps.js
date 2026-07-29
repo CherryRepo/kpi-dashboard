@@ -468,31 +468,43 @@ function buildTabs(){
 
 
 function activateTab(key){
+  console.log('=== activateTab CALLED ===');
+  console.log('key:', key);
+  
   STATE.activeTab = key;
   document.querySelectorAll('.tab').forEach(t=> t.classList.toggle('active', t.dataset.key===key));
   document.querySelectorAll('.nav-item').forEach(t=> t.classList.toggle('active', t.dataset.key===key));
   document.querySelectorAll('.panel').forEach(p=> p.classList.toggle('active', p.id === 'panel-'+key));
 
   const panel = document.getElementById('panel-'+key);
-  if(panel.dataset.built) return;
+  console.log('panel element:', panel);
+  
+  if(panel.dataset.built) {
+    console.log('Panel già renderizzato');
+    return;
+  }
   panel.dataset.built = '1';
 
-  if(key === 'overview'){ renderOverview(panel); return; }
-  if(key === 'digital'){ renderDigital(panel); return; }
-  if(key === 'monetica'){ renderMonetica(panel); return; }
+  if(key === 'overview'){ console.log('→ renderOverview'); renderOverview(panel); return; }
+  if(key === 'digital'){ console.log('→ renderDigital'); renderDigital(panel); return; }
+  if(key === 'monetica'){ console.log('→ renderMonetica'); renderMonetica(panel); return; }
 
   const idx = Number(key.slice(1));
   const s = STATE.domainSheets[idx];
+  
+  console.log('idx:', idx);
+  console.log('s:', s);
+  console.log('s.type:', s.type);
 
-  if(s.type === 'anagrafe') renderAnagrafe(panel, s);
-  else if(s.type === 'antifrode') renderAntifrode(panel, s);
-  else if(s.type === 'ordinario') renderCredito(panel, s);
-  else if(s.type === 'speciale') renderCreditoSpeciale(panel, s);
-  else if(s.type === 'ops_aml') renderOpsAml(panel, s);
-  else if(s.type === 'perfezionamenti') renderPerfezionamenti(panel, s);
-  else if(s.type === 'factoring') renderFactoring(panel, s);
-  else if(s.type === 'bancassurance') renderBancassurance(panel, s);
-  else renderGeneric(panel, s);
+  if(s.type === 'anagrafe') { console.log('→ renderAnagrafe'); renderAnagrafe(panel, s); }
+  else if(s.type === 'antifrode') { console.log('→ renderAntifrode'); renderAntifrode(panel, s); }
+  else if(s.type === 'ordinario') { console.log('→ renderCredito'); renderCredito(panel, s); }
+  else if(s.type === 'speciale') { console.log('→ renderCreditoSpeciale'); renderCreditoSpeciale(panel, s); }
+  else if(s.type === 'ops_aml') { console.log('→ renderOpsAml'); renderOpsAml(panel, s); }
+  else if(s.type === 'perfezionamenti') { console.log('→ renderPerfezionamenti'); renderPerfezionamenti(panel, s); }
+  else if(s.type === 'factoring') { console.log('→ renderFactoring'); renderFactoring(panel, s); }
+  else if(s.type === 'bancassurance') { console.log('→ renderBancassurance'); renderBancassurance(panel, s); }
+  else { console.log('→ renderGeneric'); renderGeneric(panel, s); }
 }
 
 document.addEventListener('DOMContentLoaded', setupFileHandling);
