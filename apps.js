@@ -213,7 +213,7 @@ function parseWorkbook(wb){
     STATE.domainSheets.push({sheetName:name, type, headers, rows, dimRow});
   }
 
-  const typeOrder = ['ordinario','speciale','perfezionamenti','anagrafe','antifrode','ops_aml','bancassurance', 'generic'];
+  const typeOrder = ['ordinario','speciale','perfezionamenti','factoring','anagrafe','antifrode','ops_aml','bancassurance', 'generic'];
   STATE.domainSheets.sort((a, b) => {
     const orderA = typeOrder.indexOf(a.type);
     const orderB = typeOrder.indexOf(b.type);
@@ -242,6 +242,7 @@ function classifySheet(sheetName) {
   if (name.includes('10001100023100044')) return 'antifrode';
   if (name.includes('100011000231')) return 'anagrafe';
   if (name.includes('10004100067100079')) return 'perfezionamenti';
+  if (name.includes('10004100067100080')) return 'factoring';
   if (name.includes('10004100051')) return 'speciale';
   if (name.includes('10004100052')) return 'ordinario';
   return 'generic';
@@ -362,6 +363,7 @@ function buildSidebar(){
     ordinario:'Credito Ordinario & Factoring',
     speciale:'Credito Speciale',
     perfezionamenti:'Perfezionamenti credito ordinario',
+    factoring:'Factoring',
     anagrafe:'Anagrafe',
     antifrode:'Antifrode',
     ops_aml:'OPS AML',
@@ -442,7 +444,7 @@ function buildTabs(){
   const hasDigital = STATE.domainSheets.some(s => digitalTypes.includes(s.type));
   const hasMonetica = STATE.domainSheets.some(s => moneticaTypes.includes(s.type));
 
-  const labelMap = {ordinario:'Credito & Factoring', speciale:'Credito Speciale', perfezionamenti:'Perfezionamenti credito ordinario', anagrafe:'Anagrafe', antifrode:'Antifrode', ops_aml:'OPS AML', bancassurance:'Wealth & Bancassurance'};
+  const labelMap = {ordinario:'Credito & Factoring', speciale:'Credito Speciale', perfezionamenti:'Perfezionamenti credito ordinario', factoring:'Factoring', anagrafe:'Anagrafe', antifrode:'Antifrode', ops_aml:'OPS AML', bancassurance:'Wealth & Bancassurance'};
 
   STATE.domainSheets.forEach((s, idx)=>{
     if(digitalTypes.includes(s.type) || moneticaTypes.includes(s.type)) return;
@@ -488,6 +490,7 @@ function activateTab(key){
   else if(s.type === 'speciale') renderCreditoSpeciale(panel, s);
   else if(s.type === 'ops_aml') renderOpsAml(panel, s);
   else if(s.type === 'perfezionamenti') renderPerfezionamenti(panel, s);
+  else if(s.type === 'factoring') renderFactoring(panel, s);
   else if(s.type === 'bancassurance') renderBancassurance(panel, s);
   else renderGeneric(panel, s);
 }
@@ -1135,6 +1138,471 @@ function renderPerfezionamenti(panel, s){
       },
       scales: {
         x: {grid: {color: PALETTE.grid}},
+        y: {grid: {display: false}, ticks: {font: {size: 10}}}
+      }
+    }
+  });
+}
+
+/* ============================================================
+   PANEL: NUOVE PRATICHE STIPULATE
+   ============================================================ */
+function renderFactoring(panel, s){
+  
+  const rows = s.rows;
+
+  // ============================================================
+  // FACTORING
+  // ============================================================
+
+  const nuovePratiche = rows.filter(r => {
+    const d = toDate(r.dta_prima_stipula);
+    return d && isInPeriod(d, s.periodo); // o altro filtro periodo
+  });
+
+  // Estrai dimensioni uniche
+  const gestoriSet = new Set(nuovePratiche.map(r => r.des_gestore).filter(Boolean));
+  const filialiSet = new Set(nuovePratiche.map(r => r.des_filiale).filter(Boolean));
+  const buSet = new Set(nuovePratiche.map(r => r.des_business_unit).filter(Boolean));
+  const segnalSet = new Set(nuovePratiche.map(r => r.des_segnalatore).filter(Boolean));
+
+  const gestoriArray = Array.from(gestoriSet).sort();
+  const filialiArray = Array.from(filialiSet).sort();
+  const buArray = Array.from(buSet).sort();
+  const segnalArray = Array.from(segnalSet).sort();
+
+  const gestoriColorMap = Object.fromEntries(
+    gestoriArray.map((g, i) => [g, CHART_SERIES[i % CHART_SERIES.length]])
+  );
+
+  // ============================================================
+  // AGGREGAZIONI: PRATICHE (COUNT NDG)
+  // ============================================================
+
+  const countNdg = (arr) => new Set(arr.map(r => r.ndg).filter(Boolean)).size;
+  
+  const totalPratiche = countNdg(nuovePratiche);
+  const pratichePerMese = {};
+  const pratichePerGestore = mapToSorted(countBy(nuovePratiche, 'des_gestore'));
+  const pratichePerFiliale = mapToSorted(countBy(nuovePratiche, 'des_filiale'));
+  const pratichePerBU = mapToSorted(countBy(nuovePratiche, 'des_business_unit'));
+  const pratichePerSegnalatore = mapToSorted(countBy(nuovePratiche, 'des_segnalatore'));
+
+  // Pratiche per mese
+  nuovePratiche.forEach(r => {
+    const d = toDate(r.dta_prima_stipula);
+    const k = monthKey(d);
+    pratichePerMese[k] = (pratichePerMese[k] || 0) + 1;
+  });
+
+  // ============================================================
+  // AGGREGAZIONI: ACCORDATO (SUM)
+  // ============================================================
+
+  const sumAccordato = (arr) => arr.reduce((sum, r) => sum + (parseFloat(r.accordato) || 0), 0);
+  const sumImpiego = (arr) => arr.reduce((sum, r) => sum + (parseFloat(r.impiego) || 0), 0);
+  const sumTurnover = (arr) => arr.reduce((sum, r) => sum + (parseFloat(r.turnover_anno_corrente) || 0), 0);
+
+  const accordatoTotale = sumAccordato(nuovePratiche);
+  const accordatoMedio = totalPratiche ? accordatoTotale / totalPratiche : 0;
+  
+  const accordatoPerMese = {};
+  const accordatoPerGestore = {};
+  const accordatoPerFiliale = {};
+  const accordatoPerBU = {};
+
+  nuovePratiche.forEach(r => {
+    const d = toDate(r.dta_prima_stipula);
+    const k = monthKey(d);
+    const importo = parseFloat(r.accordato) || 0;
+    
+    accordatoPerMese[k] = (accordatoPerMese[k] || 0) + importo;
+    accordatoPerGestore[r.des_gestore] = (accordatoPerGestore[r.des_gestore] || 0) + importo;
+    accordatoPerFiliale[r.des_filiale] = (accordatoPerFiliale[r.des_filiale] || 0) + importo;
+    accordatoPerBU[r.des_business_unit] = (accordatoPerBU[r.des_business_unit] || 0) + importo;
+  });
+
+  // ============================================================
+  // AGGREGAZIONI: IMPIEGO E TURNOVER
+  // ============================================================
+
+  const impigoTotale = sumImpiego(nuovePratiche);
+  const impigoMedio = totalPratiche ? impigoTotale / totalPratiche : 0;
+  
+  const turnoverTotale = sumTurnover(nuovePratiche);
+
+  const impiegoPerGestore = {};
+  const turnoverPerGestore = {};
+
+  nuovePratiche.forEach(r => {
+    const impiego = parseFloat(r.impiego) || 0;
+    const turnover = parseFloat(r.turnover_anno_corrente) || 0;
+    
+    impiegoPerGestore[r.des_gestore] = (impiegoPerGestore[r.des_gestore] || 0) + impiego;
+    turnoverPerGestore[r.des_gestore] = (turnoverPerGestore[r.des_gestore] || 0) + turnover;
+  });
+
+  // Union di tutti i mesi
+  const months = [...new Set([
+    ...Object.keys(pratichePerMese),
+    ...Object.keys(accordatoPerMese)
+  ])].sort();
+
+  // ============================================================
+  // RENDER HTML
+  // ============================================================
+
+  panel.innerHTML = structHeaderHtml(s, 'Nuove pratiche stipulate') + `
+    <div class="section-title">Riepilogo nuove pratiche nel periodo</div>
+    
+    <div class="kpi-row">
+      <div class="kpi" style="--kc:${PALETTE.info}">
+        <div class="lbl">Pratiche stipulate</div>
+        <div class="val">${fmtInt.format(totalPratiche)}</div>
+      </div>
+      <div class="kpi" style="--kc:${PALETTE.success}">
+        <div class="lbl">Accordato totale</div>
+        <div class="val">${fmtCurrency.format(accordatoTotale)}</div>
+      </div>
+      <div class="kpi" style="--kc:${PALETTE.accent}">
+        <div class="lbl">Accordato medio</div>
+        <div class="val">${fmtCurrency.format(accordatoMedio)}</div>
+      </div>
+      <div class="kpi" style="--kc:${PALETTE.violet}">
+        <div class="lbl">Impiego medio</div>
+        <div class="val">${fmtCurrency.format(impigoMedio)}</div>
+      </div>
+      <div class="kpi" style="--kc:${PALETTE.warning}">
+        <div class="lbl">Turnover generato</div>
+        <div class="val">${fmtCurrency.format(turnoverTotale)}</div>
+      </div>
+    </div>
+
+    <div class="grid cols-2">
+      <div class="card">
+        <h3>Pratiche per mese</h3>
+        <p class="card-sub">COUNT(ndg) per mese</p>
+        <canvas id="npPratichePerMeseChart"></canvas>
+      </div>
+
+      <div class="card">
+        <h3>Accordato per mese</h3>
+        <p class="card-sub">SUM(accordato) per mese</p>
+        <canvas id="npAccordatoPerMeseChart"></canvas>
+      </div>
+    </div>
+
+    <div class="grid cols-2">
+      <div class="card">
+        <h3>Pratiche per gestore</h3>
+        <p class="card-sub">COUNT(ndg)</p>
+        <canvas id="npPraticheGestoreChart"></canvas>
+      </div>
+
+      <div class="card">
+        <h3>Accordato per gestore</h3>
+        <p class="card-sub">SUM(accordato)</p>
+        <canvas id="npAccordatoGestoreChart"></canvas>
+      </div>
+    </div>
+
+    <div class="grid cols-2">
+      <div class="card">
+        <h3>Pratiche per filiale</h3>
+        <p class="card-sub">COUNT(ndg)</p>
+        <canvas id="npPraticheFiliale"></canvas>
+      </div>
+
+      <div class="card">
+        <h3>Accordato per filiale</h3>
+        <p class="card-sub">SUM(accordato)</p>
+        <canvas id="npAccordatoFiliale"></canvas>
+      </div>
+    </div>
+
+    <div class="grid cols-2">
+      <div class="card">
+        <h3>Pratiche per business unit</h3>
+        <p class="card-sub">COUNT(ndg)</p>
+        <canvas id="npPraticheBusinessUnit"></canvas>
+      </div>
+
+      <div class="card">
+        <h3>Pratiche per segnalatore</h3>
+        <p class="card-sub">COUNT(ndg)</p>
+        <canvas id="npPraticheSegnal"></canvas>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h3>Accordato gestito per addetto</h3>
+      <p class="card-sub">SUM(accordato) per gestore</p>
+      <canvas id="npAccordatoAddetto"></canvas>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h3>Impiego gestito per addetto</h3>
+      <p class="card-sub">SUM(impiego) per gestore</p>
+      <canvas id="npImpiegoAddetto"></canvas>
+    </div>
+  `;
+
+  // ============================================================
+  // CHART: PRATICHE PER MESE
+  // ============================================================
+
+  mkChart('npPratichePerMeseChart', {
+    type: 'bar',
+    data: {
+      labels: months,
+      datasets: [{
+        label: 'Pratiche',
+        data: months.map(m => pratichePerMese[m] || 0),
+        backgroundColor: PALETTE.info,
+        borderColor: PALETTE.info,
+        borderWidth: 0
+      }]
+    },
+    options: {
+      plugins: {legend: {display: false}},
+      scales: {
+        x: {grid: {display: false}},
+        y: {grid: {color: PALETTE.grid}}
+      }
+    }
+  });
+
+  // ============================================================
+  // CHART: ACCORDATO PER MESE
+  // ============================================================
+
+  mkChart('npAccordatoPerMeseChart', {
+    type: 'line',
+    data: {
+      labels: months,
+      datasets: [{
+        label: 'Accordato',
+        data: months.map(m => accordatoPerMese[m] || 0),
+        borderColor: PALETTE.success,
+        backgroundColor: 'rgba(76,175,80,0.1)',
+        tension: 0.4,
+        fill: true,
+        pointRadius: 4,
+        pointBackgroundColor: PALETTE.success
+      }]
+    },
+    options: {
+      plugins: {legend: {display: false}},
+      scales: {
+        x: {grid: {display: false}},
+        y: {grid: {color: PALETTE.grid}, ticks: {callback: v => fmtCurrency.format(v)}}
+      }
+    }
+  });
+
+  // ============================================================
+  // CHART: PRATICHE PER GESTORE
+  // ============================================================
+
+  mkChart('npPraticheGestoreChart', {
+    type: 'bar',
+    data: {
+      labels: pratichePerGestore.map(x => x[0]),
+      datasets: [{
+        label: 'Pratiche',
+        data: pratichePerGestore.map(x => x[1]),
+        backgroundColor: PALETTE.info
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: {legend: {display: false}},
+      scales: {
+        x: {grid: {color: PALETTE.grid}},
+        y: {grid: {display: false}, ticks: {font: {size: 10}}}
+      }
+    }
+  });
+
+  // ============================================================
+  // CHART: ACCORDATO PER GESTORE
+  // ============================================================
+
+  const accordatoGestoreSorted = Object.entries(accordatoPerGestore)
+    .map(([k, v]) => [k, v])
+    .sort((a, b) => b[1] - a[1]);
+
+  mkChart('npAccordatoGestoreChart', {
+    type: 'bar',
+    data: {
+      labels: accordatoGestoreSorted.map(x => x[0]),
+      datasets: [{
+        label: 'Accordato',
+        data: accordatoGestoreSorted.map(x => x[1]),
+        backgroundColor: PALETTE.success
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: {legend: {display: false}},
+      scales: {
+        x: {grid: {color: PALETTE.grid}, ticks: {callback: v => fmtCurrency.format(v)}},
+        y: {grid: {display: false}, ticks: {font: {size: 10}}}
+      }
+    }
+  });
+
+  // ============================================================
+  // CHART: PRATICHE PER FILIALE
+  // ============================================================
+
+  mkChart('npPraticheFiliale', {
+    type: 'bar',
+    data: {
+      labels: pratichePerFiliale.map(x => x[0]),
+      datasets: [{
+        label: 'Pratiche',
+        data: pratichePerFiliale.map(x => x[1]),
+        backgroundColor: PALETTE.accent
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: {legend: {display: false}},
+      scales: {
+        x: {grid: {color: PALETTE.grid}},
+        y: {grid: {display: false}, ticks: {font: {size: 9.5}}}
+      }
+    }
+  });
+
+  // ============================================================
+  // CHART: ACCORDATO PER FILIALE
+  // ============================================================
+
+  const accordatoFilialeSorted = Object.entries(accordatoPerFiliale)
+    .map(([k, v]) => [k, v])
+    .sort((a, b) => b[1] - a[1]);
+
+  mkChart('npAccordatoFiliale', {
+    type: 'bar',
+    data: {
+      labels: accordatoFilialeSorted.map(x => x[0]),
+      datasets: [{
+        label: 'Accordato',
+        data: accordatoFilialeSorted.map(x => x[1]),
+        backgroundColor: PALETTE.accent
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: {legend: {display: false}},
+      scales: {
+        x: {grid: {color: PALETTE.grid}, ticks: {callback: v => fmtCurrency.format(v)}},
+        y: {grid: {display: false}, ticks: {font: {size: 9.5}}}
+      }
+    }
+  });
+
+  // ============================================================
+  // CHART: PRATICHE PER BUSINESS UNIT
+  // ============================================================
+
+  mkChart('npPraticheBusinessUnit', {
+    type: 'bar',
+    data: {
+      labels: pratichePerBU.map(x => x[0]),
+      datasets: [{
+        label: 'Pratiche',
+        data: pratichePerBU.map(x => x[1]),
+        backgroundColor: PALETTE.violet
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: {legend: {display: false}},
+      scales: {
+        x: {grid: {color: PALETTE.grid}},
+        y: {grid: {display: false}, ticks: {font: {size: 10}}}
+      }
+    }
+  });
+
+  // ============================================================
+  // CHART: PRATICHE PER SEGNALATORE
+  // ============================================================
+
+  mkChart('npPraticheSegnal', {
+    type: 'bar',
+    data: {
+      labels: pratichePerSegnalatore.map(x => x[0]),
+      datasets: [{
+        label: 'Pratiche',
+        data: pratichePerSegnalatore.map(x => x[1]),
+        backgroundColor: PALETTE.warning
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: {legend: {display: false}},
+      scales: {
+        x: {grid: {color: PALETTE.grid}},
+        y: {grid: {display: false}, ticks: {font: {size: 9.5}}}
+      }
+    }
+  });
+
+  // ============================================================
+  // CHART: ACCORDATO GESTITO PER ADDETTO
+  // ============================================================
+
+  const accordatoAddettoSorted = gestoriArray
+    .map(g => [g, accordatoPerGestore[g] || 0])
+    .sort((a, b) => b[1] - a[1]);
+
+  mkChart('npAccordatoAddetto', {
+    type: 'bar',
+    data: {
+      labels: accordatoAddettoSorted.map(x => x[0]),
+      datasets: [{
+        label: 'Accordato',
+        data: accordatoAddettoSorted.map(x => x[1]),
+        backgroundColor: gestoriArray.map(g => gestoriColorMap[g])
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: {legend: {display: false}},
+      scales: {
+        x: {grid: {color: PALETTE.grid}, ticks: {callback: v => fmtCurrency.format(v)}},
+        y: {grid: {display: false}, ticks: {font: {size: 10}}}
+      }
+    }
+  });
+
+  // ============================================================
+  // CHART: IMPIEGO GESTITO PER ADDETTO
+  // ============================================================
+
+  const impiegoAddettoSorted = gestoriArray
+    .map(g => [g, impiegoPerGestore[g] || 0])
+    .sort((a, b) => b[1] - a[1]);
+
+  mkChart('npImpiegoAddetto', {
+    type: 'bar',
+    data: {
+      labels: impiegoAddettoSorted.map(x => x[0]),
+      datasets: [{
+        label: 'Impiego',
+        data: impiegoAddettoSorted.map(x => x[1]),
+        backgroundColor: gestoriArray.map(g => gestoriColorMap[g])
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: {legend: {display: false}},
+      scales: {
+        x: {grid: {color: PALETTE.grid}, ticks: {callback: v => fmtCurrency.format(v)}},
         y: {grid: {display: false}, ticks: {font: {size: 10}}}
       }
     }
