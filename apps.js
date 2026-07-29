@@ -1515,8 +1515,6 @@ function renderMonetica(panel){
     daEsteroPaese[paese] = (daEsteroPaese[paese]||0)+1;
   });
 
-  const paeseListDaEstero = Object.keys(daEsteroPaese).sort();
-
   // Verso estero: per mese
   const versoEsteroMonth = {};
   const versoEsteroVolMonth = {};
@@ -1534,8 +1532,6 @@ function renderMonetica(panel){
     const paese = r.paese_beneficiario || 'N.D.';
     versoEsteroPaese[paese] = (versoEsteroPaese[paese]||0)+1;
   });
-
-  const paeseListVersoEstero = Object.keys(versoEsteroPaese).sort();
 
   // Union mesi per bonifici estero
   const mesiEstero = [...new Set([
