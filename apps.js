@@ -1280,13 +1280,12 @@ function renderFactoring(panel, s){
 
     <div class="grid cols-2">
       <div class="card">
-        <h3>Pratiche per mese</h3>
+        <h3>Nuove pratiche per mese</h3>
         <p class="card-sub">COUNT(ndg) per mese</p>
         <canvas id="npPratichePerMeseChart"></canvas>
       </div>
-
       <div class="card">
-        <h3>Accordato per mese</h3>
+        <h3>Nuovo accordato per mese</h3>
         <p class="card-sub">SUM(accordato) per mese</p>
         <canvas id="npAccordatoPerMeseChart"></canvas>
       </div>
@@ -1294,13 +1293,12 @@ function renderFactoring(panel, s){
 
     <div class="grid cols-2">
       <div class="card">
-        <h3>Pratiche per gestore</h3>
+        <h3>Nuove pratiche per gestore</h3>
         <p class="card-sub">COUNT(ndg)</p>
         <canvas id="npPraticheGestoreChart"></canvas>
       </div>
-
       <div class="card">
-        <h3>Accordato per gestore</h3>
+        <h3>Nuovo accordato per gestore</h3>
         <p class="card-sub">SUM(accordato)</p>
         <canvas id="npAccordatoGestoreChart"></canvas>
       </div>
@@ -1312,7 +1310,6 @@ function renderFactoring(panel, s){
         <p class="card-sub">COUNT(ndg)</p>
         <canvas id="npPraticheFiliale"></canvas>
       </div>
-
       <div class="card">
         <h3>Accordato per filiale</h3>
         <p class="card-sub">SUM(accordato)</p>
@@ -1322,22 +1319,15 @@ function renderFactoring(panel, s){
 
     <div class="grid cols-2">
       <div class="card">
-        <h3>Pratiche per segnalatore</h3>
-        <p class="card-sub">COUNT(ndg)</p>
-        <canvas id="npPraticheSegnal"></canvas>
+        <h3>Accordato gestito per addetto</h3>
+        <p class="card-sub">SUM(accordato) per gestore</p>
+        <canvas id="npAccordatoAddetto"></canvas>
       </div>
-    </div>
-
-    <div class="card" style="margin-top:16px">
-      <h3>Accordato gestito per addetto</h3>
-      <p class="card-sub">SUM(accordato) per gestore</p>
-      <canvas id="npAccordatoAddetto"></canvas>
-    </div>
-
-    <div class="card" style="margin-top:16px">
-      <h3>Impiego gestito per addetto</h3>
-      <p class="card-sub">SUM(impiego) per gestore</p>
-      <canvas id="npImpiegoAddetto"></canvas>
+      <div class="card">
+        <h3>Impiego gestito per addetto</h3>
+        <p class="card-sub">SUM(impiego) per gestore</p>
+        <canvas id="npImpiegoAddetto"></canvas>
+      </div>
     </div>
   `;
 
