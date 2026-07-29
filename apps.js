@@ -609,114 +609,6 @@ function structHeaderHtml(s, panelTitle){
 }
 
 /* ============================================================
-   PANEL: ANAGRAFE
-   ============================================================ */
-function renderAnagrafe(panel, s){
-  const ALLOWED_BU = ['', '-', 'smes'];
-  const isAllowedBU = (v)=>{
-    const t = (v===null||v===undefined) ? '' : String(v).trim().toLowerCase();
-    return ALLOWED_BU.includes(t);
-  };
-  const rows = s.rows.filter(r=> isAllowedBU(r.des_business_unit));
-  const excludedCount = s.rows.length - rows.length;
-  const dates = rows.map(r=> toDate(r.dta_censimento)).filter(Boolean);
-  const naturaCounts = topN(mapToSorted(countBy(rows, 'des_natura_giuridica')), 12);
-  const statusCounts = mapToSorted(countBy(rows, 'des_status_generic'));
-
-  const byMonth = new Map();
-  dates.forEach(d=>{ const k = monthKey(d); byMonth.set(k, (byMonth.get(k)||0)+1); });
-  const months = [...byMonth.keys()].sort();
-
-  const minD = dates.length ? new Date(Math.min(...dates)) : null;
-  const maxD = dates.length ? new Date(Math.max(...dates)) : null;
-  const nDeceduti = rows.filter(r=> toDate(r.dta_decesso)).length;
-
-  panel.innerHTML = structHeaderHtml(s, 'Anagrafe') + `
-    <p class="panel-sub">Vista filtrata: Business Unit vuota, "-" o "SMEs" &middot; ${fmtInt.format(excludedCount)} nominativi esclusi sulle altre BU (${fmtInt.format(s.rows.length)} totali nel foglio)</p>
-    <div class="kpi-row">
-      <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Nominativi censiti</div><div class="val">${fmtInt.format(rows.length)}</div></div>
-      <div class="kpi" style="--kc:${PALETTE.violet}"><div class="lbl">Nature giuridiche distinte</div><div class="val">${new Set(rows.map(r=>r.des_natura_giuridica)).size}</div></div>
-      <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">Periodo censimento</div><div class="val" style="font-size:15px">${fmtDate(minD)} → ${fmtDate(maxD)}</div></div>
-      <div class="kpi" style="--kc:${PALETTE.danger}"><div class="lbl">Deceduti registrati</div><div class="val">${fmtInt.format(nDeceduti)}</div></div>
-    </div>
-    <div class="card" style="margin-bottom:16px">
-      <h3>Trend censimenti nel tempo</h3><p class="card-sub">conteggio mensile per data censimento</p><canvas id="anTrendChart"></canvas>
-    </div>
-    <div class="grid cols-2" style="margin-bottom:16px">
-      <div class="card"><h3>Natura giuridica (top 12)</h3><p class="card-sub">forma societaria dei nominativi censiti</p><canvas id="anNaturaChart"></canvas></div>
-      <div class="card"><h3>Stato cliente</h3><p class="card-sub">${statusCounts.length? 'des_status_generic' : 'dato non disponibile'}</p><canvas id="anStatusChart"></canvas></div>
-    </div>
-  `;
-
-  mkChart('anTrendChart', {type:'line', data:{labels:months, datasets:[{label:'Censimenti', data:months.map(m=>byMonth.get(m)), borderColor:PALETTE.accent, backgroundColor:'rgba(47,111,179,0.12)', fill:true, tension:.3}]},
-    options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
-
-  mkChart('anNaturaChart', {type:'bar', data:{labels:naturaCounts.map(x=>x[0]), datasets:[{label:'Nominativi', data:naturaCounts.map(x=>x[1]), backgroundColor:PALETTE.info}]},
-    options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false}, ticks:{font:{size:10}}}}}});
-
-  mkChart('anStatusChart', {type:'pie', data:{labels:statusCounts.map(x=>x[0]), datasets:[{data:statusCounts.map(x=>x[1]), backgroundColor:CHART_SERIES}]},
-    options:{plugins:{legend:{position:'right', labels:{boxWidth:10, font:{size:10.5}}}}}});
-}
-
-/* ============================================================
-   PANEL: ANTIFRODE
-   ============================================================ */
-function renderAntifrode(panel, s){
-  const rows = s.rows;
-  const countKey = rows[0].hasOwnProperty('conteggio') ? 'conteggio' : Object.keys(rows[0]).find(k=> typeof rows[0][k] === 'number');
-  const total = rows.reduce((a,r)=> a + (Number(r[countKey])||0), 0);
-
-  const byClass = sumBy(rows, 'classificazione', countKey);
-  const byCluster = sumBy(rows, 'cluster_frode', countKey);
-  const confermate = byClass.get('FRODE CONFERMATA') || 0;
-  const tassoConferma = total ? (confermate/total*100) : 0;
-
-  const byMonthClass = new Map(); // month -> classificazione -> sum
-  rows.forEach(r=>{
-    const d = toDate(r.mese);
-    const k = d ? monthKey(d) : String(r.mese);
-    const cl = r.classificazione || '(n.d.)';
-    if(!byMonthClass.has(k)) byMonthClass.set(k, new Map());
-    const mm = byMonthClass.get(k);
-    mm.set(cl, (mm.get(cl)||0) + (Number(r[countKey])||0));
-  });
-  const months = [...byMonthClass.keys()].sort();
-  const classifications = [...new Set(rows.map(r=>r.classificazione).filter(Boolean))];
-
-  const clusterSorted = mapToSorted(byCluster);
-  const classSorted = mapToSorted(byClass);
-
-  panel.innerHTML = structHeaderHtml(s, 'Antifrode') + `
-    <div class="kpi-row">
-      <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Segnalazioni totali</div><div class="val">${fmtInt.format(total)}</div></div>
-      <div class="kpi" style="--kc:${PALETTE.danger}"><div class="lbl">Frodi confermate</div><div class="val">${fmtInt.format(confermate)}</div><div class="sub">${fmtDec.format(tassoConferma)}% del totale</div></div>
-      <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">Falsi positivi</div><div class="val">${fmtInt.format(byClass.get('FALSO POSITIVO FRODE')||0)}</div></div>
-      <div class="kpi" style="--kc:${PALETTE.violet}"><div class="lbl">Cluster di frode monitorati</div><div class="val">${clusterSorted.length}</div></div>
-    </div>
-    <div class="grid cols-2" style="margin-bottom:16px">
-      <div class="card"><h3>Andamento mensile per classificazione</h3><p class="card-sub">frodi confermate / falsi positivi / non classificabili</p><canvas id="afTrendChart"></canvas></div>
-      <div class="card"><h3>Distribuzione per classificazione</h3><canvas id="afClassChart"></canvas></div>
-    </div>
-    <div class="grid cols-2" style="margin-bottom:16px">
-      <div class="card" style="grid-column:1/-1"><h3>Volumi per cluster di frode</h3><p class="card-sub">tipologia di frode rilevata</p><canvas id="afClusterChart"></canvas></div>
-    </div>
-  `;
-
-  const classColors = {'FRODE CONFERMATA':PALETTE.danger, 'FALSO POSITIVO FRODE':PALETTE.warn, 'NON CLASSIFICABILE':PALETTE.info};
-  mkChart('afTrendChart', {type:'bar', data:{labels:months, datasets: classifications.map((c,i)=>({
-      label:c, data: months.map(m=> byMonthClass.get(m).get(c)||0),
-      backgroundColor: classColors[c] || CHART_SERIES[i%CHART_SERIES.length]
-    }))},
-    options:{plugins:{legend:{position:'bottom', labels:{boxWidth:10,font:{size:10.5}}}}, scales:{x:{stacked:true, grid:{display:false}}, y:{stacked:true, grid:{color:PALETTE.grid}}}}});
-
-  mkChart('afClassChart', {type:'doughnut', data:{labels:classSorted.map(x=>x[0]), datasets:[{data:classSorted.map(x=>x[1]), backgroundColor: classSorted.map(x=> classColors[x[0]] || PALETTE.info)}]},
-    options:{plugins:{legend:{position:'right', labels:{boxWidth:10, font:{size:10.5}}}}}});
-
-  mkChart('afClusterChart', {type:'bar', data:{labels:clusterSorted.map(x=>x[0]), datasets:[{label:'Conteggio', data:clusterSorted.map(x=>x[1]), backgroundColor:PALETTE.info}]},
-    options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false}, ticks:{font:{size:10.5}}}}}});
-}
-
-/* ============================================================
    PANEL: CREDITO ORDINARIO & FACTORING
    ============================================================ */
 function renderCredito(panel, s){
@@ -795,7 +687,7 @@ function renderCredito(panel, s){
   const deliberaMonths = [...byMonthDelibera.keys()].sort();
 
   panel.innerHTML = structHeaderHtml(s, 'Credito Ordinario & Factoring - Lending') + `
-    <div class="section-title">Statistiche generali</div>
+    <div class="section-title">Statistiche generali sulle pratiche 2026</div>
     <div class="kpi-row">
       <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Pratiche totali</div><div class="val">${fmtInt.format(total)}</div></div>
       <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">In lavorazione</div><div class="val">${fmtInt.format(inLavRows.length)}</div></div>
@@ -882,6 +774,320 @@ function renderCredito(panel, s){
 }
 
 /* ============================================================
+   PANEL: CONTRATTI E PERFEZIONAMENTI CREDITO ORDINARIO 
+   ============================================================ */
+function renderPerfezionamenti(panel, s){
+  
+  const rows = s.rows;
+
+  // ============================================================
+  // PERFEZIONAMENTI 2026
+  // ============================================================
+
+  const perfezionati2026 = rows.filter(r => {
+    const d = toDate(r.dta_operativa);
+    return d && d.getFullYear() === 2026;
+  });
+
+  // Estrai business unit uniche
+  const buSet = new Set(perfezionati2026.map(r => r.des_business_unit).filter(Boolean));
+  const buArray = Array.from(buSet).sort();
+  const buColorMap = Object.fromEntries(
+    buArray.map((bu, i) => [bu, CHART_SERIES[i % CHART_SERIES.length]])
+  );
+
+  // Trend mensile per BU
+  const perfByMonthBU = {};
+  perfezionati2026.forEach(r => {
+    const d = toDate(r.dta_operativa);
+    const k = monthKey(d);
+    const bu = r.des_business_unit || 'N.D.';
+    
+    if (!perfByMonthBU[k]) perfByMonthBU[k] = {};
+    perfByMonthBU[k][bu] = (perfByMonthBU[k][bu] || 0) + 1;
+  });
+
+  // ============================================================
+  // GIORNI MEDI DELIBERA → OPERATIVA
+  // ============================================================
+
+  const giorniDelibOp = perfezionati2026.map(r => {
+    const dDelibera = toDate(r.dta_delibera);
+    const dOperativa = toDate(r.dta_operativa);
+    
+    if (!dDelibera || !dOperativa) return null;
+    
+    const diffMs = dOperativa.getTime() - dDelibera.getTime();
+    const diffGg = Math.round(diffMs / (1000 * 60 * 60 * 24));
+    return {mese: monthKey(dOperativa), giorni: diffGg};
+  }).filter(v => v !== null && v.giorni >= 0);
+
+  const giorniByMonth = {};
+  giorniDelibOp.forEach(item => {
+    if (!giorniByMonth[item.mese]) giorniByMonth[item.mese] = [];
+    giorniByMonth[item.mese].push(item.giorni);
+  });
+
+  const avgGiorniByMonth = {};
+  Object.keys(giorniByMonth).forEach(k => {
+    const vals = giorniByMonth[k];
+    avgGiorniByMonth[k] = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+  });
+
+  // Union di tutti i mesi
+  const months = [...new Set([
+    ...Object.keys(perfByMonthBU),
+    ...Object.keys(giorniByMonth)
+  ])].sort();
+
+  // ============================================================
+  // AGGREGAZIONI
+  // ============================================================
+
+  const byBU = mapToSorted(countBy(perfezionati2026, 'des_business_unit'));
+  const avgGiorniOverall = giorniDelibOp.length ? giorniDelibOp.reduce((a, b) => a + b.giorni, 0) / giorniDelibOp.length : 0;
+
+  const dimRow = findDimRow(s.sheetName);
+  
+  panel.innerHTML = structHeaderHtml(s, 'Contratti e perfezionamenti credito ordinario - Lending') + `
+    <div class="section-title">Pratiche completate perfezionate nel 2026</div>
+    
+    <div class="kpi-row">
+      <div class="kpi" style="--kc:${PALETTE.info}">
+        <div class="lbl">Pratiche perfezionate 2026</div>
+        <div class="val">${fmtInt.format(perfezionati2026.length)}</div>
+      </div>
+      <div class="kpi" style="--kc:${PALETTE.accent}">
+        <div class="lbl">Business unit</div>
+        <div class="val">${fmtInt.format(buArray.length)}</div>
+      </div>
+      <div class="kpi" style="--kc:${PALETTE.violet}">
+        <div class="lbl">Tempo medio lavorazione</div>
+        <div class="val">${fmtDec.format(avgGiorniOverall)} gg</div>
+        <div class="sub">delibera → operativa</div>
+      </div>
+    </div>
+
+    <div class="grid cols-2">
+      <div class="card">
+        <h3>Perfezionamenti per mese e business unit</h3>
+        <p class="card-sub">dta_operativa 2026, suddiviso per des_business_unit</p>
+        <canvas id="crPerfezionatiChart"></canvas>
+      </div>
+
+      <div class="card">
+        <h3>Giorni medi delibera → operativa</h3>
+        <p class="card-sub">per mese, 2026</p>
+        <canvas id="crGiorniDelibOpChart"></canvas>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h3>Perfezionamenti per business unit</h3>
+      <p class="card-sub">Pratiche 2026</p>
+      <canvas id="crBuChart"></canvas>
+    </div>
+  `;
+
+  // ============================================================
+  // CHART: PERFEZIONAMENTI STACKED PER BU
+  // ============================================================
+
+  const datasetsPerfezionati = buArray.map(bu => ({
+    label: bu,
+    data: months.map(m => perfByMonthBU[m]?.[bu] || 0),
+    backgroundColor: buColorMap[bu],
+    borderColor: buColorMap[bu],
+    borderWidth: 0
+  }));
+
+  mkChart('crPerfezionatiChart', {
+    type: 'bar',
+    data: {
+      labels: months,
+      datasets: datasetsPerfezionati
+    },
+    options: {
+      scales: {
+        x: {stacked: true, grid: {display: false}},
+        y: {stacked: true, grid: {color: PALETTE.grid}}
+      },
+      plugins: {
+        legend: {position: 'bottom', labels: {boxWidth: 10, font: {size: 10.5}}}
+      }
+    }
+  });
+
+  // ============================================================
+  // CHART: GIORNI MEDI
+  // ============================================================
+
+  mkChart('crGiorniDelibOpChart', {
+    type: 'line',
+    data: {
+      labels: months,
+      datasets: [{
+        label: 'Giorni medi',
+        data: months.map(m => {
+          const val = avgGiorniByMonth[m];
+          return val ? Number(val.toFixed(1)) : 0;
+        }),
+        borderColor: PALETTE.violet,
+        backgroundColor: 'rgba(184,159,132,0.1)',
+        tension: 0.4,
+        fill: true,
+        pointRadius: 4,
+        pointBackgroundColor: PALETTE.violet
+      }]
+    },
+    options: {
+      plugins: {
+        legend: {display: false}
+      },
+      scales: {
+        x: {grid: {display: false}},
+        y: {grid: {color: PALETTE.grid}}
+      }
+    }
+  });
+
+  // ============================================================
+  // CHART: BUSINESS UNIT
+  // ============================================================
+
+  mkChart('crBuChart', {
+    type: 'bar',
+    data: {
+      labels: byBU.map(x => x[0]),
+      datasets: [{
+        label: 'Pratiche',
+        data: byBU.map(x => x[1]),
+        backgroundColor: PALETTE.info
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: {
+        legend: {display: false}
+      },
+      scales: {
+        x: {grid: {color: PALETTE.grid}},
+        y: {grid: {display: false}, ticks: {font: {size: 10}}}
+      }
+    }
+  });
+}
+
+/* ============================================================
+   PANEL: ANAGRAFE
+   ============================================================ */
+function renderAnagrafe(panel, s){
+  const ALLOWED_BU = ['', '-', 'smes'];
+  const isAllowedBU = (v)=>{
+    const t = (v===null||v===undefined) ? '' : String(v).trim().toLowerCase();
+    return ALLOWED_BU.includes(t);
+  };
+  const rows = s.rows.filter(r=> isAllowedBU(r.des_business_unit));
+  const excludedCount = s.rows.length - rows.length;
+  const dates = rows.map(r=> toDate(r.dta_censimento)).filter(Boolean);
+  const naturaCounts = topN(mapToSorted(countBy(rows, 'des_natura_giuridica')), 12);
+  const statusCounts = mapToSorted(countBy(rows, 'des_status_generic'));
+
+  const byMonth = new Map();
+  dates.forEach(d=>{ const k = monthKey(d); byMonth.set(k, (byMonth.get(k)||0)+1); });
+  const months = [...byMonth.keys()].sort();
+
+  const minD = dates.length ? new Date(Math.min(...dates)) : null;
+  const maxD = dates.length ? new Date(Math.max(...dates)) : null;
+  const nDeceduti = rows.filter(r=> toDate(r.dta_decesso)).length;
+
+  panel.innerHTML = structHeaderHtml(s, 'Anagrafe - ORGANIZATION, ICT & HR') + `
+    <div class="section-title">Statistiche generali anagrafe 2026</div>
+    <div class="kpi-row">
+      <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Nominativi censiti</div><div class="val">${fmtInt.format(rows.length)}</div></div>
+      <div class="kpi" style="--kc:${PALETTE.violet}"><div class="lbl">Nature giuridiche distinte</div><div class="val">${new Set(rows.map(r=>r.des_natura_giuridica)).size}</div></div>
+      <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">Periodo censimento</div><div class="val" style="font-size:15px">${fmtDate(minD)} → ${fmtDate(maxD)}</div></div>
+      <div class="kpi" style="--kc:${PALETTE.danger}"><div class="lbl">Deceduti registrati</div><div class="val">${fmtInt.format(nDeceduti)}</div></div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <h3>Trend censimenti nel tempo</h3><p class="card-sub">conteggio mensile per data censimento</p><canvas id="anTrendChart"></canvas>
+    </div>
+    <div class="grid cols-2" style="margin-bottom:16px">
+      <div class="card"><h3>Natura giuridica (top 12)</h3><p class="card-sub">forma societaria dei nominativi censiti</p><canvas id="anNaturaChart"></canvas></div>
+      <div class="card"><h3>Stato cliente</h3><p class="card-sub">${statusCounts.length? 'des_status_generic' : 'dato non disponibile'}</p><canvas id="anStatusChart"></canvas></div>
+    </div>
+  `;
+
+  mkChart('anTrendChart', {type:'line', data:{labels:months, datasets:[{label:'Censimenti', data:months.map(m=>byMonth.get(m)), borderColor:PALETTE.accent, backgroundColor:'rgba(47,111,179,0.12)', fill:true, tension:.3}]},
+    options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
+
+  mkChart('anNaturaChart', {type:'bar', data:{labels:naturaCounts.map(x=>x[0]), datasets:[{label:'Nominativi', data:naturaCounts.map(x=>x[1]), backgroundColor:PALETTE.info}]},
+    options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false}, ticks:{font:{size:10}}}}}});
+
+  mkChart('anStatusChart', {type:'pie', data:{labels:statusCounts.map(x=>x[0]), datasets:[{data:statusCounts.map(x=>x[1]), backgroundColor:CHART_SERIES}]},
+    options:{plugins:{legend:{position:'right', labels:{boxWidth:10, font:{size:10.5}}}}}});
+}
+
+/* ============================================================
+   PANEL: ANTIFRODE
+   ============================================================ */
+function renderAntifrode(panel, s){
+  const rows = s.rows;
+  const countKey = rows[0].hasOwnProperty('conteggio') ? 'conteggio' : Object.keys(rows[0]).find(k=> typeof rows[0][k] === 'number');
+  const total = rows.reduce((a,r)=> a + (Number(r[countKey])||0), 0);
+
+  const byClass = sumBy(rows, 'classificazione', countKey);
+  const byCluster = sumBy(rows, 'cluster_frode', countKey);
+  const confermate = byClass.get('FRODE CONFERMATA') || 0;
+  const tassoConferma = total ? (confermate/total*100) : 0;
+
+  const byMonthClass = new Map(); // month -> classificazione -> sum
+  rows.forEach(r=>{
+    const d = toDate(r.mese);
+    const k = d ? monthKey(d) : String(r.mese);
+    const cl = r.classificazione || '(n.d.)';
+    if(!byMonthClass.has(k)) byMonthClass.set(k, new Map());
+    const mm = byMonthClass.get(k);
+    mm.set(cl, (mm.get(cl)||0) + (Number(r[countKey])||0));
+  });
+  const months = [...byMonthClass.keys()].sort();
+  const classifications = [...new Set(rows.map(r=>r.classificazione).filter(Boolean))];
+
+  const clusterSorted = mapToSorted(byCluster);
+  const classSorted = mapToSorted(byClass);
+
+  panel.innerHTML = structHeaderHtml(s, 'Antifrode - ORGANIZATION, ICT & HR') + `
+    <div class="section-title">Statistiche generali antifrode 2026</div>
+    <div class="kpi-row">
+      <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Segnalazioni totali</div><div class="val">${fmtInt.format(total)}</div></div>
+      <div class="kpi" style="--kc:${PALETTE.danger}"><div class="lbl">Frodi confermate</div><div class="val">${fmtInt.format(confermate)}</div><div class="sub">${fmtDec.format(tassoConferma)}% del totale</div></div>
+      <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">Falsi positivi</div><div class="val">${fmtInt.format(byClass.get('FALSO POSITIVO FRODE')||0)}</div></div>
+      <div class="kpi" style="--kc:${PALETTE.violet}"><div class="lbl">Cluster di frode monitorati</div><div class="val">${clusterSorted.length}</div></div>
+    </div>
+    <div class="grid cols-2" style="margin-bottom:16px">
+      <div class="card"><h3>Andamento mensile per classificazione</h3><p class="card-sub">frodi confermate / falsi positivi / non classificabili</p><canvas id="afTrendChart"></canvas></div>
+      <div class="card"><h3>Distribuzione per classificazione</h3><canvas id="afClassChart"></canvas></div>
+    </div>
+    <div class="grid cols-2" style="margin-bottom:16px">
+      <div class="card" style="grid-column:1/-1"><h3>Volumi per cluster di frode</h3><p class="card-sub">tipologia di frode rilevata</p><canvas id="afClusterChart"></canvas></div>
+    </div>
+  `;
+
+  const classColors = {'FRODE CONFERMATA':PALETTE.danger, 'FALSO POSITIVO FRODE':PALETTE.warn, 'NON CLASSIFICABILE':PALETTE.info};
+  mkChart('afTrendChart', {type:'bar', data:{labels:months, datasets: classifications.map((c,i)=>({
+      label:c, data: months.map(m=> byMonthClass.get(m).get(c)||0),
+      backgroundColor: classColors[c] || CHART_SERIES[i%CHART_SERIES.length]
+    }))},
+    options:{plugins:{legend:{position:'bottom', labels:{boxWidth:10,font:{size:10.5}}}}, scales:{x:{stacked:true, grid:{display:false}}, y:{stacked:true, grid:{color:PALETTE.grid}}}}});
+
+  mkChart('afClassChart', {type:'doughnut', data:{labels:classSorted.map(x=>x[0]), datasets:[{data:classSorted.map(x=>x[1]), backgroundColor: classSorted.map(x=> classColors[x[0]] || PALETTE.info)}]},
+    options:{plugins:{legend:{position:'right', labels:{boxWidth:10, font:{size:10.5}}}}}});
+
+  mkChart('afClusterChart', {type:'bar', data:{labels:clusterSorted.map(x=>x[0]), datasets:[{label:'Conteggio', data:clusterSorted.map(x=>x[1]), backgroundColor:PALETTE.info}]},
+    options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false}, ticks:{font:{size:10.5}}}}}});
+}
+
+/* ============================================================
    PANEL: OPS AML
    ============================================================ */
 function renderOpsAml(panel, s){
@@ -925,13 +1131,13 @@ function renderOpsAml(panel, s){
   const byWorkflow = mapToSorted(countDistinctBy(altoRows, 'workflow'));
   const byTipoVerifica = mapToSorted(countDistinctBy(altoRows, 'tipo_verifica'));
 
-  panel.innerHTML = structHeaderHtml(s, 'OPS AML') + `
-    <div class="section-title">Adeguate verifiche a rischio alto nel tempo <span class="count-badge">${fmtInt.format(altoNdg)} NDG</span></div>
+  panel.innerHTML = structHeaderHtml(s, 'OPS AML - ORGANIZATION, ICT & HR') + `
+    <div class="section-title">Stato lavorazione adeguate verifiche su clientela a rischio alto <span class="count-badge">${fmtInt.format(altoNdg)} NDG</span></div>
     <p class="section-desc">Focus sulle posizioni in fascia di rischio alto: avanzamento delle adeguate verifiche e tempi di lavorazione.</p>
     
     <div class="kpi-row">
       <div class="kpi" style="--kc:${PALETTE.accent}"><div class="lbl">Verifiche completate</div><div class="val">${fmtInt.format(completedAltoNdg)}</div><div class="sub">${fmtDec.format(altoNdg ? completedAltoNdg/altoNdg*100 : 0)}% del rischio alto</div></div>
-      <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">In lavorazione</div><div class="val">${fmtInt.format(pendingAltoNdg)}</div><div class="sub">${fmtDec.format(altoNdg ? pendingAltoNdg/altoNdg*100 : 0)}% del rischio alto</div></div>
+      <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">Da lavorare</div><div class="val">${fmtInt.format(pendingAltoNdg)}</div><div class="sub">${fmtDec.format(altoNdg ? pendingAltoNdg/altoNdg*100 : 0)}% del rischio alto</div></div>
       <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Tempo medio</div><div class="val">${fmtDec.format(avgGiorniAlto)} gg</div><div class="sub">data uscita − inserimento</div></div>
       <div class="kpi" style="--kc:${PALETTE.danger}"><div class="lbl">Scadute e non completate</div><div class="val">${fmtInt.format(scaduteNdg)}</div><div class="sub">data scadenza ADV superata</div></div>
     </div>
@@ -969,6 +1175,47 @@ function renderOpsAml(panel, s){
     options:{plugins:{legend:{position:'right', labels:{boxWidth:10, font:{size:10.5}}}}}});
 }
 
+/* ============================================================ PANEL: BANCASSURANCE ============================================================ */
+function renderBancassurance(panel, s){
+  const rows = s.rows;
+  const bancassurance = rows.filter(r => r && r.data_ordine);
+  const statiSet = new Set(bancassurance.map(r => r.descrizione_stato).filter(Boolean));
+  const statiArray = Array.from(statiSet).sort();
+  const statoColorMap = Object.fromEntries(statiArray.map((stato, i) => [stato, CHART_SERIES[i % CHART_SERIES.length]]));
+  const ordiniByMonthStato = {};
+  bancassurance.forEach(r => { const d = toDate(r.data_ordine); const k = monthKey(d); const stato = r.descrizione_stato || 'N.D.'; if (!ordiniByMonthStato[k]) ordiniByMonthStato[k] = {}; ordiniByMonthStato[k][stato] = (ordiniByMonthStato[k][stato] || 0) + 1; });
+  const volumeByMonth = {};
+  bancassurance.forEach(r => { const d = toDate(r.data_ordine); const k = monthKey(d); volumeByMonth[k] = (volumeByMonth[k] || 0) + (parseFloat(r.tot_generale_euro) || 0); });
+  const months = [...new Set([...Object.keys(ordiniByMonthStato), ...Object.keys(volumeByMonth)])].sort();
+  const byStato = Object.entries(bancassurance.reduce((acc, r) => { const stato = r.descrizione_stato || 'N.D.'; acc[stato] = (acc[stato] || 0) + 1; return acc; }, {})).sort((a, b) => b[1] - a[1]);
+  const volumeTotal = Object.values(volumeByMonth).reduce((a, b) => a + b, 0);
+  const volumeAvg = months.length ? volumeTotal / months.length : 0;
+  
+  panel.innerHTML = structHeaderHtml(s, 'Wealth & Bancassurance - ORGANIZATION, ICT & HR') + `
+    <div class="section-title">Ordini di trasferimento titoli, fondi, ecc...</div>
+    <div class="kpi-row">
+      <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Ordini totali</div><div class="val">${fmtInt.format(bancassurance.length)}</div></div>
+      <div class="kpi" style="--kc:${PALETTE.accent}"><div class="lbl">Volume totale</div><div class="val">€ ${fmtInt.format(volumeTotal)}</div></div>
+      <div class="kpi" style="--kc:${PALETTE.violet}"><div class="lbl">Volume medio mensile</div><div class="val">€ ${fmtInt.format(volumeAvg)}</div></div>
+    </div>
+    <div class="grid cols-2">
+      <div class="card">
+        <h3>Ordini mensili per stato</h3>
+        <p class="card-sub">data_ordine, suddiviso per descrizione_stato</p>
+        <canvas id="baOrdiniChart"></canvas>
+      </div>
+      <div class="card">
+        <h3>Volume mensile</h3>
+        <p class="card-sub">tot_generale_euro per mese</p>
+        <canvas id="baVolumeChart"></canvas>
+      </div>
+    </div>
+  `;
+
+  mkChart('baOrdiniChart', { type: 'bar', data: { labels: months, datasets: statiArray.map(stato => ({ label: stato, data: months.map(m => ordiniByMonthStato[m]?.[stato] || 0), backgroundColor: statoColorMap[stato], borderColor: statoColorMap[stato], borderWidth: 0 })) }, options: { scales: { x: {stacked: true, grid: {display: false}}, y: {stacked: true, grid: {color: PALETTE.grid}} }, plugins: { legend: {position: 'bottom', labels: {boxWidth: 10, font: {size: 10.5}}} } } });
+
+  mkChart('baVolumeChart', { type: 'bar', data: { labels: months, datasets: [{ label: 'Volume (€)', data: months.map(m => volumeByMonth[m] || 0), backgroundColor: PALETTE.pos, borderColor: PALETTE.pos, borderWidth: 0 }] }, options: { scales: { x: {grid: {display: false}}, y: {grid: {color: PALETTE.grid}} }, plugins: { legend: {display: false} } } });
+}
 
 /* ============================================================
    PANEL: DIGITAL
@@ -1203,234 +1450,6 @@ function renderDigital(panel){
       }]
     }
   });
-}
-
-/* ============================================================
-   PANEL: CREDITO ORDINARIO & FACTORING
-   ============================================================ */
-function renderPerfezionamenti(panel, s){
-  
-  const rows = s.rows;
-
-  // ============================================================
-  // PERFEZIONAMENTI 2026
-  // ============================================================
-
-  const perfezionati2026 = rows.filter(r => {
-    const d = toDate(r.dta_operativa);
-    return d && d.getFullYear() === 2026;
-  });
-
-  // Estrai business unit uniche
-  const buSet = new Set(perfezionati2026.map(r => r.des_business_unit).filter(Boolean));
-  const buArray = Array.from(buSet).sort();
-  const buColorMap = Object.fromEntries(
-    buArray.map((bu, i) => [bu, CHART_SERIES[i % CHART_SERIES.length]])
-  );
-
-  // Trend mensile per BU
-  const perfByMonthBU = {};
-  perfezionati2026.forEach(r => {
-    const d = toDate(r.dta_operativa);
-    const k = monthKey(d);
-    const bu = r.des_business_unit || 'N.D.';
-    
-    if (!perfByMonthBU[k]) perfByMonthBU[k] = {};
-    perfByMonthBU[k][bu] = (perfByMonthBU[k][bu] || 0) + 1;
-  });
-
-  // ============================================================
-  // GIORNI MEDI DELIBERA → OPERATIVA
-  // ============================================================
-
-  const giorniDelibOp = perfezionati2026.map(r => {
-    const dDelibera = toDate(r.dta_delibera);
-    const dOperativa = toDate(r.dta_operativa);
-    
-    if (!dDelibera || !dOperativa) return null;
-    
-    const diffMs = dOperativa.getTime() - dDelibera.getTime();
-    const diffGg = Math.round(diffMs / (1000 * 60 * 60 * 24));
-    return {mese: monthKey(dOperativa), giorni: diffGg};
-  }).filter(v => v !== null && v.giorni >= 0);
-
-  const giorniByMonth = {};
-  giorniDelibOp.forEach(item => {
-    if (!giorniByMonth[item.mese]) giorniByMonth[item.mese] = [];
-    giorniByMonth[item.mese].push(item.giorni);
-  });
-
-  const avgGiorniByMonth = {};
-  Object.keys(giorniByMonth).forEach(k => {
-    const vals = giorniByMonth[k];
-    avgGiorniByMonth[k] = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
-  });
-
-  // Union di tutti i mesi
-  const months = [...new Set([
-    ...Object.keys(perfByMonthBU),
-    ...Object.keys(giorniByMonth)
-  ])].sort();
-
-  // ============================================================
-  // AGGREGAZIONI
-  // ============================================================
-
-  const byBU = mapToSorted(countBy(perfezionati2026, 'des_business_unit'));
-  const avgGiorniOverall = giorniDelibOp.length ? giorniDelibOp.reduce((a, b) => a + b.giorni, 0) / giorniDelibOp.length : 0;
-
-  const dimRow = findDimRow(s.sheetName);
-  
-  panel.innerHTML = structHeaderHtml(s, 'Contratti e perfezionamenti credito ordinario - Lending') + `
-    <div class="section-title">Pratiche completate perfezionate nel 2026</div>
-    
-    <div class="kpi-row">
-      <div class="kpi" style="--kc:${PALETTE.info}">
-        <div class="lbl">Pratiche perfezionate 2026</div>
-        <div class="val">${fmtInt.format(perfezionati2026.length)}</div>
-      </div>
-      <div class="kpi" style="--kc:${PALETTE.accent}">
-        <div class="lbl">Business unit</div>
-        <div class="val">${fmtInt.format(buArray.length)}</div>
-      </div>
-      <div class="kpi" style="--kc:${PALETTE.violet}">
-        <div class="lbl">Tempo medio lavorazione</div>
-        <div class="val">${fmtDec.format(avgGiorniOverall)} gg</div>
-        <div class="sub">delibera → operativa</div>
-      </div>
-    </div>
-
-    <div class="grid cols-2">
-      <div class="card">
-        <h3>Perfezionamenti per mese e business unit</h3>
-        <p class="card-sub">dta_operativa 2026, suddiviso per des_business_unit</p>
-        <canvas id="crPerfezionatiChart"></canvas>
-      </div>
-
-      <div class="card">
-        <h3>Giorni medi delibera → operativa</h3>
-        <p class="card-sub">per mese, 2026</p>
-        <canvas id="crGiorniDelibOpChart"></canvas>
-      </div>
-    </div>
-
-    <div class="card" style="margin-top:16px">
-      <h3>Perfezionamenti per business unit</h3>
-      <p class="card-sub">Pratiche 2026</p>
-      <canvas id="crBuChart"></canvas>
-    </div>
-  `;
-
-  // ============================================================
-  // CHART: PERFEZIONAMENTI STACKED PER BU
-  // ============================================================
-
-  const datasetsPerfezionati = buArray.map(bu => ({
-    label: bu,
-    data: months.map(m => perfByMonthBU[m]?.[bu] || 0),
-    backgroundColor: buColorMap[bu],
-    borderColor: buColorMap[bu],
-    borderWidth: 0
-  }));
-
-  mkChart('crPerfezionatiChart', {
-    type: 'bar',
-    data: {
-      labels: months,
-      datasets: datasetsPerfezionati
-    },
-    options: {
-      scales: {
-        x: {stacked: true, grid: {display: false}},
-        y: {stacked: true, grid: {color: PALETTE.grid}}
-      },
-      plugins: {
-        legend: {position: 'bottom', labels: {boxWidth: 10, font: {size: 10.5}}}
-      }
-    }
-  });
-
-  // ============================================================
-  // CHART: GIORNI MEDI
-  // ============================================================
-
-  mkChart('crGiorniDelibOpChart', {
-    type: 'line',
-    data: {
-      labels: months,
-      datasets: [{
-        label: 'Giorni medi',
-        data: months.map(m => {
-          const val = avgGiorniByMonth[m];
-          return val ? Number(val.toFixed(1)) : 0;
-        }),
-        borderColor: PALETTE.violet,
-        backgroundColor: 'rgba(184,159,132,0.1)',
-        tension: 0.4,
-        fill: true,
-        pointRadius: 4,
-        pointBackgroundColor: PALETTE.violet
-      }]
-    },
-    options: {
-      plugins: {
-        legend: {display: false}
-      },
-      scales: {
-        x: {grid: {display: false}},
-        y: {grid: {color: PALETTE.grid}}
-      }
-    }
-  });
-
-  // ============================================================
-  // CHART: BUSINESS UNIT
-  // ============================================================
-
-  mkChart('crBuChart', {
-    type: 'bar',
-    data: {
-      labels: byBU.map(x => x[0]),
-      datasets: [{
-        label: 'Pratiche',
-        data: byBU.map(x => x[1]),
-        backgroundColor: PALETTE.info
-      }]
-    },
-    options: {
-      indexAxis: 'y',
-      plugins: {
-        legend: {display: false}
-      },
-      scales: {
-        x: {grid: {color: PALETTE.grid}},
-        y: {grid: {display: false}, ticks: {font: {size: 10}}}
-      }
-    }
-  });
-}
-
-/* ============================================================ PANEL: BANCASSURANCE ============================================================ */
-function renderBancassurance(panel, s){
-  const rows = s.rows;
-  const bancassurance = rows.filter(r => r && r.data_ordine);
-  const statiSet = new Set(bancassurance.map(r => r.descrizione_stato).filter(Boolean));
-  const statiArray = Array.from(statiSet).sort();
-  const statoColorMap = Object.fromEntries(statiArray.map((stato, i) => [stato, CHART_SERIES[i % CHART_SERIES.length]]));
-  const ordiniByMonthStato = {};
-  bancassurance.forEach(r => { const d = toDate(r.data_ordine); const k = monthKey(d); const stato = r.descrizione_stato || 'N.D.'; if (!ordiniByMonthStato[k]) ordiniByMonthStato[k] = {}; ordiniByMonthStato[k][stato] = (ordiniByMonthStato[k][stato] || 0) + 1; });
-  const volumeByMonth = {};
-  bancassurance.forEach(r => { const d = toDate(r.data_ordine); const k = monthKey(d); volumeByMonth[k] = (volumeByMonth[k] || 0) + (parseFloat(r.tot_generale_euro) || 0); });
-  const months = [...new Set([...Object.keys(ordiniByMonthStato), ...Object.keys(volumeByMonth)])].sort();
-  const byStato = Object.entries(bancassurance.reduce((acc, r) => { const stato = r.descrizione_stato || 'N.D.'; acc[stato] = (acc[stato] || 0) + 1; return acc; }, {})).sort((a, b) => b[1] - a[1]);
-  const volumeTotal = Object.values(volumeByMonth).reduce((a, b) => a + b, 0);
-  const volumeAvg = months.length ? volumeTotal / months.length : 0;
-  
-  panel.innerHTML = structHeaderHtml(s, 'Bancassurance') + `<p class="panel-sub">Ordini Bancassurance con data_ordine</p><div class="kpi-row"><div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Ordini totali</div><div class="val">${fmtInt.format(bancassurance.length)}</div></div><div class="kpi" style="--kc:${PALETTE.accent}"><div class="lbl">Volume totale</div><div class="val">€ ${fmtInt.format(volumeTotal)}</div></div><div class="kpi" style="--kc:${PALETTE.violet}"><div class="lbl">Volume medio mensile</div><div class="val">€ ${fmtInt.format(volumeAvg)}</div></div></div><div class="grid cols-2"><div class="card"><h3>Ordini mensili per stato</h3><p class="card-sub">data_ordine, suddiviso per descrizione_stato</p><canvas id="baOrdiniChart"></canvas></div><div class="card"><h3>Volume mensile</h3><p class="card-sub">tot_generale_euro per mese</p><canvas id="baVolumeChart"></canvas></div></div>`;
-
-  mkChart('baOrdiniChart', { type: 'bar', data: { labels: months, datasets: statiArray.map(stato => ({ label: stato, data: months.map(m => ordiniByMonthStato[m]?.[stato] || 0), backgroundColor: statoColorMap[stato], borderColor: statoColorMap[stato], borderWidth: 0 })) }, options: { scales: { x: {stacked: true, grid: {display: false}}, y: {stacked: true, grid: {color: PALETTE.grid}} }, plugins: { legend: {position: 'bottom', labels: {boxWidth: 10, font: {size: 10.5}}} } } });
-
-  mkChart('baVolumeChart', { type: 'bar', data: { labels: months, datasets: [{ label: 'Volume (€)', data: months.map(m => volumeByMonth[m] || 0), backgroundColor: PALETTE.pos, borderColor: PALETTE.pos, borderWidth: 0 }] }, options: { scales: { x: {grid: {display: false}}, y: {grid: {color: PALETTE.grid}} }, plugins: { legend: {display: false} } } });
 }
 
 /* ============================================================
