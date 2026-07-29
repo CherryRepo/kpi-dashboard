@@ -1331,7 +1331,7 @@ function renderFactoring(panel, s){
     </div>
   `;
 
-  // ============================================================
+    // ============================================================
   // CHART: PRATICHE PER MESE
   // ============================================================
 
@@ -1343,8 +1343,8 @@ function renderFactoring(panel, s){
         label: 'Pratiche',
         data: months.map(m => pratichePerMese[m] || 0),
         backgroundColor: PALETTE.info,
-        borderColor: PALETTE.info,
-        borderWidth: 0
+        borderColor: PALETTE.navy,
+        borderWidth: 2
       }]
     },
     options: {
@@ -1367,12 +1367,14 @@ function renderFactoring(panel, s){
       datasets: [{
         label: 'Accordato',
         data: months.map(m => accordatoPerMese[m] || 0),
-        borderColor: PALETTE.success,
-        backgroundColor: 'rgba(76,175,80,0.1)',
+        borderColor: PALETTE.pos,
+        backgroundColor: 'rgba(111,146,119,0.15)',
         tension: 0.4,
         fill: true,
-        pointRadius: 4,
-        pointBackgroundColor: PALETTE.success
+        pointRadius: 5,
+        pointBackgroundColor: PALETTE.pos,
+        pointBorderColor: PALETTE.navy,
+        pointBorderWidth: 2
       }]
     },
     options: {
@@ -1395,7 +1397,9 @@ function renderFactoring(panel, s){
       datasets: [{
         label: 'Pratiche',
         data: pratichePerGestore.map(x => x[1]),
-        backgroundColor: PALETTE.info
+        backgroundColor: pratichePerGestore.map((x, i) => CHART_SERIES[i % CHART_SERIES.length]),
+        borderColor: PALETTE.navy,
+        borderWidth: 1
       }]
     },
     options: {
@@ -1423,7 +1427,9 @@ function renderFactoring(panel, s){
       datasets: [{
         label: 'Accordato',
         data: accordatoGestoreSorted.map(x => x[1]),
-        backgroundColor: PALETTE.success
+        backgroundColor: accordatoGestoreSorted.map((x, i) => CHART_SERIES[i % CHART_SERIES.length]),
+        borderColor: PALETTE.navy,
+        borderWidth: 1
       }]
     },
     options: {
@@ -1447,7 +1453,9 @@ function renderFactoring(panel, s){
       datasets: [{
         label: 'Pratiche',
         data: pratichePerFiliale.map(x => x[1]),
-        backgroundColor: PALETTE.accent
+        backgroundColor: pratichePerFiliale.map((x, i) => CHART_SERIES[i % CHART_SERIES.length]),
+        borderColor: PALETTE.navy,
+        borderWidth: 1
       }]
     },
     options: {
@@ -1475,7 +1483,9 @@ function renderFactoring(panel, s){
       datasets: [{
         label: 'Accordato',
         data: accordatoFilialeSorted.map(x => x[1]),
-        backgroundColor: PALETTE.accent
+        backgroundColor: accordatoFilialeSorted.map((x, i) => CHART_SERIES[i % CHART_SERIES.length]),
+        borderColor: PALETTE.navy,
+        borderWidth: 1
       }]
     },
     options: {
@@ -1488,29 +1498,6 @@ function renderFactoring(panel, s){
     }
   });
 
-  // ============================================================
-  // CHART: PRATICHE PER SEGNALATORE
-  // ============================================================
-
-  mkChart('npPraticheSegnal', {
-    type: 'bar',
-    data: {
-      labels: pratichePerSegnalatore.map(x => x[0]),
-      datasets: [{
-        label: 'Pratiche',
-        data: pratichePerSegnalatore.map(x => x[1]),
-        backgroundColor: PALETTE.warning
-      }]
-    },
-    options: {
-      indexAxis: 'y',
-      plugins: {legend: {display: false}},
-      scales: {
-        x: {grid: {color: PALETTE.grid}},
-        y: {grid: {display: false}, ticks: {font: {size: 9.5}}}
-      }
-    }
-  });
 
   // ============================================================
   // CHART: ACCORDATO GESTITO PER ADDETTO
