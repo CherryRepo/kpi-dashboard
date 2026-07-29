@@ -1260,7 +1260,7 @@ function renderFactoring(panel, s){
         <div class="lbl">Pratiche stipulate</div>
         <div class="val">${fmtInt.format(totalPratiche)}</div>
       </div>
-      <div class="kpi" style="--kc:${PALETTE.success}">
+      <div class="kpi" style="--kc:${PALETTE.pos}">
         <div class="lbl">Accordato totale</div>
         <div class="val">${fmtCurrency.format(accordatoTotale)}</div>
       </div>
