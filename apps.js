@@ -213,7 +213,7 @@ function parseWorkbook(wb){
     STATE.domainSheets.push({sheetName:name, type, headers, rows, dimRow});
   }
 
-  const typeOrder = ['credito','credito_speciale','perfezionamenti','anagrafe','antifrode','ops_aml','bancassurance', 'generic'];
+  const typeOrder = ['ordinario','speciale','perfezionamenti','anagrafe','antifrode','ops_aml','bancassurance', 'generic'];
   STATE.domainSheets.sort((a, b) => {
     const orderA = typeOrder.indexOf(a.type);
     const orderB = typeOrder.indexOf(b.type);
@@ -242,8 +242,8 @@ function classifySheet(sheetName) {
   if (name.includes('10001100023100044')) return 'antifrode';
   if (name.includes('100011000231')) return 'anagrafe';
   if (name.includes('10004100067100079')) return 'perfezionamenti';
-  if (name.includes('10004100052')) return 'credito';
-  if (name.includes('10004100051')) return 'credito_speciale';
+  if (name.includes('10004100051')) return 'speciale';
+  if (name.includes('10004100052')) return 'ordinario';
   return 'generic';
 }
 
@@ -359,8 +359,8 @@ function buildSidebar(){
   const digitalTypes = ['digital_rapporti','digital_frodi','digital_raisin'];
   const moneticaTypes = ['monetica_bonifici_banca','monetica_cassa','monetica_cassette','monetica_bonifici_estero'];
   const labelMap = {
-    credito:'Credito Ordinario & Factoring',
-    credito_speciale:'Credito Speciale',
+    ordinario:'Credito Ordinario & Factoring',
+    speciale:'Credito Speciale',
     perfezionamenti:'Perfezionamenti credito ordinario',
     anagrafe:'Anagrafe',
     antifrode:'Antifrode',
@@ -442,7 +442,7 @@ function buildTabs(){
   const hasDigital = STATE.domainSheets.some(s => digitalTypes.includes(s.type));
   const hasMonetica = STATE.domainSheets.some(s => moneticaTypes.includes(s.type));
 
-  const labelMap = {credito:'Credito & Factoring', credito_speciale:'Credito Speciale', perfezionamenti:'Perfezionamenti credito ordinario', anagrafe:'Anagrafe', antifrode:'Antifrode', ops_aml:'OPS AML', bancassurance:'Wealth & Bancassurance'};
+  const labelMap = {ordinario:'Credito & Factoring', speciale:'Credito Speciale', perfezionamenti:'Perfezionamenti credito ordinario', anagrafe:'Anagrafe', antifrode:'Antifrode', ops_aml:'OPS AML', bancassurance:'Wealth & Bancassurance'};
 
   STATE.domainSheets.forEach((s, idx)=>{
     if(digitalTypes.includes(s.type) || moneticaTypes.includes(s.type)) return;
@@ -484,8 +484,8 @@ function activateTab(key){
 
   if(s.type === 'anagrafe') renderAnagrafe(panel, s);
   else if(s.type === 'antifrode') renderAntifrode(panel, s);
-  else if(s.type === 'credito') renderCredito(panel, s);
-  else if(s.type === 'credito_speciale') renderCreditoSpeciale(panel, s);
+  else if(s.type === 'ordinario') renderCredito(panel, s);
+  else if(s.type === 'speciale') renderCreditoSpeciale(panel, s);
   else if(s.type === 'ops_aml') renderOpsAml(panel, s);
   else if(s.type === 'perfezionamenti') renderPerfezionamenti(panel, s);
   else if(s.type === 'bancassurance') renderBancassurance(panel, s);
@@ -779,7 +779,7 @@ function renderCredito(panel, s){
 }
 
 /* ============================================================
-   PANEL: CREDITO ORDINARIO & FACTORING
+   PANEL: CREDITO SPECIALE
    ============================================================ */
 function renderCreditoSpeciale(panel, s){
   const ALLOWED_TIPO_ISTRUTTORIA = [
