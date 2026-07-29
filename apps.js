@@ -1331,7 +1331,7 @@ function renderFactoring(panel, s){
     </div>
   `;
 
-    // ============================================================
+  // ============================================================
   // CHART: PRATICHE PER MESE
   // ============================================================
 
@@ -1342,8 +1342,8 @@ function renderFactoring(panel, s){
       datasets: [{
         label: 'Pratiche',
         data: months.map(m => pratichePerMese[m] || 0),
-        backgroundColor: PALETTE.info,
-        borderColor: PALETTE.navy,
+        backgroundColor: PALETTE.navy,
+        borderColor: PALETTE.accent,
         borderWidth: 2
       }]
     },
@@ -1397,9 +1397,9 @@ function renderFactoring(panel, s){
       datasets: [{
         label: 'Pratiche',
         data: pratichePerGestore.map(x => x[1]),
-        backgroundColor: pratichePerGestore.map((x, i) => CHART_SERIES[i % CHART_SERIES.length]),
+        backgroundColor: PALETTE.info,
         borderColor: PALETTE.navy,
-        borderWidth: 1
+        borderWidth: 2
       }]
     },
     options: {
@@ -1427,9 +1427,9 @@ function renderFactoring(panel, s){
       datasets: [{
         label: 'Accordato',
         data: accordatoGestoreSorted.map(x => x[1]),
-        backgroundColor: accordatoGestoreSorted.map((x, i) => CHART_SERIES[i % CHART_SERIES.length]),
+        backgroundColor: PALETTE.warn,
         borderColor: PALETTE.navy,
-        borderWidth: 1
+        borderWidth: 2
       }]
     },
     options: {
@@ -1453,9 +1453,9 @@ function renderFactoring(panel, s){
       datasets: [{
         label: 'Pratiche',
         data: pratichePerFiliale.map(x => x[1]),
-        backgroundColor: pratichePerFiliale.map((x, i) => CHART_SERIES[i % CHART_SERIES.length]),
+        backgroundColor: PALETTE.pos,
         borderColor: PALETTE.navy,
-        borderWidth: 1
+        borderWidth: 2
       }]
     },
     options: {
@@ -1483,9 +1483,9 @@ function renderFactoring(panel, s){
       datasets: [{
         label: 'Accordato',
         data: accordatoFilialeSorted.map(x => x[1]),
-        backgroundColor: accordatoFilialeSorted.map((x, i) => CHART_SERIES[i % CHART_SERIES.length]),
+        backgroundColor: PALETTE.danger,
         borderColor: PALETTE.navy,
-        borderWidth: 1
+        borderWidth: 2
       }]
     },
     options: {
@@ -1497,7 +1497,6 @@ function renderFactoring(panel, s){
       }
     }
   });
-
 
   // ============================================================
   // CHART: ACCORDATO GESTITO PER ADDETTO
