@@ -490,7 +490,7 @@ function activateTab(key){
   else if(s.type === 'speciale') renderCreditoSpeciale(panel, s);
   else if(s.type === 'ops_aml') renderOpsAml(panel, s);
   else if(s.type === 'perfezionamenti') renderPerfezionamenti(panel, s);
-  else if(s.type === 'factoring') renderAntifrode(panel, s);
+  else if(s.type === 'factoring') renderFactoring(panel, s);
   else if(s.type === 'bancassurance') renderBancassurance(panel, s);
   else renderGeneric(panel, s);
 }
