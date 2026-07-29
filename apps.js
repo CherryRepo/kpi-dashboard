@@ -782,10 +782,10 @@ function renderCredito(panel, s){
    PANEL: CREDITO SPECIALE
    ============================================================ */
 function renderCreditoSpeciale(panel, s){
-  const ALLOWED_TIPO_ISTRUTTORIA = [
+  const ALLOWED_TIPO_ISTRUTTORIA_V2 = [
     "Corporate Investment Banking",
   ];
-  const rows = s.rows.filter(r=> ALLOWED_TIPO_ISTRUTTORIA.includes(r.des_tipo_istruttoria));
+  const rows = s.rows.filter(r=> ALLOWED_TIPO_ISTRUTTORIA_V2.includes(r.des_tipo_istruttoria));
   const excludedCount = s.rows.length - rows.length;
   const total = rows.length;
 
