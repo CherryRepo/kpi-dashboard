@@ -1155,21 +1155,16 @@ function renderFactoring(panel, s){
   // FACTORING
   // ============================================================
 
-  const nuovePratiche = rows.filter(r => {
-    const d = toDate(r['data prima stipula']);
-    return d && d.getFullYear() === 2026; // solo 2024
-  });
+  const nuovePratiche = rows;
 
 
   // Estrai dimensioni uniche
   const gestoriSet = new Set(nuovePratiche.map(r => r['gestore']).filter(Boolean));
   const filialiSet = new Set(nuovePratiche.map(r => r['filiale']).filter(Boolean));
-  const buSet = new Set(nuovePratiche.map(r => r['business unit']).filter(Boolean));
   const segnalSet = new Set(nuovePratiche.map(r => r['segnalatore']).filter(Boolean));
 
   const gestoriArray = Array.from(gestoriSet).sort();
   const filialiArray = Array.from(filialiSet).sort();
-  const buArray = Array.from(buSet).sort();
   const segnalArray = Array.from(segnalSet).sort();
 
   const gestoriColorMap = Object.fromEntries(
@@ -1186,7 +1181,6 @@ function renderFactoring(panel, s){
   const pratichePerMese = {};
   const pratichePerGestore = mapToSorted(countBy(nuovePratiche, 'gestore'));
   const pratichePerFiliale = mapToSorted(countBy(nuovePratiche, 'filiale'));
-  const pratichePerBU = mapToSorted(countBy(nuovePratiche, 'business unit'));
   const pratichePerSegnalatore = mapToSorted(countBy(nuovePratiche, 'segnalatore'));
 
   // Pratiche per mese
@@ -1210,7 +1204,6 @@ function renderFactoring(panel, s){
   const accordatoPerMese = {};
   const accordatoPerGestore = {};
   const accordatoPerFiliale = {};
-  const accordatoPerBU = {};
 
   nuovePratiche.forEach(r => {
     const d = toDate(r['data prima stipula']);
@@ -1220,7 +1213,6 @@ function renderFactoring(panel, s){
     accordatoPerMese[k] = (accordatoPerMese[k] || 0) + importo;
     accordatoPerGestore[r['gestore']] = (accordatoPerGestore[r['gestore']] || 0) + importo;
     accordatoPerFiliale[r['filiale']] = (accordatoPerFiliale[r['filiale']] || 0) + importo;
-    accordatoPerBU[r['business unit']] = (accordatoPerBU[r['business unit']] || 0) + importo;
   });
 
   // ============================================================
@@ -1254,8 +1246,8 @@ function renderFactoring(panel, s){
   // RENDER HTML
   // ============================================================
 
-  panel.innerHTML = structHeaderHtml(s, 'Nuove pratiche stipulate') + `
-    <div class="section-title">Riepilogo nuove pratiche nel periodo</div>
+  panel.innerHTML = structHeaderHtml(s, 'Factoring - Lending') + `
+    <div class="section-title">Riepilogo nuove pratiche factoring nel periodo 2026</div>
     
     <div class="kpi-row">
       <div class="kpi" style="--kc:${PALETTE.info}">
@@ -1272,7 +1264,7 @@ function renderFactoring(panel, s){
       </div>
       <div class="kpi" style="--kc:${PALETTE.violet}">
         <div class="lbl">Impiego medio</div>
-        <div class="val">${fmtCurrency.format(impigoMedio)}</div>
+        <div class="val">${fmtCurrency.format(impiegoMedio)}</div>
       </div>
       <div class="kpi" style="--kc:${PALETTE.warning}">
         <div class="lbl">Turnover generato</div>
@@ -1323,12 +1315,6 @@ function renderFactoring(panel, s){
     </div>
 
     <div class="grid cols-2">
-      <div class="card">
-        <h3>Pratiche per business unit</h3>
-        <p class="card-sub">COUNT(ndg)</p>
-        <canvas id="npPraticheBusinessUnit"></canvas>
-      </div>
-
       <div class="card">
         <h3>Pratiche per segnalatore</h3>
         <p class="card-sub">COUNT(ndg)</p>
@@ -1502,30 +1488,6 @@ function renderFactoring(panel, s){
       scales: {
         x: {grid: {color: PALETTE.grid}, ticks: {callback: v => fmtCurrency.format(v)}},
         y: {grid: {display: false}, ticks: {font: {size: 9.5}}}
-      }
-    }
-  });
-
-  // ============================================================
-  // CHART: PRATICHE PER BUSINESS UNIT
-  // ============================================================
-
-  mkChart('npPraticheBusinessUnit', {
-    type: 'bar',
-    data: {
-      labels: pratichePerBU.map(x => x[0]),
-      datasets: [{
-        label: 'Pratiche',
-        data: pratichePerBU.map(x => x[1]),
-        backgroundColor: PALETTE.violet
-      }]
-    },
-    options: {
-      indexAxis: 'y',
-      plugins: {legend: {display: false}},
-      scales: {
-        x: {grid: {color: PALETTE.grid}},
-        y: {grid: {display: false}, ticks: {font: {size: 10}}}
       }
     }
   });
