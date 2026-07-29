@@ -858,12 +858,12 @@ function renderCreditoSpeciale(panel, s){
       <div class="kpi" style="--kc:${PALETTE.violet}"><div class="lbl">Tempo medio lavorazione</div><div class="val">${fmtDec.format(avgGiorni)} gg</div></div>
     </div>
     <div class="grid cols-2" style="margin-bottom:16px">
-      <div class="card"><h3>Pratiche per organo deliberante</h3><canvas id="crOrganoChart"></canvas></div>
-      <div class="card"><h3>Tempo medio lavorazione per organo</h3><p class="card-sub">giorni, nro_giorni_lavorazione</p><canvas id="crOrganoTempoChart"></canvas></div>
+      <div class="card"><h3>Pratiche per organo deliberante</h3><canvas id="crOrganoChart2"></canvas></div>
+      <div class="card"><h3>Tempo medio lavorazione per organo</h3><p class="card-sub">giorni, nro_giorni_lavorazione</p><canvas id="crOrganoTempoChart2"></canvas></div>
     </div>
     <div class="grid cols-2" style="margin-bottom:16px">
-      <div class="card"><h3>Scopo pratica (top 12)</h3><canvas id="crScopoChart"></canvas></div>
-      <div class="card"><h3>Distribuzione tempi di lavorazione</h3><p class="card-sub">fasce giorni lavorazione, tutte le pratiche</p><canvas id="crTempiChart"></canvas></div>
+      <div class="card"><h3>Scopo pratica (top 12)</h3><canvas id="crScopoChart2"></canvas></div>
+      <div class="card"><h3>Distribuzione tempi di lavorazione</h3><p class="card-sub">fasce giorni lavorazione, tutte le pratiche</p><canvas id="crTempiChart2"></canvas></div>
     </div>
 
     <div class="section-title">Pratiche in lavorazione <span class="count-badge">${fmtInt.format(inLavRows.length)} pratiche</span></div>
@@ -875,7 +875,7 @@ function renderCreditoSpeciale(panel, s){
       <div class="kpi" style="--kc:${PALETTE.accent}"><div class="lbl">Operatori coinvolti</div><div class="val">${opStats.length}</div></div>
     </div>
     <div class="grid cols-2" style="margin-bottom:16px">
-      <div class="card"><h3>Stato istruttoria (in lavorazione)</h3><p class="card-sub">dettaglio stati non completati</p><canvas id="crStatoInLavChart"></canvas></div>
+      <div class="card"><h3>Stato istruttoria (in lavorazione)</h3><p class="card-sub">dettaglio stati non completati</p><canvas id="crStatoInLavChart2"></canvas></div>
       <div class="card">
         <h3>Pratiche per operatore di lavorazione</h3><p class="card-sub">top 15 per numero di pratiche in carico</p>
         <div class="table-wrap" style="border:none">
@@ -899,40 +899,40 @@ function renderCreditoSpeciale(panel, s){
       <div class="card">
         <h3>Completate per mese: positive vs negative</h3>
         <p class="card-sub">conteggio mensile su data delibera, solo pratiche completate</p>
-        <canvas id="crDeliberaTrendChart"></canvas>
+        <canvas id="crDeliberaTrendChart2"></canvas>
       </div>
       <div class="card">
         <h3>Tipo delibera</h3>
         <p class="card-sub">solo pratiche completate</p>
-        <canvas id="crTipoChart"></canvas>
+        <canvas id="crTipoChart2"></canvas>
       </div>
     </div>
   `;
 
-  mkChart('crOrganoChart', {type:'bar', data:{labels:byOrgano.map(x=>x[0]), datasets:[{label:'Pratiche', data:byOrgano.map(x=>x[1]), backgroundColor:PALETTE.info}]},
+  mkChart('crOrganoChart2', {type:'bar', data:{labels:byOrgano.map(x=>x[0]), datasets:[{label:'Pratiche', data:byOrgano.map(x=>x[1]), backgroundColor:PALETTE.info}]},
     options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false}, ticks:{font:{size:10.5}}}}}});
 
   const organoTempoSorted = mapToSorted(avgGiorniByOrgano);
-  mkChart('crOrganoTempoChart', {type:'bar', data:{labels:organoTempoSorted.map(x=>x[0]), datasets:[{label:'Giorni medi', data:organoTempoSorted.map(x=>Number(x[1].toFixed(1))), backgroundColor:PALETTE.violet}]},
+  mkChart('crOrganoTempoChart2', {type:'bar', data:{labels:organoTempoSorted.map(x=>x[0]), datasets:[{label:'Giorni medi', data:organoTempoSorted.map(x=>Number(x[1].toFixed(1))), backgroundColor:PALETTE.violet}]},
     options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false}, ticks:{font:{size:10.5}}}}}});
 
-  mkChart('crScopoChart', {type:'bar', data:{labels:byScopo.map(x=>x[0]), datasets:[{label:'Pratiche', data:byScopo.map(x=>x[1]), backgroundColor:PALETTE.accent}]},
+  mkChart('crScopoChart2', {type:'bar', data:{labels:byScopo.map(x=>x[0]), datasets:[{label:'Pratiche', data:byScopo.map(x=>x[1]), backgroundColor:PALETTE.accent}]},
     options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false}, ticks:{font:{size:10}}}}}});
 
-  mkChart('crTempiChart', {type:'bar', data:{labels:bucketLabels, datasets:[{label:'Pratiche', data:bucketCounts, backgroundColor: bucketLabels.map((_,i)=> CHART_SERIES[i])}]},
+  mkChart('crTempiChart2', {type:'bar', data:{labels:bucketLabels, datasets:[{label:'Pratiche', data:bucketCounts, backgroundColor: bucketLabels.map((_,i)=> CHART_SERIES[i])}]},
     options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
 
-  mkChart('crStatoInLavChart', {type:'pie', data:{labels:byStatoInLav.map(x=>x[0]), datasets:[{data:byStatoInLav.map(x=>x[1]), backgroundColor:CHART_SERIES}]},
+  mkChart('crStatoInLavChart2', {type:'pie', data:{labels:byStatoInLav.map(x=>x[0]), datasets:[{data:byStatoInLav.map(x=>x[1]), backgroundColor:CHART_SERIES}]},
     options:{plugins:{legend:{position:'right', labels:{boxWidth:10, font:{size:10.5}}}}}});
 
-  mkChart('crDeliberaTrendChart', {type:'bar', data:{labels:deliberaMonths, datasets:[
+  mkChart('crDeliberaTrendChart2', {type:'bar', data:{labels:deliberaMonths, datasets:[
       {label:'Positive', data:deliberaMonths.map(m=>byMonthDelibera.get(m).pos), backgroundColor:'#1c8a45'},
       {label:'Negative', data:deliberaMonths.map(m=>byMonthDelibera.get(m).neg), backgroundColor:PALETTE.danger},
       {label:'Altro', data:deliberaMonths.map(m=>byMonthDelibera.get(m).altro), backgroundColor:PALETTE.text}
     ]},
     options:{plugins:{legend:{position:'bottom', labels:{boxWidth:10,font:{size:10.5}}}}, scales:{x:{stacked:true, grid:{display:false}}, y:{stacked:true, grid:{color:PALETTE.grid}}}}});
 
-  mkChart('crTipoChart', {type:'doughnut', data:{labels:byTipoDeliberaCompleted.map(x=>x[0]), datasets:[{data:byTipoDeliberaCompleted.map(x=>x[1]), backgroundColor:CHART_SERIES}]},
+  mkChart('crTipoChart2', {type:'doughnut', data:{labels:byTipoDeliberaCompleted.map(x=>x[0]), datasets:[{data:byTipoDeliberaCompleted.map(x=>x[1]), backgroundColor:CHART_SERIES}]},
     options:{plugins:{legend:{position:'right', labels:{boxWidth:10, font:{size:10.5}}}}}});
 }
 
