@@ -1002,7 +1002,7 @@ function renderAnagrafe(panel, s){
   const nDeceduti = rows.filter(r=> toDate(r.dta_decesso)).length;
 
   panel.innerHTML = structHeaderHtml(s, 'Anagrafe - ORGANIZATION, ICT & HR') + `
-    <div class="section-title">Statistiche generali anagrafe 2026</div>
+    <div class="section-title">Statistiche censimenti anagrafe 2026</div>
     <div class="kpi-row">
       <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Nominativi censiti</div><div class="val">${fmtInt.format(rows.length)}</div></div>
       <div class="kpi" style="--kc:${PALETTE.violet}"><div class="lbl">Nature giuridiche distinte</div><div class="val">${new Set(rows.map(r=>r.des_natura_giuridica)).size}</div></div>
@@ -1319,7 +1319,7 @@ function renderDigital(panel){
 
   const digitalDimRow = findDimRow(DIGITAL_BANK_ID);
   panel.innerHTML = structHeaderHtml({sheetName: DIGITAL_BANK_ID, dimRow: digitalDimRow}, 'Digital Bank') + `
-    <p class="panel-sub">Monitoraggio KPI Digital Bank su dati 2026.</p>
+    <div class="section-title">KPI Digital Bank sul 2026</div>
 
     <div class="kpi-row">
       <div class="kpi" style="--kc:${PALETTE.info}">
@@ -1343,20 +1343,22 @@ function renderDigital(panel){
       </div>
     </div>
 
+    <div class="section-title">Rapporti nuovi/estinti</div>
     <div class="grid cols-2" style="margin-bottom:16px">
       <div class="card">
         <h3>Rapporti aperti per mese</h3>
-        <p class="card-sub">Nuovi rapporti Digital Bank - 2026</p>
+        <p class="card-sub">Nuovi rapporti Digital Bank</p>
         <canvas id="digitalApertiChart"></canvas>
       </div>
 
       <div class="card">
         <h3>Rapporti chiusi per mese</h3>
-        <p class="card-sub">Rapporti estinti - 2026</p>
+        <p class="card-sub">Rapporti estinti</p>
         <canvas id="digitalChiusiChart"></canvas>
       </div>
     </div>
 
+    <div class="section-title">Segnalazioni ad antifrode</div>
     <div class="grid cols-2">
       <div class="card">
         <h3>Frodi segnalate per mese</h3>
@@ -1371,6 +1373,7 @@ function renderDigital(panel){
       </div>
     </div>
 
+    <div class="section-title">Controlli su bonifici Raisin</div>
     <div class="card" style="margin-top:16px">
       <h3>Bonifici Raisin controllati per mese</h3>
       <p class="card-sub">Numero bonifici analizzati - 2026</p>
@@ -1568,23 +1571,26 @@ function renderMonetica(panel){
 
   const moneticaDimRow = findDimRow(MONETICA_ID);
   panel.innerHTML = structHeaderHtml({sheetName: MONETICA_ID, dimRow: moneticaDimRow}, 'OPS Incassi, Pagamenti e Monetica') + `
-    <p class="panel-sub">Monitoraggio KPI OPS Incassi, Pagamenti e Monetica su dati 2026.</p>
-
+    <div class="section-title">KPI OPS Incassi, Pagamenti e Monetica sul 2026</div>
     <div class="kpi-row">
       <div class="kpi" style="--kc:${PALETTE.info}">
-        <div class="lbl">Bonifici banca 2026</div>
+        <div class="lbl">Bonifici banca eseguiti</div>
         <div class="val">${fmtInt.format(bonifici2026.length)}</div>
       </div>
       <div class="kpi" style="--kc:${PALETTE.accent}">
-        <div class="lbl">Volume bonifici banca 2026</div>
-        <div class="val">€ ${fmtInt.format(Object.values(volumeMonth).reduce((a,b)=>a+b,0))}</div>
+        <div class="lbl">C/C aperti con portabilità</div>
+        <div class="val">${fmtInt.format(196)}</div>
+      </div>
+      <div class="kpi" style="--kc:${PALETTE.pos}">
+        <div class="lbl">C/C chiusi con portabilità</div>
+        <div class="val">${fmtInt.format(206)}</div>
       </div>
       <div class="kpi" style="--kc:${PALETTE.danger}">
-        <div class="lbl">Operazioni cassa 2026 (Ass. Circolari, Cambiali, Op. Tesoreria)</div>
+        <div class="lbl">Operazioni cassa (Ass. Circolari, Cambiali, Op. Tesoreria)</div>
         <div class="val">${fmtInt.format(cassa2026.length)}</div>
       </div>
       <div class="kpi" style="--kc:${PALETTE.warn}">
-        <div class="lbl">Cassette aperte 2026</div>
+        <div class="lbl">Cassette di sicurezza aperte</div>
         <div class="val">${fmtInt.format(cassette2026.length)}</div>
       </div>
     </div>
