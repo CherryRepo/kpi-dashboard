@@ -202,7 +202,7 @@ function parseWorkbook(wb){
   STATE.dimHeaders = dimJson.length ? Object.keys(dimJson[0]) : [];
 
   STATE.domainSheets = [];
-  for(let i=1;i<sheetNames.length;i++){
+  for(let i=1; i<sheetNames.length; i++){
     const name = sheetNames[i];
     const ws = wb.Sheets[name];
     const rows = XLSX.utils.sheet_to_json(ws, {defval:null});
@@ -210,16 +210,8 @@ function parseWorkbook(wb){
     const headers = Object.keys(rows[0]);
     const type = classifySheet(name);
     const dimRow = findDimRow(name);
-
-    if(type === 'credito'){
-      STATE.domainSheets.push({sheetName: name, type: 'credito', headers, rows, dimRow});
-      STATE.domainSheets.push({sheetName: name, type: 'credito_speciale', headers, rows, dimRow});
-    } else {
-      STATE.domainSheets.push({sheetName:name, type, headers, rows, dimRow});
-    }
+    STATE.domainSheets.push({sheetName:name, type, headers, rows, dimRow});
   }
-
-
 
   const typeOrder = ['credito','credito_speciale','perfezionamenti','anagrafe','antifrode','ops_aml','bancassurance', 'generic'];
   STATE.domainSheets.sort((a, b) => {
@@ -232,6 +224,7 @@ function parseWorkbook(wb){
   document.getElementById('emptyState').style.display = 'none';
   document.getElementById('dashboard').style.display = 'block';
 }
+
 
 function classifySheet(sheetName) {
   const name = String(sheetName).toLowerCase().trim();
@@ -250,6 +243,7 @@ function classifySheet(sheetName) {
   if (name.includes('100011000231')) return 'anagrafe';
   if (name.includes('10004100067100079')) return 'perfezionamenti';
   if (name.includes('10004100052')) return 'credito';
+  if (name.includes('10004100051')) return 'credito_speciale';
   return 'generic';
 }
 
