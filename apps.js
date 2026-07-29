@@ -1510,12 +1510,11 @@ function renderMonetica(panel){
 
   // Da estero: per paese di origine
   const daEsteroPaese = {};
-  const daEsteroPaeseVol = {};
   bonificiDaEstero.forEach(r=>{
     const paese = r.paese_ord || 'N.D.';
     daEsteroPaese[paese] = (daEsteroPaese[paese]||0)+1;
-    daEsteroPaeseVol[paese] = (daEsteroPaeseVol[paese]||0)+(parseFloat(r.importo_bonifico)||0);
   });
+
 
   // Verso estero: per mese
   const versoEsteroMonth = {};
@@ -1530,12 +1529,11 @@ function renderMonetica(panel){
 
   // Verso estero: per paese di destinazione
   const versoEsteroPaese = {};
-  const versoEsteroPaeseVol = {};
   bonificiVersoEstero.forEach(r=>{
     const paese = r.paese_beneficiario || 'N.D.';
     versoEsteroPaese[paese] = (versoEsteroPaese[paese]||0)+1;
-    versoEsteroPaeseVol[paese] = (versoEsteroPaeseVol[paese]||0)+(parseFloat(r.importo_bonifico)||0);
   });
+
 
   // Union mesi per bonifici estero
   const mesiEstero = [...new Set([
@@ -1729,7 +1727,7 @@ function renderMonetica(panel){
       <p class="card-sub">Distribuzione per paese</p>
       <canvas id="monVersoEsteroPaeseChart"></canvas>
     </div>
-    
+
     <div class="section-title">Cassa <span class="count-badge">${fmtInt.format(cassa2026.length)} operazioni</span></div>
     <div class="kpi-row">
       <div class="kpi" style="--kc:${PALETTE.info}">
@@ -1779,13 +1777,13 @@ function renderMonetica(panel){
 
   mkChart('monDaEsteroVolChart',{type:'bar', data:{labels:mesiEstero, datasets:[{label:'Volume (€)',data:mesiEstero.map(m=>daEsteroVolMonth[m]||0),backgroundColor:PALETTE.accent}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
 
-  mkChart('monDaEsteroPaeseChart',{type:'bar', data:{labels:paeseListDaEstero, datasets:[{label:'Operazioni',data:paeseListDaEstero.map(p=>daEsteroPaese[p]||0),backgroundColor:PALETTE.violet},{label:'Volume (€)',data:paeseListDaEstero.map(p=>daEsteroPaeseVol[p]||0),backgroundColor:PALETTE.pos,yAxisID:'y1'}]}, options:{indexAxis:'y', plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10.5}}}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false},ticks:{font:{size:10}}}, y1:{type:'linear', position:'right', grid:{display:false}}}}});
+  mkChart('monDaEsteroPaeseChart',{type:'bar', data:{labels:paeseListDaEstero, datasets:[{label:'Bonifici',data:paeseListDaEstero.map(p=>daEsteroPaese[p]||0),backgroundColor:PALETTE.violet}]}, options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false},ticks:{font:{size:10}}}}}});
 
   mkChart('monVersoEsteroMonthChart',{type:'bar', data:{labels:mesiEstero, datasets:[{label:'Operazioni',data:mesiEstero.map(m=>versoEsteroMonth[m]||0),backgroundColor:PALETTE.warn}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
 
   mkChart('monVersoEsteroVolChart',{type:'bar', data:{labels:mesiEstero, datasets:[{label:'Volume (€)',data:mesiEstero.map(m=>versoEsteroVolMonth[m]||0),backgroundColor:PALETTE.pos}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
 
-  mkChart('monVersoEsteroPaeseChart',{type:'bar', data:{labels:paeseListVersoEstero, datasets:[{label:'Operazioni',data:paeseListVersoEstero.map(p=>versoEsteroPaese[p]||0),backgroundColor:PALETTE.danger},{label:'Volume (€)',data:paeseListVersoEstero.map(p=>versoEsteroPaeseVol[p]||0),backgroundColor:PALETTE.warn,yAxisID:'y1'}]}, options:{indexAxis:'y', plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10.5}}}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false},ticks:{font:{size:10}}}, y1:{type:'linear', position:'right', grid:{display:false}}}}});
+  mkChart('monVersoEsteroPaeseChart',{type:'bar', data:{labels:paeseListVersoEstero, datasets:[{label:'Bonifici',data:paeseListVersoEstero.map(p=>versoEsteroPaese[p]||0),backgroundColor:PALETTE.danger}]}, options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false},ticks:{font:{size:10}}}}}});
 
   mkChart('monCassaOperChart',{type:'bar', data:{labels:months, datasets:[{label:'Cambiali',data:months.map(m=>cassaMonthByType[m]?.cambiali||0),backgroundColor:PALETTE.navy},{label:'Tesoreria',data:months.map(m=>cassaMonthByType[m]?.tesoreria||0),backgroundColor:PALETTE.warn},{label:'Circolari',data:months.map(m=>cassaMonthByType[m]?.circolari||0),backgroundColor:PALETTE.pos}]}, options:{scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,grid:{color:PALETTE.grid}}}, plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10.5}}}}}});
 
