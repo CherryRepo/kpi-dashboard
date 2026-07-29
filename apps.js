@@ -1156,15 +1156,16 @@ function renderFactoring(panel, s){
   // ============================================================
 
   const nuovePratiche = rows.filter(r => {
-    const d = toDate(r.dta_prima_stipula);
-    return d && isInPeriod(d, s.periodo); // o altro filtro periodo
+    const d = toDate(r['data prima stipula']);
+    return d && d.getFullYear() === 2026; // solo 2024
   });
 
+
   // Estrai dimensioni uniche
-  const gestoriSet = new Set(nuovePratiche.map(r => r.des_gestore).filter(Boolean));
-  const filialiSet = new Set(nuovePratiche.map(r => r.des_filiale).filter(Boolean));
-  const buSet = new Set(nuovePratiche.map(r => r.des_business_unit).filter(Boolean));
-  const segnalSet = new Set(nuovePratiche.map(r => r.des_segnalatore).filter(Boolean));
+  const gestoriSet = new Set(nuovePratiche.map(r => r['gestore']).filter(Boolean));
+  const filialiSet = new Set(nuovePratiche.map(r => r['filiale']).filter(Boolean));
+  const buSet = new Set(nuovePratiche.map(r => r['business unit']).filter(Boolean));
+  const segnalSet = new Set(nuovePratiche.map(r => r['segnalatore']).filter(Boolean));
 
   const gestoriArray = Array.from(gestoriSet).sort();
   const filialiArray = Array.from(filialiSet).sort();
@@ -1179,18 +1180,18 @@ function renderFactoring(panel, s){
   // AGGREGAZIONI: PRATICHE (COUNT NDG)
   // ============================================================
 
-  const countNdg = (arr) => new Set(arr.map(r => r.ndg).filter(Boolean)).size;
+  const countNdg = (arr) => new Set(arr.map(r => r['ndg']).filter(Boolean)).size;
   
   const totalPratiche = countNdg(nuovePratiche);
   const pratichePerMese = {};
-  const pratichePerGestore = mapToSorted(countBy(nuovePratiche, 'des_gestore'));
-  const pratichePerFiliale = mapToSorted(countBy(nuovePratiche, 'des_filiale'));
-  const pratichePerBU = mapToSorted(countBy(nuovePratiche, 'des_business_unit'));
-  const pratichePerSegnalatore = mapToSorted(countBy(nuovePratiche, 'des_segnalatore'));
+  const pratichePerGestore = mapToSorted(countBy(nuovePratiche, 'gestore'));
+  const pratichePerFiliale = mapToSorted(countBy(nuovePratiche, 'filiale'));
+  const pratichePerBU = mapToSorted(countBy(nuovePratiche, 'business unit'));
+  const pratichePerSegnalatore = mapToSorted(countBy(nuovePratiche, 'segnalatore'));
 
   // Pratiche per mese
   nuovePratiche.forEach(r => {
-    const d = toDate(r.dta_prima_stipula);
+    const d = toDate(r['data prima stipula']);
     const k = monthKey(d);
     pratichePerMese[k] = (pratichePerMese[k] || 0) + 1;
   });
@@ -1199,9 +1200,9 @@ function renderFactoring(panel, s){
   // AGGREGAZIONI: ACCORDATO (SUM)
   // ============================================================
 
-  const sumAccordato = (arr) => arr.reduce((sum, r) => sum + (parseFloat(r.accordato) || 0), 0);
-  const sumImpiego = (arr) => arr.reduce((sum, r) => sum + (parseFloat(r.impiego) || 0), 0);
-  const sumTurnover = (arr) => arr.reduce((sum, r) => sum + (parseFloat(r.turnover_anno_corrente) || 0), 0);
+  const sumAccordato = (arr) => arr.reduce((sum, r) => sum + (parseFloat(r['accordato']) || 0), 0);
+  const sumImpiego = (arr) => arr.reduce((sum, r) => sum + (parseFloat(r['impiego']) || 0), 0);
+  const sumTurnover = (arr) => arr.reduce((sum, r) => sum + (parseFloat(r['turnover anno corrente']) || 0), 0);
 
   const accordatoTotale = sumAccordato(nuovePratiche);
   const accordatoMedio = totalPratiche ? accordatoTotale / totalPratiche : 0;
@@ -1212,22 +1213,22 @@ function renderFactoring(panel, s){
   const accordatoPerBU = {};
 
   nuovePratiche.forEach(r => {
-    const d = toDate(r.dta_prima_stipula);
+    const d = toDate(r['data prima stipula']);
     const k = monthKey(d);
-    const importo = parseFloat(r.accordato) || 0;
+    const importo = parseFloat(r['accordato']) || 0;
     
     accordatoPerMese[k] = (accordatoPerMese[k] || 0) + importo;
-    accordatoPerGestore[r.des_gestore] = (accordatoPerGestore[r.des_gestore] || 0) + importo;
-    accordatoPerFiliale[r.des_filiale] = (accordatoPerFiliale[r.des_filiale] || 0) + importo;
-    accordatoPerBU[r.des_business_unit] = (accordatoPerBU[r.des_business_unit] || 0) + importo;
+    accordatoPerGestore[r['gestore']] = (accordatoPerGestore[r['gestore']] || 0) + importo;
+    accordatoPerFiliale[r['filiale']] = (accordatoPerFiliale[r['filiale']] || 0) + importo;
+    accordatoPerBU[r['business unit']] = (accordatoPerBU[r['business unit']] || 0) + importo;
   });
 
   // ============================================================
   // AGGREGAZIONI: IMPIEGO E TURNOVER
   // ============================================================
 
-  const impigoTotale = sumImpiego(nuovePratiche);
-  const impigoMedio = totalPratiche ? impigoTotale / totalPratiche : 0;
+  const impiegoTotale = sumImpiego(nuovePratiche);
+  const impiegoMedio = totalPratiche ? impiegoTotale / totalPratiche : 0;
   
   const turnoverTotale = sumTurnover(nuovePratiche);
 
@@ -1235,11 +1236,11 @@ function renderFactoring(panel, s){
   const turnoverPerGestore = {};
 
   nuovePratiche.forEach(r => {
-    const impiego = parseFloat(r.impiego) || 0;
-    const turnover = parseFloat(r.turnover_anno_corrente) || 0;
+    const impiego = parseFloat(r['impiego']) || 0;
+    const turnover = parseFloat(r['turnover anno corrente']) || 0;
     
-    impiegoPerGestore[r.des_gestore] = (impiegoPerGestore[r.des_gestore] || 0) + impiego;
-    turnoverPerGestore[r.des_gestore] = (turnoverPerGestore[r.des_gestore] || 0) + turnover;
+    impiegoPerGestore[r['gestore']] = (impiegoPerGestore[r['gestore']] || 0) + impiego;
+    turnoverPerGestore[r['gestore']] = (turnoverPerGestore[r['gestore']] || 0) + turnover;
   });
 
   // Union di tutti i mesi
@@ -1247,6 +1248,7 @@ function renderFactoring(panel, s){
     ...Object.keys(pratichePerMese),
     ...Object.keys(accordatoPerMese)
   ])].sort();
+
 
   // ============================================================
   // RENDER HTML
