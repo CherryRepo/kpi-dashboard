@@ -594,7 +594,7 @@ function structHeaderHtml(s, panelTitle){
           <th class="group-label" colspan="4">Dimensionamento struttura</th>
         </tr>
         <tr class="col-label-row">
-          <th>HC</th><th>FTE AS-IS</th><th>FTE NEED</th><th>Delta FTE</th>
+          <th style="text-align:center">HC</th><th style="text-align:center">FTE AS-IS</th><th style="text-align:center">FTE NEED</th><th style="text-align:center">Delta FTE</th>
         </tr>
       </thead>
       <tbody>
