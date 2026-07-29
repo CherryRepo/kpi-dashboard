@@ -591,18 +591,14 @@ function structHeaderHtml(s, panelTitle){
     <table class="area-table" style="max-width:720px;margin-bottom:22px">
       <thead>
         <tr class="area-name-row">
-          <th>${r['UO LAST']||s.sheetName}</th>
-          <th class="spacer"></th>
           <th class="group-label" colspan="4">Dimensionamento struttura</th>
         </tr>
         <tr class="col-label-row">
-          <th></th><th></th><th>HC</th><th>FTE AS-IS</th><th>FTE NEED</th><th>Delta FTE</th>
+          <th>HC</th><th>FTE AS-IS</th><th>FTE NEED</th><th>Delta FTE</th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td>${r.uo1livello_descrizione||''}</td>
-          <td class="tdspacer"></td>
           <td class="numcell"><span class="pill">${r.HC ?? '—'}</span></td>
           <td class="numcell">${pillFte(r['FTE AS IS - in forza'])}</td>
           <td class="numcell">${pillFte(r['FTE Stimati'])}</td>
@@ -635,7 +631,7 @@ function renderAnagrafe(panel, s){
   const maxD = dates.length ? new Date(Math.max(...dates)) : null;
   const nDeceduti = rows.filter(r=> toDate(r.dta_decesso)).length;
 
-  panel.innerHTML = structHeaderHtml(s, 'Anagrafe clienti') + `
+  panel.innerHTML = structHeaderHtml(s, 'Anagrafe') + `
     <p class="panel-sub">Vista filtrata: Business Unit vuota, "-" o "SMEs" &middot; ${fmtInt.format(excludedCount)} nominativi esclusi sulle altre BU (${fmtInt.format(s.rows.length)} totali nel foglio)</p>
     <div class="kpi-row">
       <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Nominativi censiti</div><div class="val">${fmtInt.format(rows.length)}</div></div>
@@ -798,8 +794,8 @@ function renderCredito(panel, s){
   });
   const deliberaMonths = [...byMonthDelibera.keys()].sort();
 
-  panel.innerHTML = structHeaderHtml(s, 'Credito Ordinario & Factoring') + `
-    <p class="panel-sub">Vista filtrata: 8 tipologie di istruttoria selezionate &middot; ${fmtInt.format(excludedCount)} pratiche escluse (${fmtInt.format(s.rows.length)} totali nel foglio)</p>
+  panel.innerHTML = structHeaderHtml(s, 'Credito Ordinario & Factoring - Lending') + `
+    <div class="section-title">Statistiche generali</div>
     <div class="kpi-row">
       <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Pratiche totali</div><div class="val">${fmtInt.format(total)}</div></div>
       <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">In lavorazione</div><div class="val">${fmtInt.format(inLavRows.length)}</div></div>
@@ -844,12 +840,17 @@ function renderCredito(panel, s){
       <div class="kpi" style="--kc:${PALETTE.danger}"><div class="lbl">Delibere negative</div><div class="val">${fmtInt.format(negativa)}</div></div>
       <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Tempo medio lavorazione</div><div class="val">${fmtDec.format(avgGiorniCompleted)} gg</div></div>
     </div>
-    <div class="card" style="margin-bottom:16px">
-      <h3>Completate per mese: positive vs negative</h3><p class="card-sub">conteggio mensile su data delibera, solo pratiche completate</p>
-      <canvas id="crDeliberaTrendChart"></canvas>
-    </div>
-    <div class="grid cols-2">
-      <div class="card"><h3>Tipo delibera</h3><p class="card-sub">solo pratiche completate</p><canvas id="crTipoChart"></canvas></div>
+    <div class="grid cols-2" style="margin-bottom:16px">
+      <div class="card">
+        <h3>Completate per mese: positive vs negative</h3>
+        <p class="card-sub">conteggio mensile su data delibera, solo pratiche completate</p>
+        <canvas id="crDeliberaTrendChart"></canvas>
+      </div>
+      <div class="card">
+        <h3>Tipo delibera</h3>
+        <p class="card-sub">solo pratiche completate</p>
+        <canvas id="crTipoChart"></canvas>
+      </div>
     </div>
   `;
 
@@ -1280,8 +1281,8 @@ function renderPerfezionamenti(panel, s){
 
   const dimRow = findDimRow(s.sheetName);
   
-  panel.innerHTML = structHeaderHtml(s, 'Perfezionamenti 2026') + `
-    <p class="panel-sub">Pratiche completate perfezionate nel 2026 (dta_operativa)</p>
+  panel.innerHTML = structHeaderHtml(s, 'Contratti e perfezionamenti credito ordinario - Lending') + `
+    <div class="section-title">Pratiche completate perfezionate nel 2026</div>
     
     <div class="kpi-row">
       <div class="kpi" style="--kc:${PALETTE.info}">
@@ -1548,7 +1549,7 @@ function renderMonetica(panel){
 
   const moneticaDimRow = findDimRow(MONETICA_ID);
   panel.innerHTML = structHeaderHtml({sheetName: MONETICA_ID, dimRow: moneticaDimRow}, 'OPS Incassi, Pagamenti e Monetica') + `
-    <p class="panel-sub">Monitoraggio KPI Monetica su dati 2026.</p>
+    <p class="panel-sub">Monitoraggio KPI OPS Incassi, Pagamenti e Monetica su dati 2026.</p>
 
     <div class="kpi-row">
       <div class="kpi" style="--kc:${PALETTE.info}">
@@ -1556,7 +1557,7 @@ function renderMonetica(panel){
         <div class="val">${fmtInt.format(bonifici2026.length)}</div>
       </div>
       <div class="kpi" style="--kc:${PALETTE.accent}">
-        <div class="lbl">Volume bonifici banca</div>
+        <div class="lbl">Volume bonifici banca 2026</div>
         <div class="val">€ ${fmtInt.format(Object.values(volumeMonth).reduce((a,b)=>a+b,0))}</div>
       </div>
       <div class="kpi" style="--kc:${PALETTE.danger}">
