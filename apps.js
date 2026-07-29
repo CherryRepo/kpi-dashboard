@@ -212,21 +212,13 @@ function parseWorkbook(wb){
     const dimRow = findDimRow(name);
 
     if(type === 'credito'){
-    // Credito ordinario
-      const creditoOrd = rows.filter(r => String(r.tipo_credito || '').toUpperCase() !== 'SPECIALE');
-      if(creditoOrd.length) {
-        STATE.domainSheets.push({sheetName: name, type: 'credito', headers, rows: creditoOrd, dimRow});
-      }
-    
-    // Credito speciale
-      const creditoSpe = rows.filter(r => String(r.tipo_credito || '').toUpperCase() === 'SPECIALE');
-      if(creditoSpe.length) {
-        STATE.domainSheets.push({sheetName: name, type: 'credito_speciale', headers, rows: creditoSpe, dimRow});
-      }
+      STATE.domainSheets.push({sheetName: name, type: 'credito', headers, rows, dimRow});
+      STATE.domainSheets.push({sheetName: name, type: 'credito_speciale', headers, rows, dimRow});
     } else {
       STATE.domainSheets.push({sheetName:name, type, headers, rows, dimRow});
     }
   }
+
 
 
   const typeOrder = ['credito','credito_speciale','perfezionamenti','anagrafe','antifrode','ops_aml','bancassurance', 'generic'];
