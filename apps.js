@@ -687,7 +687,7 @@ function renderCredito(panel, s){
   const deliberaMonths = [...byMonthDelibera.keys()].sort();
 
   panel.innerHTML = structHeaderHtml(s, 'Credito Ordinario & Factoring - Lending') + `
-    <div class="section-title">Statistiche generali sulle pratiche 2026</div>
+    <div class="section-title">Statistiche generali su pratiche 2026</div>
     <div class="kpi-row">
       <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Pratiche totali</div><div class="val">${fmtInt.format(total)}</div></div>
       <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">In lavorazione</div><div class="val">${fmtInt.format(inLavRows.length)}</div></div>
@@ -1192,7 +1192,7 @@ function renderBancassurance(panel, s){
   const volumeAvg = months.length ? volumeTotal / months.length : 0;
   
   panel.innerHTML = structHeaderHtml(s, 'Wealth & Bancassurance - ORGANIZATION, ICT & HR') + `
-    <div class="section-title">Ordini di trasferimento titoli, fondi, ecc...</div>
+    <div class="section-title">Statistiche su ordini di trasferimento titoli, fondi, ecc...</div>
     <div class="kpi-row">
       <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Ordini totali</div><div class="val">${fmtInt.format(bancassurance.length)}</div></div>
       <div class="kpi" style="--kc:${PALETTE.accent}"><div class="lbl">Volume totale</div><div class="val">€ ${fmtInt.format(volumeTotal)}</div></div>
@@ -1318,8 +1318,8 @@ function renderDigital(panel){
   ])].sort();
 
   const digitalDimRow = findDimRow(DIGITAL_BANK_ID);
-  panel.innerHTML = structHeaderHtml({sheetName: DIGITAL_BANK_ID, dimRow: digitalDimRow}, 'Digital Bank') + `
-    <div class="section-title">KPI Digital Bank sul 2026</div>
+  panel.innerHTML = structHeaderHtml({sheetName: DIGITAL_BANK_ID, dimRow: digitalDimRow}, 'Digital Bank - ORGANIZATION, ICT & HR') + `
+    <div class="section-title">KPI Digital Bank 2026</div>
 
     <div class="kpi-row">
       <div class="kpi" style="--kc:${PALETTE.info}">
@@ -1570,8 +1570,8 @@ function renderMonetica(panel){
   ])].sort();
 
   const moneticaDimRow = findDimRow(MONETICA_ID);
-  panel.innerHTML = structHeaderHtml({sheetName: MONETICA_ID, dimRow: moneticaDimRow}, 'OPS Incassi, Pagamenti e Monetica') + `
-    <div class="section-title">KPI OPS Incassi, Pagamenti e Monetica sul 2026</div>
+  panel.innerHTML = structHeaderHtml({sheetName: MONETICA_ID, dimRow: moneticaDimRow}, 'OPS Incassi, Pagamenti e Monetica - ORGANIZATION, ICT & HR') + `
+    <div class="section-title">KPI OPS Incassi, Pagamenti e Monetica 2026</div>
     <div class="kpi-row">
       <div class="kpi" style="--kc:${PALETTE.info}">
         <div class="lbl">Bonifici banca eseguiti</div>
