@@ -1170,7 +1170,7 @@ const FACTORING_ID = '10004100067100080';
 function renderFactoring(panel, s){
 
   const cedenti = STATE.domainSheets.find(s=>s.type==='factoring_cedenti');
-  const debitori2026 = STATE.domainSheets.find(s=>s.type==='factoring_debitori');
+  const debitori = STATE.domainSheets.find(s=>s.type==='factoring_debitori');
 
   const cedentiRows = cedenti ? cedenti.rows : [];
   const debitoriRows = debitori ? debitori.rows : [];
@@ -1241,7 +1241,7 @@ function renderFactoring(panel, s){
   // DEBITORI
   // ============================================================
 
-  const debitori2026 = rows.filter(r => {
+  const debitori2026 = debitoriRows.filter(r => {
     return r.descrizione_stato_linea?.includes('Deliberata operativa');
   });
 
