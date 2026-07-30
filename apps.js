@@ -1170,7 +1170,7 @@ const FACTORING_ID = '10004100067100080';
 function renderFactoring(panel, s){
 
   const cedenti = STATE.domainSheets.find(s=>s.type==='factoring_cedenti');
-  const debitori = STATE.domainSheets.find(s=>s.type==='factoring_debitori');
+  const debitori2026 = STATE.domainSheets.find(s=>s.type==='factoring_debitori');
 
   const cedentiRows = cedenti ? cedenti.rows : [];
   const debitoriRows = debitori ? debitori.rows : [];
