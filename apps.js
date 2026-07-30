@@ -1302,23 +1302,23 @@ function renderFactoring(panel, s){
   // ============================================================
   // RENDER HTML
   // ============================================================
-
-  panel.innerHTML = structHeaderHtml(s, 'Factoring - Lending') + `
+  const factoringDimRow = findDimRow(FACTORING_ID);
+  panel.innerHTML = structHeaderHtml({sheetName: FACTORING_ID, dimRow: factoringDimRow}, 'Factoring - Lending') + `
     <!-- ========== CEDENTI ========== -->
     <div class="section-title">Riepilogo nuove pratiche factoring cedenti nel periodo 2026</div>
     
     <div class="kpi-row">
       <div class="kpi" style="--kc:${PALETTE.info}">
         <div class="lbl">Pratiche stipulate</div>
-        <div class="val">${fmtInt.format(totalPratiche)}</div>
+        <div class="val">${fmtInt.format(totalPraticheCedenti)}</div>
       </div>
       <div class="kpi" style="--kc:${PALETTE.pos}">
         <div class="lbl">Accordato totale</div>
-        <div class="val">${fmtCurrency.format(accordatoTotale)}</div>
+        <div class="val">${fmtCurrency.format(accordatoTotaleCedenti)}</div>
       </div>
       <div class="kpi" style="--kc:${PALETTE.accent}">
         <div class="lbl">Impiego totale</div>
-        <div class="val">${fmtCurrency.format(impiegoTotale)}</div>
+        <div class="val">${fmtCurrency.format(impiegoTotaleCedenti)}</div>
       </div>
       <div class="kpi" style="--kc:${PALETTE.warning}">
         <div class="lbl">Turnover generato</div>
@@ -1383,6 +1383,7 @@ function renderFactoring(panel, s){
       </div>
     </div>
   `;
+
 
   // ============================================================
   // CHART: PRATICHE PER MESE (CEDENTI)
