@@ -1271,7 +1271,7 @@ function renderFactoring(panel, s){
   
   const accordatoPerMeseSolvendo = {};
   const accordatoPerMeseSoluto = {};
-  const accordatoPerFiliale = {};
+  const accordatoPerFilialeDebitori = {};
 
   debitori2026.forEach(r => {
     const d = toDate(r['data_delibera']);
@@ -1281,7 +1281,7 @@ function renderFactoring(panel, s){
   
     accordatoPerMeseSolvendo[k] = (accordatoPerMeseSolvendo[k] || 0) + importoSolvendo;
     accordatoPerMeseSoluto[k] = (accordatoPerMeseSoluto[k] || 0) + importoSoluto;
-    accordatoPerFiliale[r['filiale']] = (accordatoPerFiliale[r['filiale']] || 0) + importoSolvendo + importoSoluto;
+    accordatoPerFilialeDebitori[r['filiale']] = (accordatoPerFilialeDebitori[r['filiale']] || 0) + importoSolvendo + importoSoluto;
   });
 
 
@@ -1533,7 +1533,7 @@ function renderFactoring(panel, s){
   // CHART: ACCORDATO PER FILIALE (DEBITORI)
   // ============================================================
 
-  const dbAccordatoFilialeSorted = Object.entries(accordatoPerFiliale)
+  const dbAccordatoFilialeSorted = Object.entries(accordatoPerFilialeDebitori)
     .map(([k, v]) => [k, v])
     .sort((a, b) => b[1] - a[1]);
 
