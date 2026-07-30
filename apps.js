@@ -1176,18 +1176,17 @@ function renderFactoring(panel, s){
   const debitoriRows = debitori ? debitori.rows : [];
 
   // ============================================================
-  // CEDENTI
+  // AGGREGAZIONI: PRATICHE (COUNT NDG)
   // ============================================================
 
   // Estrai dimensioni uniche
   const filialiSet = new Set(cedentiRows.map(r => r['filiale']).filter(Boolean));
   const filialiArray = Array.from(filialiSet).sort();
-
-  // ============================================================
-  // AGGREGAZIONI: PRATICHE (COUNT NDG)
-  // ============================================================
-
   const countNdg = (arr) => new Set(arr.map(r => r['ndg']).filter(Boolean)).size;
+
+  // ============================================================
+  // CEDENTI
+  // ============================================================
   
   const totalPratiche = countNdg(cedentiRows);
   const pratichePerMese = {};
@@ -1232,11 +1231,6 @@ function renderFactoring(panel, s){
   
   const turnoverTotale = sumTurnover(cedentiRows);
 
-  cedentiRows.forEach(r => {
-    const impiego = parseFloat(r['impiego']) || 0;
-    const turnover = parseFloat(r['turnover anno corrente']) || 0;
-  });
-
   // Union di tutti i mesi
   const months = [...new Set([
     ...Object.keys(pratichePerMese),
@@ -1244,8 +1238,65 @@ function renderFactoring(panel, s){
   ])].sort();
 
   // ============================================================
-  // CEDENTI
+  // DEBITORI
   // ============================================================
+
+  const debitori2026 = rows.filter(r => {
+    return r.descrizione_stato_linea?.includes('Deliberata operativa');
+  });
+
+  const totalPraticheSolvendo = countNdg(debitori2026.filter(r => (parseFloat(r['accordato_pro_solvendo']) || 0) > 0));
+  const totalPraticheSoluto = countNdg(debitori2026.filter(r => (parseFloat(r['accordato_pro_soluto']) || 0) > 0));
+
+  const pratichePerMese = {};
+  const pratichePerFiliale = mapToSorted(countBy(debitori2026, 'filiale'));
+
+  // Pratiche per mese
+  debitori2026.forEach(r => {
+    const d = toDate(r['data_delibera']);
+    const k = monthKey(d);
+    pratichePerMese[k] = (pratichePerMese[k] || 0) + 1;
+  });
+
+  // ============================================================
+  // AGGREGAZIONI: ACCORDATO (SUM)
+  // ============================================================
+
+  const sumAccordatoSolvendo = (arr) => arr.reduce((sum, r) => sum + (parseFloat(r['accordato_pro_solvendo']) || 0), 0);
+  const sumAccordatoSoluto = (arr) => arr.reduce((sum, r) => sum + (parseFloat(r['accordato_pro_soluto']) || 0), 0);
+  const accordatoTotaleSolvendo = sumAccordatoSolvendo(debitori2026);
+  const accordatoMedioSolvendo = totalPraticheSolvendo ? accordatoTotaleSolvendo / totalPraticheSolvendo : 0;
+  const accordatoTotaleSoluto = sumAccordatoSoluto(debitori2026);
+  const accordatoMedioSoluto = totalPraticheSoluto ? accordatoTotaleSoluto / totalPraticheSoluto : 0;
+  
+  const accordatoPerMeseSolvendo = {};
+  const accordatoPerMeseSoluto = {};
+  const accordatoPerFiliale = {};
+
+  debitori2026.forEach(r => {
+    const d = toDate(r['data_delibera']);
+    const k = monthKey(d);
+    const importoSolvendo = parseFloat(r['accordato_pro_solvendo']) || 0;
+    const importoSoluto = parseFloat(r['accordato_pro_soluto']) || 0;
+  
+    accordatoPerMeseSolvendo[k] = (accordatoPerMeseSolvendo[k] || 0) + importoSolvendo;
+    accordatoPerMeseSoluto[k] = (accordatoPerMeseSoluto[k] || 0) + importoSoluto;
+    accordatoPerFiliale[r['filiale']] = (accordatoPerFiliale[r['filiale']] || 0) + importoSolvendo + importoSoluto;
+  });
+
+
+  // ============================================================
+  // AGGREGAZIONI
+  // ============================================================
+
+
+  // Union di tutti i mesi
+  const months = [...new Set([
+    ...Object.keys(pratichePerMese),
+    ...Object.keys(accordatoPerMeseSolvendo),
+    ...Object.keys(accordatoPerMeseSoluto)
+  ])].sort();
+
 
 
   // ============================================================
@@ -1253,7 +1304,8 @@ function renderFactoring(panel, s){
   // ============================================================
 
   panel.innerHTML = structHeaderHtml(s, 'Factoring - Lending') + `
-    <div class="section-title">Riepilogo nuove pratiche factoring nel periodo 2026</div>
+    <!-- ========== CEDENTI ========== -->
+    <div class="section-title">Riepilogo nuove pratiche factoring cedenti nel periodo 2026</div>
     
     <div class="kpi-row">
       <div class="kpi" style="--kc:${PALETTE.info}">
@@ -1299,10 +1351,41 @@ function renderFactoring(panel, s){
         <canvas id="npAccordatoFiliale"></canvas>
       </div>
     </div>
+
+    <!-- ========== DEBITORI ========== -->
+    <div class="section-title">Riepilogo nuove pratiche factoring debitori nel periodo 2026</div>
+    
+    <div class="kpi-row">
+      <div class="kpi" style="--kc:${PALETTE.info}">
+        <div class="lbl">Totale debitori</div>
+        <div class="val">${fmtInt.format(debitori2026.length)}</div>
+      </div>
+      <div class="kpi" style="--kc:${PALETTE.pos}">
+        <div class="lbl">Accordato medio solvendo</div>
+        <div class="val">${fmtCurrency.format(accordatoMedioSolvendo)}</div>
+      </div>
+      <div class="kpi" style="--kc:${PALETTE.accent}">
+        <div class="lbl">Accordato medio soluto</div>
+        <div class="val">${fmtCurrency.format(accordatoMedioSoluto)}</div>
+      </div>
+    </div>
+
+    <div class="grid cols-2">
+      <div class="card">
+        <h3>Accordato per mese</h3>
+        <p class="card-sub">SUM(accordato solvendo vs soluto) per mese</p>
+        <canvas id="dbAccordatoPerMeseChart"></canvas>
+      </div>
+      <div class="card">
+        <h3>Accordato per filiale</h3>
+        <p class="card-sub">SUM(accordato totale)</p>
+        <canvas id="dbAccordatoFiliale"></canvas>
+      </div>
+    </div>
   `;
 
   // ============================================================
-  // CHART: PRATICHE PER MESE
+  // CHART: PRATICHE PER MESE (CEDENTI)
   // ============================================================
 
   mkChart('npPratichePerMeseChart', {
@@ -1327,7 +1410,7 @@ function renderFactoring(panel, s){
   });
 
   // ============================================================
-  // CHART: ACCORDATO PER MESE
+  // CHART: ACCORDATO PER MESE (CEDENTI)
   // ============================================================
 
   mkChart('npAccordatoPerMeseChart', {
@@ -1357,7 +1440,7 @@ function renderFactoring(panel, s){
   });
 
   // ============================================================
-  // CHART: PRATICHE PER FILIALE
+  // CHART: PRATICHE PER FILIALE (CEDENTI)
   // ============================================================
 
   mkChart('npPraticheFiliale', {
@@ -1383,7 +1466,7 @@ function renderFactoring(panel, s){
   });
 
   // ============================================================
-  // CHART: ACCORDATO PER FILIALE
+  // CHART: ACCORDATO PER FILIALE (CEDENTI)
   // ============================================================
 
   const accordatoFilialeSorted = Object.entries(accordatoPerFiliale)
@@ -1411,7 +1494,77 @@ function renderFactoring(panel, s){
       }
     }
   });
+
+  // ============================================================
+  // CHART: ACCORDATO PER MESE (DEBITORI - SOLVENDO VS SOLUTO)
+  // ============================================================
+
+  const dbMonths = [...new Set([
+    ...Object.keys(accordatoPerMeseSolvendo),
+    ...Object.keys(accordatoPerMeseSoluto)
+  ])].sort();
+
+  mkChart('dbAccordatoPerMeseChart', {
+    type: 'bar',
+    data: {
+      labels: dbMonths,
+      datasets: [
+        {
+          label: 'Accordato Solvendo',
+          data: dbMonths.map(m => accordatoPerMeseSolvendo[m] || 0),
+          backgroundColor: PALETTE.pos,
+          borderColor: PALETTE.navy,
+          borderWidth: 0
+        },
+        {
+          label: 'Accordato Soluto',
+          data: dbMonths.map(m => accordatoPerMeseSoluto[m] || 0),
+          backgroundColor: PALETTE.accent,
+          borderColor: PALETTE.navy,
+          borderWidth: 0
+        }
+      ]
+    },
+    options: {
+      plugins: {legend: {display: true}},
+      scales: {
+        x: {grid: {display: false}, stacked: true},
+        y: {grid: {color: PALETTE.grid}, stacked: true, ticks: {callback: v => fmtCurrency.format(v)}}
+      }
+    }
+  });
+
+  // ============================================================
+  // CHART: ACCORDATO PER FILIALE (DEBITORI)
+  // ============================================================
+
+  const dbAccordatoFilialeSorted = Object.entries(accordatoPerFiliale)
+    .map(([k, v]) => [k, v])
+    .sort((a, b) => b[1] - a[1]);
+
+  mkChart('dbAccordatoFiliale', {
+    type: 'bar',
+    data: {
+      labels: dbAccordatoFilialeSorted.map(x => x[0]),
+      datasets: [{
+        label: 'Accordato',
+        data: dbAccordatoFilialeSorted.map(x => x[1]),
+        backgroundColor: PALETTE.warning,
+        borderColor: PALETTE.navy,
+        borderWidth: 0
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: {legend: {display: false}},
+      scales: {
+        x: {grid: {color: PALETTE.grid}, ticks: {callback: v => fmtCurrency.format(v)}},
+        y: {grid: {display: false}, ticks: {font: {size: 9.5}}}
+      }
+    }
+  });
 }
+
 
 /* ============================================================
    PANEL: ANAGRAFE
