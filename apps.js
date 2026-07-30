@@ -1248,14 +1248,14 @@ function renderFactoring(panel, s){
   const totalPraticheSolvendo = countNdg(debitori2026.filter(r => (parseFloat(r['accordato_pro_solvendo']) || 0) > 0));
   const totalPraticheSoluto = countNdg(debitori2026.filter(r => (parseFloat(r['accordato_pro_soluto']) || 0) > 0));
 
-  const pratichePerMese = {};
+  const pratichePerMeseDebitori = {};
   const pratichePerFiliale = mapToSorted(countBy(debitori2026, 'filiale'));
 
   // Pratiche per mese
   debitori2026.forEach(r => {
     const d = toDate(r['data_delibera']);
     const k = monthKey(d);
-    pratichePerMese[k] = (pratichePerMese[k] || 0) + 1;
+    pratichePerMeseDebitori[k] = (pratichePerMeseDebitori[k] || 0) + 1;
   });
 
   // ============================================================
@@ -1292,7 +1292,7 @@ function renderFactoring(panel, s){
 
   // Union di tutti i mesi
   const months = [...new Set([
-    ...Object.keys(pratichePerMese),
+    ...Object.keys(pratichePerMeseDebitori),
     ...Object.keys(accordatoPerMeseSolvendo),
     ...Object.keys(accordatoPerMeseSoluto)
   ])].sort();
