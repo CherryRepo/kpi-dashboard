@@ -1232,7 +1232,7 @@ function renderFactoring(panel, s){
   const turnoverTotale = sumTurnover(cedentiRows);
 
   // Union di tutti i mesi
-  const months = [...new Set([
+  const monthsCedenti = [...new Set([
     ...Object.keys(pratichePerMese),
     ...Object.keys(accordatoPerMese)
   ])].sort();
@@ -1249,7 +1249,7 @@ function renderFactoring(panel, s){
   const totalPraticheSoluto = countNdg(debitori2026.filter(r => (parseFloat(r['accordato_pro_soluto']) || 0) > 0));
 
   const pratichePerMeseDebitori = {};
-  const pratichePerFiliale = mapToSorted(countBy(debitori2026, 'filiale'));
+  const pratichePerFilialeDebitori = mapToSorted(countBy(debitori2026, 'filiale'));
 
   // Pratiche per mese
   debitori2026.forEach(r => {
@@ -1291,7 +1291,7 @@ function renderFactoring(panel, s){
 
 
   // Union di tutti i mesi
-  const months = [...new Set([
+  const monthsDebitori = [...new Set([
     ...Object.keys(pratichePerMeseDebitori),
     ...Object.keys(accordatoPerMeseSolvendo),
     ...Object.keys(accordatoPerMeseSoluto)
@@ -1384,17 +1384,17 @@ function renderFactoring(panel, s){
     </div>
   `;
 
-  // ============================================================
+    // ============================================================
   // CHART: PRATICHE PER MESE (CEDENTI)
   // ============================================================
 
   mkChart('npPratichePerMeseChart', {
     type: 'bar',
     data: {
-      labels: months,
+      labels: monthsCedenti,
       datasets: [{
         label: 'Pratiche',
-        data: months.map(m => pratichePerMese[m] || 0),
+        data: monthsCedenti.map(m => pratichePerMese[m] || 0),
         backgroundColor: PALETTE.navy,
         borderColor: PALETTE.accent,
         borderWidth: 0
@@ -1416,10 +1416,10 @@ function renderFactoring(panel, s){
   mkChart('npAccordatoPerMeseChart', {
     type: 'line',
     data: {
-      labels: months,
+      labels: monthsCedenti,
       datasets: [{
         label: 'Accordato',
-        data: months.map(m => accordatoPerMese[m] || 0),
+        data: monthsCedenti.map(m => accordatoPerMese[m] || 0),
         borderColor: PALETTE.pos,
         backgroundColor: 'rgba(111,146,119,0.15)',
         tension: 0.4,
@@ -1446,10 +1446,10 @@ function renderFactoring(panel, s){
   mkChart('npPraticheFiliale', {
     type: 'bar',
     data: {
-      labels: pratichePerFiliale.map(x => x[0]),
+      labels: pratichePerFilialeCedenti.map(x => x[0]),
       datasets: [{
         label: 'Pratiche',
-        data: pratichePerFiliale.map(x => x[1]),
+        data: pratichePerFilialeCedenti.map(x => x[1]),
         backgroundColor: PALETTE.pos,
         borderColor: PALETTE.navy,
         borderWidth: 0
@@ -1469,17 +1469,17 @@ function renderFactoring(panel, s){
   // CHART: ACCORDATO PER FILIALE (CEDENTI)
   // ============================================================
 
-  const accordatoFilialeSorted = Object.entries(accordatoPerFiliale)
+  const accordatoFilialeCedentiSorted = Object.entries(accordatoPerFiliale)
     .map(([k, v]) => [k, v])
     .sort((a, b) => b[1] - a[1]);
 
   mkChart('npAccordatoFiliale', {
     type: 'bar',
     data: {
-      labels: accordatoFilialeSorted.map(x => x[0]),
+      labels: accordatoFilialeCedentiSorted.map(x => x[0]),
       datasets: [{
         label: 'Accordato',
-        data: accordatoFilialeSorted.map(x => x[1]),
+        data: accordatoFilialeCedentiSorted.map(x => x[1]),
         backgroundColor: PALETTE.danger,
         borderColor: PALETTE.navy,
         borderWidth: 0
@@ -1564,7 +1564,6 @@ function renderFactoring(panel, s){
     }
   });
 }
-
 
 /* ============================================================
    PANEL: ANAGRAFE
