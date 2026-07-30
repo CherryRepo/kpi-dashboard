@@ -219,7 +219,7 @@ function parseWorkbook(wb){
     STATE.domainSheets.push({sheetName:name, type, headers, rows, dimRow});
   }
 
-  const typeOrder = ['ordinario','speciale','perfezionamenti','factoring','anagrafe','antifrode','ops_aml','bancassurance', 'generic'];
+  const typeOrder = ['ordinario','speciale','perfezionamenti','anagrafe','antifrode','ops_aml','bancassurance', 'generic'];
   STATE.domainSheets.sort((a, b) => {
     const orderA = typeOrder.indexOf(a.type);
     const orderB = typeOrder.indexOf(b.type);
@@ -248,7 +248,8 @@ function classifySheet(sheetName) {
   if (name.includes('10001100023100044')) return 'antifrode';
   if (name.includes('100011000231')) return 'anagrafe';
   if (name.includes('10004100067100079')) return 'perfezionamenti';
-  if (name.includes('10004100067100080')) return 'factoring';
+  if (name.includes('10004100067100080v1')) return 'factoring_cedenti';
+  if (name.includes('10004100067100080v2')) return 'factoring_debitori';
   if (name.includes('10004100051')) return 'speciale';
   if (name.includes('10004100052')) return 'ordinario';
   return 'generic';
@@ -365,11 +366,11 @@ function buildSidebar(){
   const items = [{key:'overview', label:'Panoramica dimensionamento', tag:'DIM'}];
   const digitalTypes = ['digital_rapporti','digital_frodi','digital_raisin'];
   const moneticaTypes = ['monetica_bonifici_banca','monetica_cassa','monetica_cassette','monetica_bonifici_estero'];
+  const factoringTypes = ['factoring_cedenti','factoring_debitori'];
   const labelMap = {
     ordinario:'Credito Ordinario & Factoring',
     speciale:'Credito Speciale',
     perfezionamenti:'Perfezionamenti credito ordinario',
-    factoring:'Factoring',
     anagrafe:'Anagrafe',
     antifrode:'Antifrode',
     ops_aml:'OPS AML',
@@ -401,6 +402,14 @@ function buildSidebar(){
       key:'monetica',
       label:'OPS Incassi, Pagamenti e Monetica',
       tag:'MON'
+    });
+  }
+
+  if(STATE.domainSheets.some(s=>factoringTypes.includes(s.type))){
+    items.push({
+      key:'factoring',
+      label:'Factoring',
+      tag:'FAC'
     });
   }
 
@@ -447,18 +456,21 @@ function buildTabs(){
   const tabDefs = [{key:'overview', label:'Overview'}];
   const digitalTypes = ['digital_rapporti','digital_frodi','digital_raisin'];
   const moneticaTypes = ['monetica_bonifici_banca','monetica_cassa','monetica_cassette', 'monetica_bonifici_estero'];
+  const factoringTypes = ['factoring_cedenti','factoring_debitori'];
   const hasDigital = STATE.domainSheets.some(s => digitalTypes.includes(s.type));
   const hasMonetica = STATE.domainSheets.some(s => moneticaTypes.includes(s.type));
+  const hasFactoring = STATE.domainSheets.some(s => factoringTypes.includes(s.type));
 
-  const labelMap = {ordinario:'Credito & Factoring', speciale:'Credito Speciale', perfezionamenti:'Perfezionamenti credito ordinario', factoring:'Factoring', anagrafe:'Anagrafe', antifrode:'Antifrode', ops_aml:'OPS AML', bancassurance:'Wealth & Bancassurance'};
+  const labelMap = {ordinario:'Credito & Factoring', speciale:'Credito Speciale', perfezionamenti:'Perfezionamenti credito ordinario', anagrafe:'Anagrafe', antifrode:'Antifrode', ops_aml:'OPS AML', bancassurance:'Wealth & Bancassurance'};
 
   STATE.domainSheets.forEach((s, idx)=>{
-    if(digitalTypes.includes(s.type) || moneticaTypes.includes(s.type)) return;
+    if(digitalTypes.includes(s.type) || moneticaTypes.includes(s.type) || factoringTypes.includes(s.type)) return;
     tabDefs.push({key:'d'+idx, label:labelMap[s.type] || 'Dati (' + s.sheetName + ')'});
   });
 
   if(hasDigital) tabDefs.push({key:'digital', label:'Digital Bank'});
   if(hasMonetica) tabDefs.push({key:'monetica', label:'OPS Incassi, Pagamenti e Monetica'});
+  if(hasFactoring) tabDefs.push({key:'factoring', label:'Factoring'});
 
   tabDefs.forEach(t=>{
     const tab = el('div','tab',`<span>${t.label}</span>`);
@@ -486,6 +498,7 @@ function activateTab(key){
   if(key === 'overview'){ renderOverview(panel); return; }
   if(key === 'digital'){ renderDigital(panel); return; }
   if(key === 'monetica'){ renderMonetica(panel); return; }
+  if(key === 'factoring'){ renderFactoring(panel); return; }
 
   const idx = Number(key.slice(1));
   const s = STATE.domainSheets[idx];
@@ -496,7 +509,6 @@ function activateTab(key){
   else if(s.type === 'speciale') renderCreditoSpeciale(panel, s);
   else if(s.type === 'ops_aml') renderOpsAml(panel, s);
   else if(s.type === 'perfezionamenti') renderPerfezionamenti(panel, s);
-  else if(s.type === 'factoring') renderFactoring(panel, s);
   else if(s.type === 'bancassurance') renderBancassurance(panel, s);
   else renderGeneric(panel, s);
 }
@@ -1151,31 +1163,25 @@ function renderPerfezionamenti(panel, s){
 }
 
 /* ============================================================
-   PANEL: NUOVE PRATICHE STIPULATE
+   PANEL: FACTORING
    ============================================================ */
+const FACTORING_ID = '10004100067100080';
+
 function renderFactoring(panel, s){
   
-  const rows = s.rows;
+  const cedenti = STATE.domainSheets.find(s=>s.type==='digital_rapporti');
+  const debitori = STATE.domainSheets.find(s=>s.type==='digital_frodi');
+
+  const cedentiRows = cedenti ? cedenti.rows : [];
+  const debitoriRows = debitori ? debitori.rows : [];
 
   // ============================================================
-  // FACTORING
+  // CEDENTI
   // ============================================================
-
-  const nuovePratiche = rows;
-
 
   // Estrai dimensioni uniche
-  const gestoriSet = new Set(nuovePratiche.map(r => r['gestore']).filter(Boolean));
-  const filialiSet = new Set(nuovePratiche.map(r => r['filiale']).filter(Boolean));
-  const segnalSet = new Set(nuovePratiche.map(r => r['segnalatore']).filter(Boolean));
-
-  const gestoriArray = Array.from(gestoriSet).sort();
+  const filialiSet = new Set(cedentiRows.map(r => r['filiale']).filter(Boolean));
   const filialiArray = Array.from(filialiSet).sort();
-  const segnalArray = Array.from(segnalSet).sort();
-
-  const gestoriColorMap = Object.fromEntries(
-    gestoriArray.map((g, i) => [g, CHART_SERIES[i % CHART_SERIES.length]])
-  );
 
   // ============================================================
   // AGGREGAZIONI: PRATICHE (COUNT NDG)
@@ -1183,14 +1189,12 @@ function renderFactoring(panel, s){
 
   const countNdg = (arr) => new Set(arr.map(r => r['ndg']).filter(Boolean)).size;
   
-  const totalPratiche = countNdg(nuovePratiche);
+  const totalPratiche = countNdg(cedentiRows);
   const pratichePerMese = {};
-  const pratichePerGestore = mapToSorted(countBy(nuovePratiche, 'gestore'));
-  const pratichePerFiliale = mapToSorted(countBy(nuovePratiche, 'filiale'));
-  const pratichePerSegnalatore = mapToSorted(countBy(nuovePratiche, 'segnalatore'));
+  const pratichePerFiliale = mapToSorted(countBy(cedentiRows, 'filiale'));
 
   // Pratiche per mese
-  nuovePratiche.forEach(r => {
+  cedentiRows.forEach(r => {
     const d = toDate(r['data prima stipula']);
     const k = monthKey(d);
     pratichePerMese[k] = (pratichePerMese[k] || 0) + 1;
@@ -1204,20 +1208,18 @@ function renderFactoring(panel, s){
   const sumImpiego = (arr) => arr.reduce((sum, r) => sum + (parseFloat(r['impiego']) || 0), 0);
   const sumTurnover = (arr) => arr.reduce((sum, r) => sum + (parseFloat(r['turnover anno corrente']) || 0), 0);
 
-  const accordatoTotale = sumAccordato(nuovePratiche);
+  const accordatoTotale = sumAccordato(cedentiRows);
   const accordatoMedio = totalPratiche ? accordatoTotale / totalPratiche : 0;
   
   const accordatoPerMese = {};
-  const accordatoPerGestore = {};
   const accordatoPerFiliale = {};
 
-  nuovePratiche.forEach(r => {
+  cedentiRows.forEach(r => {
     const d = toDate(r['data prima stipula']);
     const k = monthKey(d);
     const importo = parseFloat(r['accordato']) || 0;
     
     accordatoPerMese[k] = (accordatoPerMese[k] || 0) + importo;
-    accordatoPerGestore[r['gestore']] = (accordatoPerGestore[r['gestore']] || 0) + importo;
     accordatoPerFiliale[r['filiale']] = (accordatoPerFiliale[r['filiale']] || 0) + importo;
   });
 
@@ -1225,20 +1227,14 @@ function renderFactoring(panel, s){
   // AGGREGAZIONI: IMPIEGO E TURNOVER
   // ============================================================
 
-  const impiegoTotale = sumImpiego(nuovePratiche);
+  const impiegoTotale = sumImpiego(cedentiRows);
   const impiegoMedio = totalPratiche ? impiegoTotale / totalPratiche : 0;
   
-  const turnoverTotale = sumTurnover(nuovePratiche);
+  const turnoverTotale = sumTurnover(cedentiRows);
 
-  const impiegoPerGestore = {};
-  const turnoverPerGestore = {};
-
-  nuovePratiche.forEach(r => {
+  cedentiRows.forEach(r => {
     const impiego = parseFloat(r['impiego']) || 0;
     const turnover = parseFloat(r['turnover anno corrente']) || 0;
-    
-    impiegoPerGestore[r['gestore']] = (impiegoPerGestore[r['gestore']] || 0) + impiego;
-    turnoverPerGestore[r['gestore']] = (turnoverPerGestore[r['gestore']] || 0) + turnover;
   });
 
   // Union di tutti i mesi
@@ -1246,6 +1242,10 @@ function renderFactoring(panel, s){
     ...Object.keys(pratichePerMese),
     ...Object.keys(accordatoPerMese)
   ])].sort();
+
+  // ============================================================
+  // CEDENTI
+  // ============================================================
 
 
   // ============================================================
@@ -1265,12 +1265,8 @@ function renderFactoring(panel, s){
         <div class="val">${fmtCurrency.format(accordatoTotale)}</div>
       </div>
       <div class="kpi" style="--kc:${PALETTE.accent}">
-        <div class="lbl">Accordato medio</div>
-        <div class="val">${fmtCurrency.format(accordatoMedio)}</div>
-      </div>
-      <div class="kpi" style="--kc:${PALETTE.violet}">
-        <div class="lbl">Impiego medio</div>
-        <div class="val">${fmtCurrency.format(impiegoMedio)}</div>
+        <div class="lbl">Impiego totale</div>
+        <div class="val">${fmtCurrency.format(impiegoTotale)}</div>
       </div>
       <div class="kpi" style="--kc:${PALETTE.warning}">
         <div class="lbl">Turnover generato</div>
@@ -1293,19 +1289,6 @@ function renderFactoring(panel, s){
 
     <div class="grid cols-2">
       <div class="card">
-        <h3>Nuove pratiche per gestore</h3>
-        <p class="card-sub">COUNT(ndg)</p>
-        <canvas id="npPraticheGestoreChart"></canvas>
-      </div>
-      <div class="card">
-        <h3>Nuovo accordato per gestore</h3>
-        <p class="card-sub">SUM(accordato)</p>
-        <canvas id="npAccordatoGestoreChart"></canvas>
-      </div>
-    </div>
-
-    <div class="grid cols-2">
-      <div class="card">
         <h3>Pratiche per filiale</h3>
         <p class="card-sub">COUNT(ndg)</p>
         <canvas id="npPraticheFiliale"></canvas>
@@ -1314,19 +1297,6 @@ function renderFactoring(panel, s){
         <h3>Accordato per filiale</h3>
         <p class="card-sub">SUM(accordato)</p>
         <canvas id="npAccordatoFiliale"></canvas>
-      </div>
-    </div>
-
-    <div class="grid cols-2">
-      <div class="card">
-        <h3>Accordato gestito per addetto</h3>
-        <p class="card-sub">SUM(accordato) per gestore</p>
-        <canvas id="npAccordatoAddetto"></canvas>
-      </div>
-      <div class="card">
-        <h3>Impiego gestito per addetto</h3>
-        <p class="card-sub">SUM(impiego) per gestore</p>
-        <canvas id="npImpiegoAddetto"></canvas>
       </div>
     </div>
   `;
@@ -1344,7 +1314,7 @@ function renderFactoring(panel, s){
         data: months.map(m => pratichePerMese[m] || 0),
         backgroundColor: PALETTE.navy,
         borderColor: PALETTE.accent,
-        borderWidth: 2
+        borderWidth: 0
       }]
     },
     options: {
@@ -1374,7 +1344,7 @@ function renderFactoring(panel, s){
         pointRadius: 5,
         pointBackgroundColor: PALETTE.pos,
         pointBorderColor: PALETTE.navy,
-        pointBorderWidth: 2
+        pointBorderWidth: 0
       }]
     },
     options: {
@@ -1382,62 +1352,6 @@ function renderFactoring(panel, s){
       scales: {
         x: {grid: {display: false}},
         y: {grid: {color: PALETTE.grid}, ticks: {callback: v => fmtCurrency.format(v)}}
-      }
-    }
-  });
-
-  // ============================================================
-  // CHART: PRATICHE PER GESTORE
-  // ============================================================
-
-  mkChart('npPraticheGestoreChart', {
-    type: 'bar',
-    data: {
-      labels: pratichePerGestore.map(x => x[0]),
-      datasets: [{
-        label: 'Pratiche',
-        data: pratichePerGestore.map(x => x[1]),
-        backgroundColor: PALETTE.info,
-        borderColor: PALETTE.navy,
-        borderWidth: 2
-      }]
-    },
-    options: {
-      indexAxis: 'y',
-      plugins: {legend: {display: false}},
-      scales: {
-        x: {grid: {color: PALETTE.grid}},
-        y: {grid: {display: false}, ticks: {font: {size: 10}}}
-      }
-    }
-  });
-
-  // ============================================================
-  // CHART: ACCORDATO PER GESTORE
-  // ============================================================
-
-  const accordatoGestoreSorted = Object.entries(accordatoPerGestore)
-    .map(([k, v]) => [k, v])
-    .sort((a, b) => b[1] - a[1]);
-
-  mkChart('npAccordatoGestoreChart', {
-    type: 'bar',
-    data: {
-      labels: accordatoGestoreSorted.map(x => x[0]),
-      datasets: [{
-        label: 'Accordato',
-        data: accordatoGestoreSorted.map(x => x[1]),
-        backgroundColor: PALETTE.warn,
-        borderColor: PALETTE.navy,
-        borderWidth: 2
-      }]
-    },
-    options: {
-      indexAxis: 'y',
-      plugins: {legend: {display: false}},
-      scales: {
-        x: {grid: {color: PALETTE.grid}, ticks: {callback: v => fmtCurrency.format(v)}},
-        y: {grid: {display: false}, ticks: {font: {size: 10}}}
       }
     }
   });
@@ -1455,7 +1369,7 @@ function renderFactoring(panel, s){
         data: pratichePerFiliale.map(x => x[1]),
         backgroundColor: PALETTE.pos,
         borderColor: PALETTE.navy,
-        borderWidth: 2
+        borderWidth: 0
       }]
     },
     options: {
@@ -1485,7 +1399,7 @@ function renderFactoring(panel, s){
         data: accordatoFilialeSorted.map(x => x[1]),
         backgroundColor: PALETTE.danger,
         borderColor: PALETTE.navy,
-        borderWidth: 2
+        borderWidth: 0
       }]
     },
     options: {
@@ -1494,62 +1408,6 @@ function renderFactoring(panel, s){
       scales: {
         x: {grid: {color: PALETTE.grid}, ticks: {callback: v => fmtCurrency.format(v)}},
         y: {grid: {display: false}, ticks: {font: {size: 9.5}}}
-      }
-    }
-  });
-
-  // ============================================================
-  // CHART: ACCORDATO GESTITO PER ADDETTO
-  // ============================================================
-
-  const accordatoAddettoSorted = gestoriArray
-    .map(g => [g, accordatoPerGestore[g] || 0])
-    .sort((a, b) => b[1] - a[1]);
-
-  mkChart('npAccordatoAddetto', {
-    type: 'bar',
-    data: {
-      labels: accordatoAddettoSorted.map(x => x[0]),
-      datasets: [{
-        label: 'Accordato',
-        data: accordatoAddettoSorted.map(x => x[1]),
-        backgroundColor: gestoriArray.map(g => gestoriColorMap[g])
-      }]
-    },
-    options: {
-      indexAxis: 'y',
-      plugins: {legend: {display: false}},
-      scales: {
-        x: {grid: {color: PALETTE.grid}, ticks: {callback: v => fmtCurrency.format(v)}},
-        y: {grid: {display: false}, ticks: {font: {size: 10}}}
-      }
-    }
-  });
-
-  // ============================================================
-  // CHART: IMPIEGO GESTITO PER ADDETTO
-  // ============================================================
-
-  const impiegoAddettoSorted = gestoriArray
-    .map(g => [g, impiegoPerGestore[g] || 0])
-    .sort((a, b) => b[1] - a[1]);
-
-  mkChart('npImpiegoAddetto', {
-    type: 'bar',
-    data: {
-      labels: impiegoAddettoSorted.map(x => x[0]),
-      datasets: [{
-        label: 'Impiego',
-        data: impiegoAddettoSorted.map(x => x[1]),
-        backgroundColor: gestoriArray.map(g => gestoriColorMap[g])
-      }]
-    },
-    options: {
-      indexAxis: 'y',
-      plugins: {legend: {display: false}},
-      scales: {
-        x: {grid: {color: PALETTE.grid}, ticks: {callback: v => fmtCurrency.format(v)}},
-        y: {grid: {display: false}, ticks: {font: {size: 10}}}
       }
     }
   });
