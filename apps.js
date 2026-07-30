@@ -1168,9 +1168,9 @@ function renderPerfezionamenti(panel, s){
 const FACTORING_ID = '10004100067100080';
 
 function renderFactoring(panel, s){
-  
-  const cedenti = STATE.domainSheets.find(s=>s.type==='digital_rapporti');
-  const debitori = STATE.domainSheets.find(s=>s.type==='digital_frodi');
+
+  const cedenti = STATE.domainSheets.find(s=>s.type==='factoring_cedenti');
+  const debitori = STATE.domainSheets.find(s=>s.type==='factoring_debitori');
 
   const cedentiRows = cedenti ? cedenti.rows : [];
   const debitoriRows = debitori ? debitori.rows : [];
@@ -1188,15 +1188,15 @@ function renderFactoring(panel, s){
   // CEDENTI
   // ============================================================
   
-  const totalPratiche = countNdg(cedentiRows);
-  const pratichePerMese = {};
-  const pratichePerFiliale = mapToSorted(countBy(cedentiRows, 'filiale'));
+  const totalPraticheCedenti = countNdg(cedentiRows);
+  const pratichePerMeseCedenti = {};
+  const pratichePerFilialeCedenti = mapToSorted(countBy(cedentiRows, 'filiale'));
 
   // Pratiche per mese
   cedentiRows.forEach(r => {
     const d = toDate(r['data prima stipula']);
     const k = monthKey(d);
-    pratichePerMese[k] = (pratichePerMese[k] || 0) + 1;
+    pratichePerMeseCedenti[k] = (pratichePerMeseCedenti[k] || 0) + 1;
   });
 
   // ============================================================
@@ -1207,34 +1207,34 @@ function renderFactoring(panel, s){
   const sumImpiego = (arr) => arr.reduce((sum, r) => sum + (parseFloat(r['impiego']) || 0), 0);
   const sumTurnover = (arr) => arr.reduce((sum, r) => sum + (parseFloat(r['turnover anno corrente']) || 0), 0);
 
-  const accordatoTotale = sumAccordato(cedentiRows);
-  const accordatoMedio = totalPratiche ? accordatoTotale / totalPratiche : 0;
+  const accordatoTotaleCedenti = sumAccordato(cedentiRows);
+  const accordatoMedioCedenti = totalPraticheCedenti ? accordatoTotaleCedenti / totalPraticheCedenti : 0;
   
-  const accordatoPerMese = {};
-  const accordatoPerFiliale = {};
+  const accordatoPerMeseCedenti = {};
+  const accordatoPerFilialeCedenti = {};
 
   cedentiRows.forEach(r => {
     const d = toDate(r['data prima stipula']);
     const k = monthKey(d);
     const importo = parseFloat(r['accordato']) || 0;
     
-    accordatoPerMese[k] = (accordatoPerMese[k] || 0) + importo;
-    accordatoPerFiliale[r['filiale']] = (accordatoPerFiliale[r['filiale']] || 0) + importo;
+    accordatoPerMeseCedenti[k] = (accordatoPerMeseCedenti[k] || 0) + importo;
+    accordatoPerFilialeCedenti[r['filiale']] = (accordatoPerFilialeCedenti[r['filiale']] || 0) + importo;
   });
 
   // ============================================================
   // AGGREGAZIONI: IMPIEGO E TURNOVER
   // ============================================================
 
-  const impiegoTotale = sumImpiego(cedentiRows);
-  const impiegoMedio = totalPratiche ? impiegoTotale / totalPratiche : 0;
+  const impiegoTotaleCedenti = sumImpiego(cedentiRows);
+  const impiegoMedioCedenti = totalPraticheCedenti ? impiegoTotaleCedenti / totalPraticheCedenti : 0;
   
   const turnoverTotale = sumTurnover(cedentiRows);
 
   // Union di tutti i mesi
   const monthsCedenti = [...new Set([
-    ...Object.keys(pratichePerMese),
-    ...Object.keys(accordatoPerMese)
+    ...Object.keys(pratichePerMeseCedenti),
+    ...Object.keys(accordatoPerMeseCedenti)
   ])].sort();
 
   // ============================================================
@@ -1384,7 +1384,7 @@ function renderFactoring(panel, s){
     </div>
   `;
 
-    // ============================================================
+  // ============================================================
   // CHART: PRATICHE PER MESE (CEDENTI)
   // ============================================================
 
@@ -1394,7 +1394,7 @@ function renderFactoring(panel, s){
       labels: monthsCedenti,
       datasets: [{
         label: 'Pratiche',
-        data: monthsCedenti.map(m => pratichePerMese[m] || 0),
+        data: monthsCedenti.map(m => pratichePerMeseCedenti[m] || 0),
         backgroundColor: PALETTE.navy,
         borderColor: PALETTE.accent,
         borderWidth: 0
@@ -1419,7 +1419,7 @@ function renderFactoring(panel, s){
       labels: monthsCedenti,
       datasets: [{
         label: 'Accordato',
-        data: monthsCedenti.map(m => accordatoPerMese[m] || 0),
+        data: monthsCedenti.map(m => accordatoPerMeseCedenti[m] || 0),
         borderColor: PALETTE.pos,
         backgroundColor: 'rgba(111,146,119,0.15)',
         tension: 0.4,
@@ -1469,7 +1469,7 @@ function renderFactoring(panel, s){
   // CHART: ACCORDATO PER FILIALE (CEDENTI)
   // ============================================================
 
-  const accordatoFilialeCedentiSorted = Object.entries(accordatoPerFiliale)
+  const accordatoFilialeCedentiSorted = Object.entries(accordatoPerFilialeCedenti)
     .map(([k, v]) => [k, v])
     .sort((a, b) => b[1] - a[1]);
 
@@ -1499,26 +1499,21 @@ function renderFactoring(panel, s){
   // CHART: ACCORDATO PER MESE (DEBITORI - SOLVENDO VS SOLUTO)
   // ============================================================
 
-  const dbMonths = [...new Set([
-    ...Object.keys(accordatoPerMeseSolvendo),
-    ...Object.keys(accordatoPerMeseSoluto)
-  ])].sort();
-
   mkChart('dbAccordatoPerMeseChart', {
     type: 'bar',
     data: {
-      labels: dbMonths,
+      labels: monthsDebitori,
       datasets: [
         {
           label: 'Accordato Solvendo',
-          data: dbMonths.map(m => accordatoPerMeseSolvendo[m] || 0),
+          data: monthsDebitori.map(m => accordatoPerMeseSolvendo[m] || 0),
           backgroundColor: PALETTE.pos,
           borderColor: PALETTE.navy,
           borderWidth: 0
         },
         {
           label: 'Accordato Soluto',
-          data: dbMonths.map(m => accordatoPerMeseSoluto[m] || 0),
+          data: monthsDebitori.map(m => accordatoPerMeseSoluto[m] || 0),
           backgroundColor: PALETTE.accent,
           borderColor: PALETTE.navy,
           borderWidth: 0
@@ -1564,6 +1559,7 @@ function renderFactoring(panel, s){
     }
   });
 }
+
 
 /* ============================================================
    PANEL: ANAGRAFE
