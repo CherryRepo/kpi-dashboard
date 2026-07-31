@@ -1183,6 +1183,7 @@ function renderFactoring(panel, s){
   const filialiSet = new Set(cedentiRows.map(r => r['filiale']).filter(Boolean));
   const filialiArray = Array.from(filialiSet).sort();
   const countNdg = (arr) => new Set(arr.map(r => r['ndg']).filter(Boolean)).size;
+  const countNdgDebitori = (arr) => new Set(arr.map(r => r['ndg_debitore']).filter(Boolean)).size;
 
   // ============================================================
   // CEDENTI
@@ -1241,7 +1242,7 @@ function renderFactoring(panel, s){
   // DEBITORI
   // ============================================================
 
-  const totalDebitori = countNdg(debitoriRows);
+  const totalDebitori = countNdgDebitori(debitoriRows);
 
   // ============================================================
   // AGGREGAZIONI: ACCORDATO (SUM)
@@ -1249,8 +1250,8 @@ function renderFactoring(panel, s){
 
   const debitoriSolvendo = debitoriRows.filter(r => (parseFloat(r['accordato_pro_solvendo']) || 0) > 0);
   const debitoriSoluto = debitoriRows.filter(r => (parseFloat(r['accordato_pro_soluto']) || 0) > 0);
-  const totalPraticheSolvendo = countNdg(debitoriSolvendo);
-  const totalPraticheSoluto = countNdg(debitoriSoluto);
+  const totalPraticheSolvendo = countNdgDebitori(debitoriSolvendo);
+  const totalPraticheSoluto = countNdgDebitori(debitoriSoluto);
 
   const sumAccordatoSolvendo = (arr) => arr.reduce((sum, r) => sum + (parseFloat(r['accordato_pro_solvendo']) || 0), 0);
   const sumAccordatoSoluto = (arr) => arr.reduce((sum, r) => sum + (parseFloat(r['accordato_pro_soluto']) || 0), 0);
@@ -1304,13 +1305,13 @@ function renderFactoring(panel, s){
     ...Object.keys(accordatoPerMeseSoluto),
   ])].sort();
 
-   console.log('totalDebitori:', totalDebitori);
-   console.log('accordatoMedioSolvendo:', accordatoMedioSolvendo);
-   console.log('accordatoMedioSoluto:', accordatoMedioSoluto);
-   console.log('conteoNdgPerProdotto:', conteoNdgPerProdotto);
-   console.log('debitoriRows.length:', debitoriRows.length);
-   console.log('debitoriSolvendo.length:', debitoriSolvendo.length);
-   console.log('debitoriSoluto.length:', debitoriSoluto.length);
+console.log('totalDebitori:', totalDebitori);
+console.log('accordatoMedioSolvendo:', accordatoMedioSolvendo);
+console.log('accordatoMedioSoluto:', accordatoMedioSoluto);
+console.log('conteoNdgPerProdotto:', conteoNdgPerProdotto);
+console.log('debitoriRows.length:', debitoriRows.length);
+console.log('debitoriSolvendo.length:', debitoriSolvendo.length);
+console.log('debitoriSoluto.length:', debitoriSoluto.length);
 
 
   // ============================================================
