@@ -1303,13 +1303,12 @@ function renderFactoring(panel, s){
     'sola gestione pro soluto',
     'export factoring'
   ];
-  const conteoNdgPerProdottoSorted = Object.entries(conteoNdgPerProdotto)
-    .sort((a, b) => b[1] - a[1]);
-  
+
   const visibili = conteoNdgPerProdottoSorted.filter(([prod]) => 
-    PRODOTTI_VISIBILI.some(p => prod.toLowerCase().includes(p.toLowerCase())));
+    PRODOTTI_VISIBILI.some(p => prod.toLowerCase().trim() === p.toLowerCase().trim()));
   const altri = conteoNdgPerProdottoSorted.filter(([prod]) => 
-    !PRODOTTI_VISIBILI.some(p => prod.toLowerCase().includes(p.toLowerCase())));
+    !PRODOTTI_VISIBILI.some(p => prod.toLowerCase().trim() === p.toLowerCase().trim()));
+
   const totalAltri = altri.reduce((sum, [, val]) => sum + val, 0);
   const datiFinaliProdotti = visibili;
   if (totalAltri > 0) {
