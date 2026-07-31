@@ -1582,8 +1582,7 @@ function renderFactoring(panel, s){
     },
     options: {
       plugins: {
-        legend: {display: true, position: 'right'},
-        tooltip: {callbacks: {label: (ctx) => `${ctx.label}: ${ctx.parsed} NDG (${((ctx.parsed / ctx.dataset.data.reduce((a,b) => a+b, 0)) * 100).toFixed(1)}%)`}}
+        legend: {display: false}
       }
     }
   });
