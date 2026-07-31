@@ -1303,9 +1303,22 @@ function renderFactoring(panel, s){
     'sola gestione pro soluto',
     'export factoring'
   ];
+   
+  const conteoNdgPerProdottoSorted = Object.entries(conteoNdgPerProdotto)
+     .sort((a, b) => b[1] - a[1]); 
 
-  const visibili = conteoNdgPerProdottoSorted.filter(([prod]) => 
-    PRODOTTI_VISIBILI.some(p => prod.toLowerCase().trim() === p.toLowerCase().trim()));
+  console.log('🔍 PRODOTTI NEL FOGLIO:', conteoNdgPerProdottoSorted.map(x => x[0]));
+  console.log('🔍 PRODOTTI VISIBILI:', PRODOTTI_VISIBILI);
+
+  const visibili = conteoNdgPerProdottoSorted.filter(([prod]) => {
+     const match = PRODOTTI_VISIBILI.some(p => prod.toLowerCase().trim() === p.toLowerCase().trim());
+     console.log(`${prod} → ${match}`);
+     return match;
+  });
+  console.log('✅ VISIBILI:', visibili);
+  console.log('❌ ALTRI:', conteoNdgPerProdottoSorted.filter(([prod]) => 
+    !PRODOTTI_VISIBILI.some(p => prod.toLowerCase().trim() === p.toLowerCase().trim())
+  ));
   const altri = conteoNdgPerProdottoSorted.filter(([prod]) => 
     !PRODOTTI_VISIBILI.some(p => prod.toLowerCase().trim() === p.toLowerCase().trim()));
 
