@@ -1241,32 +1241,29 @@ function renderFactoring(panel, s){
   // DEBITORI
   // ============================================================
 
-  const debitori2026 = debitoriRows.filter(r => {
-    return r.descrizione_stato_linea?.includes('Deliberata operativa');
-  });
-
-  const totalDebitori = countNdg(debitori2026);
-  const pratichePerFilialeDebitori = mapToSorted(countBy(debitori2026, 'filiale'));
+  const totalDebitori = countNdg(debitoriRows);
 
   // ============================================================
   // AGGREGAZIONI: ACCORDATO (SUM)
   // ============================================================
 
-  const totalPraticheSolvendo = countNdg(debitori2026.filter(r => (parseFloat(r['accordato_pro_solvendo']) || 0) > 0));
-  const totalPraticheSoluto = countNdg(debitori2026.filter(r => (parseFloat(r['accordato_pro_soluto']) || 0) > 0));
+  const debitoriSolvendo = debitoriRows.filter(r => (parseFloat(r['accordato_pro_solvendo']) || 0) > 0);
+  const debitoriSoluto = debitoriRows.filter(r => (parseFloat(r['accordato_pro_soluto']) || 0) > 0);
+  const totalPraticheSolvendo = countNdg(debitoriSolvendo);
+  const totalPraticheSoluto = countNdg(debitoriSoluto);
 
   const sumAccordatoSolvendo = (arr) => arr.reduce((sum, r) => sum + (parseFloat(r['accordato_pro_solvendo']) || 0), 0);
   const sumAccordatoSoluto = (arr) => arr.reduce((sum, r) => sum + (parseFloat(r['accordato_pro_soluto']) || 0), 0);
 
-  const accordatoTotaleSolvendo = sumAccordatoSolvendo(debitori2026);
+  const accordatoTotaleSolvendo = sumAccordatoSolvendo(debitoriSolvendo);
   const accordatoMedioSolvendo = totalPraticheSolvendo ? accordatoTotaleSolvendo / totalPraticheSolvendo : 0;
-  const accordatoTotaleSoluto = sumAccordatoSoluto(debitori2026);
+  const accordatoTotaleSoluto = sumAccordatoSoluto(debitoriSoluto);
   const accordatoMedioSoluto = totalPraticheSoluto ? accordatoTotaleSoluto / totalPraticheSoluto : 0;
   
   const accordatoPerMeseSolvendo = {};
   const accordatoPerMeseSoluto = {};
 
-  debitori2026.forEach(r => {
+  debitoriRows.forEach(r => {
     const d = toDate(r['data_delibera']);
     const k = monthKey(d);
     const importoSolvendo = parseFloat(r['accordato_pro_solvendo']) || 0;
@@ -1276,14 +1273,25 @@ function renderFactoring(panel, s){
     accordatoPerMeseSoluto[k] = (accordatoPerMeseSoluto[k] || 0) + importoSoluto;    
   });
 
-  const accordatoPerFilialeDebitori = {};
+  // ============================================================
+  // CHART: DISTRIBUZIONE NDG PER PRODOTTO (DEBITORI)
+  // ============================================================
+  const ndgPerProdotto = {};
+  debitoriRows.forEach(r => {
+    const ndg = r['ndg'];
+    const prodotto = r['descrizione_prodotto'];
   
-  debitori2026.forEach(r => {
-    const filiale = r['filiale'];
-    const importoSolvendo = parseFloat(r['accordato_pro_solvendo']) || 0;
-    const importoSoluto = parseFloat(r['accordato_pro_soluto']) || 0;
-  
-    accordatoPerFilialeDebitori[filiale] = (accordatoPerFilialeDebitori[filiale] || 0) + importoSolvendo + importoSoluto;
+    if (ndg && prodotto) {
+      if (!ndgPerProdotto[prodotto]) {
+        ndgPerProdotto[prodotto] = new Set();
+      }
+      ndgPerProdotto[prodotto].add(ndg);
+    }
+  });
+  // Conta NDG per prodotto
+  const conteoNdgPerProdotto = {};
+  Object.entries(ndgPerProdotto).forEach(([prodotto, ndgs]) => {
+    conteoNdgPerProdotto[prodotto] = ndgs.size;
   });
 
   // ============================================================
@@ -1293,7 +1301,7 @@ function renderFactoring(panel, s){
   // Union di tutti i mesi
   const monthsDebitori = [...new Set([
     ...Object.keys(accordatoPerMeseSolvendo),
-    ...Object.keys(accordatoPerMeseSoluto)
+    ...Object.keys(accordatoPerMeseSoluto),
   ])].sort();
 
   // ============================================================
@@ -1374,13 +1382,12 @@ function renderFactoring(panel, s){
         <canvas id="dbAccordatoPerMeseChart"></canvas>
       </div>
       <div class="card">
-        <h3>Accordato per filiale</h3>
-        <p class="card-sub">SUM(accordato totale)</p>
-        <canvas id="dbAccordatoFiliale"></canvas>
+        <h3>Distribuzione prodotti</h3>
+        <p class="card-sub">descrizione_prodotto</p>
+        <canvas id="dbNdgPerProdotto"></canvas>
       </div>
     </div>
   `;
-
 
   // ============================================================
   // CHART: PRATICHE PER MESE (CEDENTI)
@@ -1528,36 +1535,38 @@ function renderFactoring(panel, s){
   });
 
   // ============================================================
-  // CHART: ACCORDATO PER FILIALE (DEBITORI)
+  // CHART: DISTRIBUZIONE PRODOTTI DEBITORI
   // ============================================================
 
-  const accordatoFilialeDebitoriSorted = Object.entries(accordatoPerFilialeDebitori)
-    .map(([k, v]) => [k, v])
+  const conteoNdgPerProdottoSorted = Object.entries(conteoNdgPerProdotto)
     .sort((a, b) => b[1] - a[1]);
-
-  mkChart('dbAccordatoFiliale', {
-    type: 'bar',
+  mkChart('dbNdgPerProdotto', {
+    type: 'doughnut',
     data: {
-      labels: accordatoFilialeDebitoriSorted.map(x => x[0]),
+      labels: conteoNdgPerProdottoSorted.map(x => x[0]),
       datasets: [{
-        label: 'Accordato',
-        data: accordatoFilialeDebitoriSorted.map(x => x[1]),
-        backgroundColor: PALETTE.warning,
+        label: 'NDG per Prodotto',
+        data: conteoNdgPerProdottoSorted.map(x => x[1]),
+        backgroundColor: [
+          PALETTE.pos,
+          PALETTE.accent,
+          PALETTE.warn,
+          PALETTE.danger,
+          PALETTE.info,
+          PALETTE.violet
+        ],
         borderColor: PALETTE.navy,
         borderWidth: 0
       }]
     },
     options: {
-      indexAxis: 'y',
-      plugins: {legend: {display: false}},
-      scales: {
-        x: {grid: {color: PALETTE.grid}, ticks: {callback: v => fmtCurrency.format(v)}},
-        y: {grid: {display: false}, ticks: {font: {size: 9.5}}}
+      plugins: {
+        legend: {display: true, position: 'right'},
+        tooltip: {callbacks: {label: (ctx) => `${ctx.label}: ${ctx.parsed} NDG (${((ctx.parsed / ctx.dataset.data.reduce((a,b) => a+b, 0)) * 100).toFixed(1)}%)`}}
       }
     }
   });
 }
-
 
 /* ============================================================
    PANEL: ANAGRAFE
