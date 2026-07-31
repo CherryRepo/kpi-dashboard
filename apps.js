@@ -1246,26 +1246,18 @@ function renderFactoring(panel, s){
   });
 
   const totalDebitori = countNdg(debitori2026);
-
-  const totalPraticheSolvendo = countNdg(debitori2026.filter(r => (parseFloat(r['accordato_pro_solvendo']) || 0) > 0));
-  const totalPraticheSoluto = countNdg(debitori2026.filter(r => (parseFloat(r['accordato_pro_soluto']) || 0) > 0));
-
-  const pratichePerMeseDebitori = {};
   const pratichePerFilialeDebitori = mapToSorted(countBy(debitori2026, 'filiale'));
-
-  // Pratiche per mese
-  debitori2026.forEach(r => {
-    const d = toDate(r['data_delibera']);
-    const k = monthKey(d);
-    pratichePerMeseDebitori[k] = (pratichePerMeseDebitori[k] || 0) + 1;
-  });
 
   // ============================================================
   // AGGREGAZIONI: ACCORDATO (SUM)
   // ============================================================
 
+  const totalPraticheSolvendo = countNdg(debitori2026.filter(r => (parseFloat(r['accordato_pro_solvendo']) || 0) > 0));
+  const totalPraticheSoluto = countNdg(debitori2026.filter(r => (parseFloat(r['accordato_pro_soluto']) || 0) > 0));
+
   const sumAccordatoSolvendo = (arr) => arr.reduce((sum, r) => sum + (parseFloat(r['accordato_pro_solvendo']) || 0), 0);
   const sumAccordatoSoluto = (arr) => arr.reduce((sum, r) => sum + (parseFloat(r['accordato_pro_soluto']) || 0), 0);
+
   const accordatoTotaleSolvendo = sumAccordatoSolvendo(debitori2026);
   const accordatoMedioSolvendo = totalPraticheSolvendo ? accordatoTotaleSolvendo / totalPraticheSolvendo : 0;
   const accordatoTotaleSoluto = sumAccordatoSoluto(debitori2026);
@@ -1284,20 +1276,6 @@ function renderFactoring(panel, s){
     accordatoPerMeseSoluto[k] = (accordatoPerMeseSoluto[k] || 0) + importoSoluto;    
   });
 
-  // ============================================================
-  // AGGREGAZIONI
-  // ============================================================
-
-  // Union di tutti i mesi
-  const monthsDebitori = [...new Set([
-    ...Object.keys(pratichePerMeseDebitori),
-    ...Object.keys(accordatoPerMeseSolvendo),
-    ...Object.keys(accordatoPerMeseSoluto)
-  ])].sort();
-
-  // ============================================================
-  // ACCORDATO PER FILIALE
-  // ============================================================
   const accordatoPerFilialeDebitori = {};
   
   debitori2026.forEach(r => {
@@ -1307,7 +1285,16 @@ function renderFactoring(panel, s){
   
     accordatoPerFilialeDebitori[filiale] = (accordatoPerFilialeDebitori[filiale] || 0) + importoSolvendo + importoSoluto;
   });
-  const accordatoPerFilialeDebitori_sorted = mapToSorted(accordatoPerFilialeDebitori);
+
+  // ============================================================
+  // AGGREGAZIONI
+  // ============================================================
+
+  // Union di tutti i mesi
+  const monthsDebitori = [...new Set([
+    ...Object.keys(accordatoPerMeseSolvendo),
+    ...Object.keys(accordatoPerMeseSoluto)
+  ])].sort();
 
   // ============================================================
   // RENDER HTML
@@ -1544,17 +1531,17 @@ function renderFactoring(panel, s){
   // CHART: ACCORDATO PER FILIALE (DEBITORI)
   // ============================================================
 
-  const dbAccordatoFilialeSorted = Object.entries(accordatoPerFilialeDebitori)
+  const accordatoFilialeDebitoriSorted = Object.entries(accordatoPerFilialeDebitori)
     .map(([k, v]) => [k, v])
     .sort((a, b) => b[1] - a[1]);
 
   mkChart('dbAccordatoFiliale', {
     type: 'bar',
     data: {
-      labels: dbAccordatoFilialeSorted.map(x => x[0]),
+      labels: accordatoFilialeDebitoriSorted.map(x => x[0]),
       datasets: [{
         label: 'Accordato',
-        data: dbAccordatoFilialeSorted.map(x => x[1]),
+        data: accordatoFilialeDebitoriSorted.map(x => x[1]),
         backgroundColor: PALETTE.warning,
         borderColor: PALETTE.navy,
         borderWidth: 0
