@@ -1279,7 +1279,7 @@ function renderFactoring(panel, s){
   // ============================================================
   const ndgPerProdotto = {};
   debitoriRows.forEach(r => {
-    const ndg = r['ndg'];
+    const ndg = r['ndg_debitore'];
     const prodotto = r['descrizione_prodotto'];
   
     if (ndg && prodotto) {
@@ -1304,15 +1304,6 @@ function renderFactoring(panel, s){
     ...Object.keys(accordatoPerMeseSolvendo),
     ...Object.keys(accordatoPerMeseSoluto),
   ])].sort();
-
-console.log('totalDebitori:', totalDebitori);
-console.log('accordatoMedioSolvendo:', accordatoMedioSolvendo);
-console.log('accordatoMedioSoluto:', accordatoMedioSoluto);
-console.log('conteoNdgPerProdotto:', conteoNdgPerProdotto);
-console.log('debitoriRows.length:', debitoriRows.length);
-console.log('debitoriSolvendo.length:', debitoriSolvendo.length);
-console.log('debitoriSoluto.length:', debitoriSoluto.length);
-
 
   // ============================================================
   // RENDER HTML
@@ -1376,11 +1367,11 @@ console.log('debitoriSoluto.length:', debitoriSoluto.length);
         <div class="val">${fmtInt.format(totalDebitori)}</div>
       </div>
       <div class="kpi" style="--kc:${PALETTE.pos}">
-        <div class="lbl">Accordato medio pro solvendo</div>
+        <div class="lbl">Accordato medio per debitore pro solvendo</div>
         <div class="val">${fmtCurrency.format(accordatoMedioSolvendo)}</div>
       </div>
       <div class="kpi" style="--kc:${PALETTE.accent}">
-        <div class="lbl">Accordato medio pro soluto</div>
+        <div class="lbl">Accordato medio per debitore pro soluto</div>
         <div class="val">${fmtCurrency.format(accordatoMedioSoluto)}</div>
       </div>
     </div>
