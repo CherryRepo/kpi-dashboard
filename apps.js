@@ -1551,10 +1551,10 @@ function renderFactoring(panel, s){
   mkChart('dbAccordatoFiliale', {
     type: 'bar',
     data: {
-      labels: Object.keys(accordatoPerFilialeDebitori_sorted),
+      labels: dbAccordatoFilialeSorted.map(x => x[0]),
       datasets: [{
         label: 'Accordato',
-        data: Object.values(accordatoPerFilialeDebitori_sorted),
+        data: dbAccordatoFilialeSorted.map(x => x[1]),
         backgroundColor: PALETTE.warning,
         borderColor: PALETTE.navy,
         borderWidth: 0
