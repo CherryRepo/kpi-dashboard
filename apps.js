@@ -1304,6 +1304,9 @@ function renderFactoring(panel, s){
     'export factoring'
   ];
 
+  const conteoNdgPerProdottoSorted = Object.entries(conteoNdgPerProdotto)
+    .sort((a, b) => b[1] - a[1]);
+
   const visibili = conteoNdgPerProdottoSorted.filter(([prod]) => 
     PRODOTTI_VISIBILI.some(p => prod.toLowerCase().trim() === p.toLowerCase().trim()));
   const altri = conteoNdgPerProdottoSorted.filter(([prod]) => 
