@@ -1303,29 +1303,16 @@ function renderFactoring(panel, s){
     'sola gestione pro soluto',
     'export factoring'
   ];
-   
-  const conteoNdgPerProdottoSorted = Object.entries(conteoNdgPerProdotto)
-     .sort((a, b) => b[1] - a[1]); 
 
-  console.log('🔍 PRODOTTI NEL FOGLIO:', conteoNdgPerProdottoSorted.map(x => x[0]));
-  console.log('🔍 PRODOTTI VISIBILI:', PRODOTTI_VISIBILI);
-
-  const visibili = conteoNdgPerProdottoSorted.filter(([prod]) => {
-     const match = PRODOTTI_VISIBILI.some(p => prod.toLowerCase().trim() === p.toLowerCase().trim());
-     console.log(`${prod} → ${match}`);
-     return match;
-  });
-  console.log('✅ VISIBILI:', visibili);
-  console.log('❌ ALTRI:', conteoNdgPerProdottoSorted.filter(([prod]) => 
-    !PRODOTTI_VISIBILI.some(p => prod.toLowerCase().trim() === p.toLowerCase().trim())
-  ));
+  const visibili = conteoNdgPerProdottoSorted.filter(([prod]) => 
+    PRODOTTI_VISIBILI.some(p => prod.toLowerCase().trim() === p.toLowerCase().trim()));
   const altri = conteoNdgPerProdottoSorted.filter(([prod]) => 
     !PRODOTTI_VISIBILI.some(p => prod.toLowerCase().trim() === p.toLowerCase().trim()));
 
   const totalAltri = altri.reduce((sum, [, val]) => sum + val, 0);
   const datiFinaliProdotti = visibili;
   if (totalAltri > 0) {
-    datiFinaliProdotti.push(['Altri prodotti', totalAltri]);
+    datiFinaliProdotti.push(['ALTRI PRODOTTI', totalAltri]);
   }
 
   // ============================================================
@@ -1584,7 +1571,7 @@ function renderFactoring(panel, s){
           PALETTE.accent,
           PALETTE.warn,
           PALETTE.danger,
-          PALETTE.info,
+          PALETTE.navy,
           PALETTE.violet
         ],
         borderColor: PALETTE.navy,
@@ -1599,6 +1586,19 @@ function renderFactoring(panel, s){
     }
   });
 }
+
+const PALETTE = {
+  accent: '#6e8c9c',
+  info: '#6e8c9c',
+  warn: '#b89f84',
+  danger: '#b5615a',
+  violet: '#b89f84',
+  navy: '#2e4857',
+  pos: '#6f9277',
+  neg: '#b5615a',
+  text: '#6e8c9c',
+  grid: 'rgba(46,72,87,0.08)'
+};
 
 /* ============================================================
    PANEL: ANAGRAFE
