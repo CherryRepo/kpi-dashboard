@@ -1539,15 +1539,35 @@ function renderFactoring(panel, s){
   // CHART: DISTRIBUZIONE PRODOTTI DEBITORI
   // ============================================================
 
+  const PRODOTTI_VISIBILI = [
+    'FACTORING ORDINARIO PRO SOLVENDO',
+    'FACTORING ORDINARIO PRO SOLUTO',
+    'ANTICIPO CREDITI FUTURI',
+    'SOLA GESTIONE PRO SOLUTO',
+    'EXPORT FACTORING'
+  ];
+
   const conteoNdgPerProdottoSorted = Object.entries(conteoNdgPerProdotto)
     .sort((a, b) => b[1] - a[1]);
+
+  // Separa prodotti visibili da altri
+  const visibili = conteoNdgPerProdottoSorted.filter(([prod]) => PRODOTTI_VISIBILI.some(p => prod.includes(p)));
+  const altri = conteoNdgPerProdottoSorted.filter(([prod]) => !PRODOTTI_VISIBILI.some(p => prod.includes(p)));
+
+  // Se ci sono "altri", aggiungili come voce unica
+  const totalAltri = altri.reduce((sum, [, val]) => sum + val, 0);
+  const datiFinali = visibili;
+  if (totalAltri > 0) {
+    datiFinali.push(['ALTRI PRODOTTI', totalAltri]);
+  }
+
   mkChart('dbNdgPerProdotto', {
     type: 'doughnut',
     data: {
-      labels: conteoNdgPerProdottoSorted.map(x => x[0]),
+      labels: datiFinali.map(x => x[0]),
       datasets: [{
         label: 'NDG per Prodotto',
-        data: conteoNdgPerProdottoSorted.map(x => x[1]),
+        data: datiFinali.map(x => x[1]),
         backgroundColor: [
           PALETTE.pos,
           PALETTE.accent,
