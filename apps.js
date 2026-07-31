@@ -1563,7 +1563,7 @@ function renderFactoring(panel, s){
   // ============================================================
 
   mkChart('dbNdgPerProdotto', {
-    type: 'doughnut',
+    type: 'bar',
     data: {
       labels: datiFinaliProdotti.map(x => x[0]),
       datasets: [{
