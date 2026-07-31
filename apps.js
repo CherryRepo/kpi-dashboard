@@ -1304,6 +1304,15 @@ function renderFactoring(panel, s){
     ...Object.keys(accordatoPerMeseSoluto),
   ])].sort();
 
+console.log('totalDebitori:', totalDebitori);
+console.log('accordatoMedioSolvendo:', accordatoMedioSolvendo);
+console.log('accordatoMedioSoluto:', accordatoMedioSoluto);
+console.log('conteoNdgPerProdotto:', conteoNdgPerProdotto);
+console.log('debitoriRows.length:', debitoriRows.length);
+console.log('debitoriSolvendo.length:', debitoriSolvendo.length);
+console.log('debitoriSoluto.length:', debitoriSoluto.length);
+
+
   // ============================================================
   // RENDER HTML
   // ============================================================
