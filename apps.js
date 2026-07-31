@@ -1281,7 +1281,6 @@ function renderFactoring(panel, s){
   debitoriRows.forEach(r => {
     const ndg = r['ndg_debitore'];
     const prodotto = r['descrizione_prodotto'];
-  
     if (ndg && prodotto) {
       if (!ndgPerProdotto[prodotto]) {
         ndgPerProdotto[prodotto] = new Set();
@@ -1294,6 +1293,28 @@ function renderFactoring(panel, s){
   Object.entries(ndgPerProdotto).forEach(([prodotto, ndgs]) => {
     conteoNdgPerProdotto[prodotto] = ndgs.size;
   });
+  // ============================================================
+  // FILTRO PRODOTTI VISIBILI
+  // ============================================================
+  const PRODOTTI_VISIBILI = [
+    'factoring ordinario pro solvendo',
+    'factoring ordinario pro soluto',
+    'anticipo crediti futuri',
+    'sola gestione pro soluto',
+    'export factoring'
+  ];
+  const conteoNdgPerProdottoSorted = Object.entries(conteoNdgPerProdotto)
+    .sort((a, b) => b[1] - a[1]);
+  
+  const visibili = conteoNdgPerProdottoSorted.filter(([prod]) => 
+    PRODOTTI_VISIBILI.some(p => prod.toLowerCase().includes(p.toLowerCase())));
+  const altri = conteoNdgPerProdottoSorted.filter(([prod]) => 
+    !PRODOTTI_VISIBILI.some(p => prod.toLowerCase().includes(p.toLowerCase())));
+  const totalAltri = altri.reduce((sum, [, val]) => sum + val, 0);
+  const datiFinaliProdotti = visibili;
+  if (totalAltri > 0) {
+    datiFinaliProdotti.push(['Altri prodotti', totalAltri]);
+  }
 
   // ============================================================
   // AGGREGAZIONI
@@ -1539,35 +1560,13 @@ function renderFactoring(panel, s){
   // CHART: DISTRIBUZIONE PRODOTTI DEBITORI
   // ============================================================
 
-  const PRODOTTI_VISIBILI = [
-    'FACTORING ORDINARIO PRO SOLVENDO',
-    'FACTORING ORDINARIO PRO SOLUTO',
-    'ANTICIPO CREDITI FUTURI',
-    'SOLA GESTIONE PRO SOLUTO',
-    'EXPORT FACTORING'
-  ];
-
-  const conteoNdgPerProdottoSorted = Object.entries(conteoNdgPerProdotto)
-    .sort((a, b) => b[1] - a[1]);
-
-  // Separa prodotti visibili da altri
-  const visibili = conteoNdgPerProdottoSorted.filter(([prod]) => PRODOTTI_VISIBILI.some(p => prod.includes(p)));
-  const altri = conteoNdgPerProdottoSorted.filter(([prod]) => !PRODOTTI_VISIBILI.some(p => prod.includes(p)));
-
-  // Se ci sono "altri", aggiungili come voce unica
-  const totalAltri = altri.reduce((sum, [, val]) => sum + val, 0);
-  const datiFinali = visibili;
-  if (totalAltri > 0) {
-    datiFinali.push(['ALTRI PRODOTTI', totalAltri]);
-  }
-
   mkChart('dbNdgPerProdotto', {
     type: 'doughnut',
     data: {
-      labels: datiFinali.map(x => x[0]),
+      labels: datiFinaliProdotti.map(x => x[0]),
       datasets: [{
         label: 'NDG per Prodotto',
-        data: datiFinali.map(x => x[1]),
+        data: datiFinaliProdotti.map(x => x[1]),
         backgroundColor: [
           PALETTE.pos,
           PALETTE.accent,
