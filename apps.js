@@ -1313,7 +1313,7 @@ function renderFactoring(panel, s){
     !PRODOTTI_VISIBILI.some(p => prod.toLowerCase().trim() === p.toLowerCase().trim()));
 
   const totalAltri = altri.reduce((sum, [, val]) => sum + val, 0);
-  const datiFinaliProdotti = visibili;
+  const datiFinaliProdotti = visibili.map(([prod, val]) => [prod.toUpperCase(), val]);
   if (totalAltri > 0) {
     datiFinaliProdotti.push(['ALTRI PRODOTTI', totalAltri]);
   }
@@ -1571,11 +1571,10 @@ function renderFactoring(panel, s){
         data: datiFinaliProdotti.map(x => x[1]),
         backgroundColor: [
           PALETTE.pos,
-          PALETTE.accent,
-          PALETTE.warn,
           PALETTE.danger,
+          PALETTE.warn,
+          PALETTE.info,
           PALETTE.navy,
-          PALETTE.violet
         ],
         borderColor: PALETTE.navy,
         borderWidth: 0
@@ -1589,19 +1588,6 @@ function renderFactoring(panel, s){
     }
   });
 }
-
-const PALETTE = {
-  accent: '#6e8c9c',
-  info: '#6e8c9c',
-  warn: '#b89f84',
-  danger: '#b5615a',
-  violet: '#b89f84',
-  navy: '#2e4857',
-  pos: '#6f9277',
-  neg: '#b5615a',
-  text: '#6e8c9c',
-  grid: 'rgba(46,72,87,0.08)'
-};
 
 /* ============================================================
    PANEL: ANAGRAFE
