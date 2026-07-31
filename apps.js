@@ -1297,8 +1297,8 @@ function renderFactoring(panel, s){
   // FILTRO PRODOTTI VISIBILI
   // ============================================================
   const PRODOTTI_VISIBILI = [
-    'factoring ordinario pro solvendo',
-    'factoring ordinario pro soluto',
+    'factoring ordinario prosolvendo',
+    'factoring ordinario prosoluto',
     'anticipo crediti futuri',
     'sola gestione pro soluto',
     'export factoring'
