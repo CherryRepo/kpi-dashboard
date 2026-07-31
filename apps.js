@@ -1245,6 +1245,8 @@ function renderFactoring(panel, s){
     return r.descrizione_stato_linea?.includes('Deliberata operativa');
   });
 
+  const totalDebitori = countNdg(debitori2026);
+
   const totalPraticheSolvendo = countNdg(debitori2026.filter(r => (parseFloat(r['accordato_pro_solvendo']) || 0) > 0));
   const totalPraticheSoluto = countNdg(debitori2026.filter(r => (parseFloat(r['accordato_pro_soluto']) || 0) > 0));
 
@@ -1271,7 +1273,6 @@ function renderFactoring(panel, s){
   
   const accordatoPerMeseSolvendo = {};
   const accordatoPerMeseSoluto = {};
-  const accordatoPerFilialeDebitori = {};
 
   debitori2026.forEach(r => {
     const d = toDate(r['data_delibera']);
@@ -1280,15 +1281,12 @@ function renderFactoring(panel, s){
     const importoSoluto = parseFloat(r['accordato_pro_soluto']) || 0;
   
     accordatoPerMeseSolvendo[k] = (accordatoPerMeseSolvendo[k] || 0) + importoSolvendo;
-    accordatoPerMeseSoluto[k] = (accordatoPerMeseSoluto[k] || 0) + importoSoluto;
-    accordatoPerFilialeDebitori[r['filiale']] = (accordatoPerFilialeDebitori[r['filiale']] || 0) + importoSolvendo + importoSoluto;
+    accordatoPerMeseSoluto[k] = (accordatoPerMeseSoluto[k] || 0) + importoSoluto;    
   });
-
 
   // ============================================================
   // AGGREGAZIONI
   // ============================================================
-
 
   // Union di tutti i mesi
   const monthsDebitori = [...new Set([
@@ -1297,7 +1295,19 @@ function renderFactoring(panel, s){
     ...Object.keys(accordatoPerMeseSoluto)
   ])].sort();
 
-
+  // ============================================================
+  // ACCORDATO PER FILIALE
+  // ============================================================
+  const accordatoPerFilialeDebitori = {};
+  
+  debitori2026.forEach(r => {
+    const filiale = r['filiale'];
+    const importoSolvendo = parseFloat(r['accordato_pro_solvendo']) || 0;
+    const importoSoluto = parseFloat(r['accordato_pro_soluto']) || 0;
+  
+    accordatoPerFilialeDebitori[filiale] = (accordatoPerFilialeDebitori[filiale] || 0) + importoSolvendo + importoSoluto;
+  });
+  const accordatoPerFilialeDebitori_sorted = mapToSorted(accordatoPerFilialeDebitori);
 
   // ============================================================
   // RENDER HTML
@@ -1358,14 +1368,14 @@ function renderFactoring(panel, s){
     <div class="kpi-row">
       <div class="kpi" style="--kc:${PALETTE.info}">
         <div class="lbl">Totale debitori</div>
-        <div class="val">${fmtInt.format(debitori2026.length)}</div>
+        <div class="val">${fmtInt.format(totalDebitori)}</div>
       </div>
       <div class="kpi" style="--kc:${PALETTE.pos}">
-        <div class="lbl">Accordato medio solvendo</div>
+        <div class="lbl">Accordato medio pro solvendo</div>
         <div class="val">${fmtCurrency.format(accordatoMedioSolvendo)}</div>
       </div>
       <div class="kpi" style="--kc:${PALETTE.accent}">
-        <div class="lbl">Accordato medio soluto</div>
+        <div class="lbl">Accordato medio pro soluto</div>
         <div class="val">${fmtCurrency.format(accordatoMedioSoluto)}</div>
       </div>
     </div>
@@ -1425,7 +1435,7 @@ function renderFactoring(panel, s){
         backgroundColor: 'rgba(111,146,119,0.15)',
         tension: 0.4,
         fill: true,
-        pointRadius: 5,
+        pointRadius: 4,
         pointBackgroundColor: PALETTE.pos,
         pointBorderColor: PALETTE.navy,
         pointBorderWidth: 0
@@ -1541,10 +1551,10 @@ function renderFactoring(panel, s){
   mkChart('dbAccordatoFiliale', {
     type: 'bar',
     data: {
-      labels: dbAccordatoFilialeSorted.map(x => x[0]),
+      labels: Object.keys(accordatoPerFilialeDebitori_sorted),
       datasets: [{
         label: 'Accordato',
-        data: dbAccordatoFilialeSorted.map(x => x[1]),
+        data: Object.values(accordatoPerFilialeDebitori_sorted),
         backgroundColor: PALETTE.warning,
         borderColor: PALETTE.navy,
         borderWidth: 0
