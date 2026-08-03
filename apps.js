@@ -459,7 +459,6 @@ function buildSidebar(){
    TABS
    ============================================================ */
 function buildTabs(){
-  console.log('🔵 buildTabs() chiamato');
   const bar = document.getElementById('tabsBar');
   const panels = document.getElementById('panels');
   bar.innerHTML = ''; panels.innerHTML = '';
@@ -477,7 +476,6 @@ function buildTabs(){
 
   STATE.domainSheets.forEach((s, idx)=>{
     if(digitalTypes.includes(s.type) || moneticaTypes.includes(s.type) || factoringTypes.includes(s.type)) return;
-    console.log(`🔍 Aggiungendo tab d${idx} con type: ${s.type}`); // ← DEBUG
     tabDefs.push({
       key:'d'+idx, 
       label:labelMap[s.type] || 'Dati (' + s.sheetName + ')', 
@@ -489,9 +487,6 @@ function buildTabs(){
   if(hasMonetica) tabDefs.push({key:'monetica', label:'OPS Incassi, Pagamenti e Monetica', type:'monetica'});
   if(hasFactoring) tabDefs.push({key:'factoring', label:'Factoring', type:'factoring'});
 
-  console.log('Prima sort:', tabDefs.map(t => t.key));
-
-  // ← ORDINAMENTO MIGLIORATO
   tabDefs.sort((a, b) => {
     let posA = tabOrder.indexOf(a.key);
     let posB = tabOrder.indexOf(b.key);
@@ -503,11 +498,8 @@ function buildTabs(){
     posA = posA === -1 ? 999 : posA;
     posB = posB === -1 ? 999 : posB;
     
-    console.log(`Comparando ${a.key}(${posA}) vs ${b.key}(${posB})`);
     return posA - posB;
   });
-
-  console.log('Dopo sort:', tabDefs.map(t => t.key));
 
   tabDefs.forEach(t=>{
     const tab = el('div','tab',`<span>${t.label}</span>`);
@@ -520,19 +512,16 @@ function buildTabs(){
     panels.appendChild(panel);
   });
 
-  console.log('🟢 Tab creati, attivando overview...');
   activateTab('overview');
 }
 
 function activateTab(key){
-  console.log('🟡 activateTab() chiamato con key:', key);
   STATE.activeTab = key;
   document.querySelectorAll('.tab').forEach(t=> t.classList.toggle('active', t.dataset.key===key));
   document.querySelectorAll('.nav-item').forEach(t=> t.classList.toggle('active', t.dataset.key===key));
   document.querySelectorAll('.panel').forEach(p=> p.classList.toggle('active', p.id === 'panel-'+key));
 
   const panel = document.getElementById('panel-'+key);
-  console.log('Panel trovato?', !!panel);
   if(!panel) { console.error('❌ Panel non trovato per key:', key); return; }
   if(panel.dataset.built) { console.log('Panel già costruito'); return; }
   panel.dataset.built = '1';
