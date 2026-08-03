@@ -629,14 +629,14 @@ function renderOverview(panel) {
           <table class="area-table">
             <thead>
               <tr class="area-name-row">
-                 <th>${area}</th>
-                 <th class="spacer"></th>
-                 <th class="group-label" colspan="3">Totale struttura</th>
+                <th>${area}</th>
+                <th class="spacer"></th>
+                <th class="group-label" colspan="3">Totale struttura</th>
               </tr>
               <tr class="col-label-row">
-                 <th colspan="2">Struttura</th>
-                 <th class="spacer"></th>
-                 <th>FTE AS-IS</th><th>FTE NEED</th><th>Delta FTE</th>
+                <th>UO</th>
+                <th class="spacer"></th>
+                <th>FTE AS-IS</th><th>FTE NEED</th><th>Delta FTE</th>
               </tr>
             </thead>
             <tbody>
