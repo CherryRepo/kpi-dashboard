@@ -631,10 +631,13 @@ function renderOverview(panel) {
               <tr class="area-name-row">
                 <th>${area}</th>
                 <th class="spacer"></th>
+              </tr>
+              <tr class="area-header-row">
+                <th colspan="2"></th>
                 <th class="group-label" colspan="3">Totale struttura</th>
               </tr>
               <tr class="col-label-row">
-                <th></th>
+                <th>Struttura</th>
                 <th></th>
                 <th>FTE AS-IS</th>
                 <th>FTE NEED</th>
@@ -711,6 +714,7 @@ function renderOverview(panel) {
   document.getElementById('ovSearch').oninput = draw;
   draw();
 }
+
 
 /* ============================================================
    Shared: struttura header card for domain panels
