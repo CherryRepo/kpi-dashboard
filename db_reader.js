@@ -2,14 +2,6 @@
    CONFIGURAZIONE LIBRERIA XLSX
    ============================================================ */
 
-function initXLSX(callback) {
-  if (typeof XLSX !== 'undefined') {
-    callback();
-  } else {
-    alert('❌ Errore: La libreria Excel non è stata caricata.\nRicarica la pagina e riprova.');
-  }
-}
-
 /* ============================================================
    CONFIGURAZIONE TEMA E STILI
    ============================================================ */
@@ -553,7 +545,9 @@ function enrichSheetWithTaskData(s) {
    ============================================================ */
 
 window.addEventListener('DOMContentLoaded', async () => {
-  initXLSX(async () => {
-    await setupFileHandling();
-  });
+  if (typeof XLSX !== 'undefined') {
+    await setupFileHandling();  // ✅ Aspetta direttamente
+  } else {
+    alert('❌ Errore: La libreria Excel non è stata caricata.\nRicarica la pagina e riprova.');
+  }
 });
