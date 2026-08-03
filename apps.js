@@ -477,20 +477,27 @@ function buildTabs(){
 
   STATE.domainSheets.forEach((s, idx)=>{
     if(digitalTypes.includes(s.type) || moneticaTypes.includes(s.type) || factoringTypes.includes(s.type)) return;
-    tabDefs.push({key:'d'+idx, label:labelMap[s.type] || 'Dati (' + s.sheetName + ')'});
+    tabDefs.push({key:'d'+idx, label:labelMap[s.type] || 'Dati (' + s.sheetName + ')', type: s.type});
   });
 
-  if(hasDigital) tabDefs.push({key:'digital', label:'Digital Bank'});
-  if(hasMonetica) tabDefs.push({key:'monetica', label:'OPS Incassi, Pagamenti e Monetica'});
-  if(hasFactoring) tabDefs.push({key:'factoring', label:'Factoring'});
+  if(hasDigital) tabDefs.push({key:'digital', label:'Digital Bank', type:'digital'});
+  if(hasMonetica) tabDefs.push({key:'monetica', label:'OPS Incassi, Pagamenti e Monetica', type:'monetica'});
+  if(hasFactoring) tabDefs.push({key:'factoring', label:'Factoring', type:'factoring'});
 
   console.log('Prima sort:', tabDefs.map(t => t.key));
 
+  // ← ORDINAMENTO MIGLIORATO
   tabDefs.sort((a, b) => {
-    const indexA = tabOrder.indexOf(a.key);
-    const indexB = tabOrder.indexOf(b.key);
-    const posA = indexA === -1 ? 999 : indexA;
-    const posB = indexB === -1 ? 999 : indexB;
+    let posA = tabOrder.indexOf(a.key);
+    let posB = tabOrder.indexOf(b.key);
+    
+    // Se non trovato per key, prova per type
+    if(posA === -1 && a.type) posA = tabOrder.indexOf(a.type);
+    if(posB === -1 && b.type) posB = tabOrder.indexOf(b.type);
+    
+    posA = posA === -1 ? 999 : posA;
+    posB = posB === -1 ? 999 : posB;
+    
     console.log(`Comparando ${a.key}(${posA}) vs ${b.key}(${posB})`);
     return posA - posB;
   });
