@@ -106,7 +106,7 @@ async function loadFileFromIndexedDB(key) {
    GESTIONE FILE
    ============================================================ */
 
-async function setupFileHandling() {  // ✅ AGGIUNGI async
+async function setupFileHandling() { 
   const fileInputMain = document.getElementById('fileInputMain');
   const fileInputTask = document.getElementById('fileInputTask');
   const dropZone = document.getElementById('dropZone') || document.body;
@@ -156,33 +156,38 @@ async function setupFileHandling() {  // ✅ AGGIUNGI async
 
   const cachedMainBuffer = await loadFileFromIndexedDB('database_main');
   const cachedTaskBuffer = await loadFileFromIndexedDB('database_task');
-
+  
   if (cachedMainBuffer) {
     try {
       const wb = XLSX.read(cachedMainBuffer, { type: 'array', cellDates: true });
       parseWorkbook(wb);
-      document.getElementById('fileInfoMain').textContent = '✅ Caricato da storage';
+      const mainStatus = document.getElementById('mainFileStatus');
+      if (mainStatus) mainStatus.textContent = '✅ Caricato da storage';
     } catch (e) {
       console.error('Errore caricamento main da IndexedDB:', e);
     }
   }
+  
   if (cachedTaskBuffer) {
     try {
       const wb = XLSX.read(cachedTaskBuffer, { type: 'array', cellDates: true });
       parseTaskWorkbook(wb);
-      document.getElementById('fileInfoTask').textContent = '✅ Caricato da storage';
+      const taskStatus = document.getElementById('taskFileStatus');
+      if (taskStatus) taskStatus.textContent = '✅ Caricato da storage';
     } catch (e) {
       console.error('Errore caricamento task da IndexedDB:', e);
     }
   }
+  
   // Se entrambi sono cached, mostra il dashboard
   if (cachedMainBuffer && cachedTaskBuffer) {
     buildTabs();
-    document.getElementById('emptyState').style.display = 'none';
-    document.getElementById('dashboard').style.display = 'block';
+    const emptyState = document.getElementById('emptyState');
+    const dashboard = document.getElementById('dashboard');
+    if (emptyState) emptyState.style.display = 'none';
+    if (dashboard) dashboard.style.display = 'block';
   }
 }
-
 
 function handleFileMain(file) {
   if (typeof XLSX === 'undefined') {
@@ -190,7 +195,7 @@ function handleFileMain(file) {
     return;
   }
 
-  const fileInfo = document.getElementById('fileInfoMain');
+  const fileInfo = document.getElementById('mainFileStatus');
   const loadingBar = document.getElementById('loadingBar');
   if (fileInfo) fileInfo.textContent = '⏳ Elaborazione...';
   if (loadingBar) loadingBar.style.display = 'block';
@@ -253,7 +258,7 @@ function handleFileTask(file) {
     return;
   }
 
-  const fileInfo = document.getElementById('fileInfoTask');
+  const fileInfo = document.getElementById('taskFileStatus'); 
   const loadingBar = document.getElementById('loadingBar');
   if (fileInfo) fileInfo.textContent = '⏳ Elaborazione...';
   if (loadingBar) loadingBar.style.display = 'block';
