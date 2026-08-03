@@ -1,3 +1,8 @@
+// Accedi ai task data in qualsiasi render
+const taskData = getTaskDataForSheet(s.sheetName);
+// Oppure filtra
+const filteredTasks = getTaskDataByFilter(s.sheetName, row => row.status === 'active');
+
 /* ============================================================
    SIDEBAR
    ============================================================ */
@@ -398,6 +403,8 @@ function renderCredito(panel, s){
     "RINEGOZIAZIONI - CONSOLIDAMENTI - RIFINANZIAMENTI",
     "Small Business"
   ];
+
+  const enriched = enrichSheetWithTaskData(s);
   const rows = s.rows.filter(r=> ALLOWED_TIPO_ISTRUTTORIA.includes(r.des_tipo_istruttoria));
   const excludedCount = s.rows.length - rows.length;
   const total = rows.length;
@@ -556,6 +563,7 @@ function renderCreditoSpeciale(panel, s){
   const ALLOWED_TIPO_ISTRUTTORIA_V2 = [
     "Corporate Investment Banking",
   ];
+  const enriched = enrichSheetWithTaskData(s);
   const rows = s.rows.filter(r=> ALLOWED_TIPO_ISTRUTTORIA_V2.includes(r.des_tipo_istruttoria));
   const excludedCount = s.rows.length - rows.length;
   const total = rows.length;
@@ -711,7 +719,7 @@ function renderCreditoSpeciale(panel, s){
    PANEL: CONTRATTI E PERFEZIONAMENTI CREDITO ORDINARIO 
    ============================================================ */
 function renderPerfezionamenti(panel, s){
-  
+  const enriched = enrichSheetWithTaskData(s);
   const rows = s.rows;
 
   // ============================================================
@@ -918,7 +926,7 @@ function renderPerfezionamenti(panel, s){
 const FACTORING_ID = '10004100067100080';
 
 function renderFactoring(panel, s){
-
+  const enriched = enrichSheetWithTaskData(s);
   const cedenti = STATE.domainSheets.find(s=>s.type==='factoring_cedenti');
   const debitori = STATE.domainSheets.find(s=>s.type==='factoring_debitori');
 
@@ -1347,6 +1355,8 @@ function renderAnagrafe(panel, s){
     const t = (v===null||v===undefined) ? '' : String(v).trim().toLowerCase();
     return ALLOWED_BU.includes(t);
   };
+
+  const enriched = enrichSheetWithTaskData(s);
   const rows = s.rows.filter(r=> isAllowedBU(r.des_business_unit));
   const excludedCount = s.rows.length - rows.length;
   const dates = rows.map(r=> toDate(r.dta_censimento)).filter(Boolean);
@@ -1391,6 +1401,8 @@ function renderAnagrafe(panel, s){
    PANEL: ANTIFRODE
    ============================================================ */
 function renderAntifrode(panel, s){
+
+  const enriched = enrichSheetWithTaskData(s);
   const rows = s.rows;
   const countKey = rows[0].hasOwnProperty('conteggio') ? 'conteggio' : Object.keys(rows[0]).find(k=> typeof rows[0][k] === 'number');
   const total = rows.reduce((a,r)=> a + (Number(r[countKey])||0), 0);
@@ -1450,6 +1462,8 @@ function renderAntifrode(panel, s){
    PANEL: OPS AML
    ============================================================ */
 function renderOpsAml(panel, s){
+
+  const enriched = enrichSheetWithTaskData(s);
   const rows = s.rows;
   const isAlto = (r)=> String(r.fascia_rischio||'').toLowerCase().includes('alt');
   const altoRows = rows.filter(isAlto);
@@ -1536,6 +1550,8 @@ function renderOpsAml(panel, s){
 
 /* ============================================================ PANEL: BANCASSURANCE ============================================================ */
 function renderBancassurance(panel, s){
+
+  const enriched = enrichSheetWithTaskData(s);
   const rows = s.rows;
   const bancassurance = rows.filter(r => r && r.data_ordine);
   const statiSet = new Set(bancassurance.map(r => r.descrizione_stato).filter(Boolean));
@@ -1583,6 +1599,7 @@ const DIGITAL_BANK_ID = '10001100023100042100130';
 
 function renderDigital(panel){
 
+  const enriched = enrichSheetWithTaskData(s);
   const rapporti = STATE.domainSheets.find(s=>s.type==='digital_rapporti');
   const frodi = STATE.domainSheets.find(s=>s.type==='digital_frodi');
   const raisin = STATE.domainSheets.find(s=>s.type==='digital_raisin');
@@ -1820,6 +1837,8 @@ function renderDigital(panel){
 const MONETICA_ID = '10001100023100036';
 
 function renderMonetica(panel){
+
+  const enriched = enrichSheetWithTaskData(s);
   const bonifici = STATE.domainSheets.find(s=>s.type==='monetica_bonifici_banca');
   const cassa = STATE.domainSheets.find(s=>s.type==='monetica_cassa');
   const cassette = STATE.domainSheets.find(s=>s.type==='monetica_cassette');
@@ -2155,6 +2174,8 @@ function renderMonetica(panel){
    PANEL: GENERIC (unrecognized sheet)
    ============================================================ */
 function renderGeneric(panel, s){
+
+  const enriched = enrichSheetWithTaskData(s);
   const rows = s.rows;
   const headers = s.headers;
   const sample = rows.slice(0,50);
