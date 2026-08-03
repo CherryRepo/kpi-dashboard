@@ -254,3 +254,74 @@ table.op-table tbody td.num{text-align:right;font-family:var(--font-mono);}
 .brand-footer img{width:150px;height:auto;display:block;}
 
 footer.note{margin-top:14px;font-size:11.5px;color:var(--text-faint);font-family:var(--font-body);font-style:italic;text-align:center;}
+
+/* Tabelle con divisione colonne - Overview */
+.dt {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.dt thead tr.table-header-org {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  padding: 0 12px;
+  background: var(--panel-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.dt thead tr.table-header-lending {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 0 12px;
+  background: var(--panel-2);
+  border-bottom: 2px solid var(--border);
+}
+
+.dt thead th {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-faint);
+  padding: 9px 0;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.dt tbody tr.table-row-org {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-soft);
+  align-items: center;
+}
+
+.dt tbody tr.table-row-lending {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--accent-dim);
+  align-items: center;
+}
+
+.dt tbody td {
+  color: var(--text-dim);
+  white-space: nowrap;
+  padding: 0;
+  font-size: 12.5px;
+}
+
+.dt tbody tr.table-row-org:hover td {
+  color: var(--text);
+}
+
+.dt tbody tr.table-row-lending:hover td {
+  color: var(--text);
+}

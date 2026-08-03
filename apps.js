@@ -472,7 +472,7 @@ function buildTabs(){
   const hasMonetica = STATE.domainSheets.some(s => moneticaTypes.includes(s.type));
   const hasFactoring = STATE.domainSheets.some(s => factoringTypes.includes(s.type));
 
-  const labelMap = {ordinario:'Credito & Factoring', speciale:'Credito Speciale', perfezionamenti:'Perfezionamenti credito ordinario', anagrafe:'Anagrafe', antifrode:'Antifrode', ops_aml:'OPS AML', bancassurance:'Wealth & Bancassurance'};
+  const labelMap = {ordinario:'Credito ordinario & factoring', speciale:'Credito speciale', perfezionamenti:'Contratti e perfezionamenti credito ordinario', anagrafe:'Anagrafe', antifrode:'Antifrode', ops_aml:'OPS AML', bancassurance:'Wealth & Bancassurance'};
 
   STATE.domainSheets.forEach((s, idx)=>{
     if(digitalTypes.includes(s.type) || moneticaTypes.includes(s.type) || factoringTypes.includes(s.type)) return;
@@ -622,19 +622,45 @@ function renderOverview(panel){
     }).join('');
 
     const table = document.getElementById('ovTable');
-    table.innerHTML = `<thead><tr><th>Struttura</th><th>UO1</th><th>UO2</th><th>HC</th><th>HC in forza</th><th>FTE as-is</th><th>FTE Need</th><th>Delta FTE</th></tr></thead>
-      <tbody>${f.map(r=>{
-        const ns = Number(r['Need/Surplus'])||0;
-        return `<tr><td>${r['UO LAST']||''}</td><td>${r.uo1livello_descrizione||''}</td><td>${r.uo2livello_descrizione||''}</td>
-          <td>${r.HC??''}</td><td>${r['HC - in forza']??''}</td><td>${r['FTE AS IS - in forza']!=null?fmtDec.format(r['FTE AS IS - in forza']):''}</td>
-          <td>${r['FTE Stimati']!=null?fmtDec.format(r['FTE Stimati']):''}</td>
-          <td><span class="badge ${ns<0?'neg':'pos'}">${ns>0?'+':''}${fmtDec.format(ns)}</span></td></tr>`;
-      }).join('')}</tbody>`;
+    table.innerHTML = `
+      <thead>
+        <tr class="table-header-org">
+          <th>Struttura</th>
+          <th>UO1</th>
+          <th>UO2</th>
+          <th>HC</th>
+          <th>HC in forza</th>
+        </tr>
+        <tr class="table-header-lending">
+          <th>FTE as-is</th>
+          <th>FTE Need</th>
+          <th>Delta FTE</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${f.map(r=>{
+          const ns = Number(r['Need/Surplus'])||0;
+          return `
+            <tr class="table-row-org">
+              <td>${r['UO LAST']||''}</td>
+              <td>${r.uo1livello_descrizione||''}</td>
+              <td>${r.uo2livello_descrizione||''}</td>
+              <td>${r.HC??''}</td>
+              <td>${r['HC - in forza']??''}</td>
+            </tr>
+            <tr class="table-row-lending">
+              <td>${r['FTE AS IS - in forza']!=null?fmtDec.format(r['FTE AS IS - in forza']):''}</td>
+              <td>${r['FTE Stimati']!=null?fmtDec.format(r['FTE Stimati']):''}</td>
+              <td><span class="badge ${ns<0?'neg':'pos'}">${ns>0?'+':''}${fmtDec.format(ns)}</span></td>
+            </tr>`;
+        }).join('')}
+      </tbody>`;
   }
   document.getElementById('ovFilterUo1').onchange = draw;
   document.getElementById('ovSearch').oninput = draw;
   draw();
 }
+
 
 /* ============================================================
    Shared: struttura header card for domain panels
