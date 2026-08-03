@@ -464,7 +464,11 @@ function buildSidebar(){
 function buildTabs(){
   const bar = document.getElementById('tabsBar');
   const panels = document.getElementById('panels');
+
+  bar.style.display = 'none';
+  panels.style.display = 'none';
   bar.innerHTML = ''; panels.innerHTML = '';
+  panels.innerHTML = '';
 
   const tabOrder = ['overview', 'ordinario', 'speciale', 'perfezionamenti', 'factoring', 'anagrafe', 'antifrode', 'ops_aml', 'bancassurance', 'digital', 'monetica'];
   const tabDefs = [{key:'overview', label:'Overview'}];
@@ -514,6 +518,9 @@ function buildTabs(){
     panels.appendChild(panel);
   });
 
+  bar.style.display = 'block';
+  panels.style.display = 'block';
+  
   activateTab('overview');
 }
 
