@@ -520,7 +520,7 @@ function buildTabs(){
 
   bar.style.display = 'block';
   panels.style.display = 'block';
-  
+
   activateTab('overview');
 }
 
@@ -534,6 +534,9 @@ function activateTab(key){
   if(!panel) return;
   if(panel.dataset.built) return;
   panel.dataset.built = '1';
+
+  document.getElementById('tabsBar').style.display = 'block';
+  document.getElementById('panels').style.display = 'block';
 
   if(key === 'overview'){ renderOverview(panel); return; }
   if(key === 'digital'){ renderDigital(panel); return; }
