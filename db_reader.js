@@ -106,7 +106,12 @@ async function setupFileHandling() {
   const btnLoadTask = document.getElementById('btnLoadTask');
 
   // Database principale
-  if (btnLoadMain) btnLoadMain.onclick = () => fileInputMain.click();
+  if (btnLoadMain) {
+    btnLoadMain.addEventListener('click', () => {
+      fileInputMain.value = '';
+      fileInputMain.click();
+    });
+  }
   if (fileInputMain) {
     fileInputMain.addEventListener('change', (e) => {
       const file = e.target.files[0];
@@ -115,7 +120,12 @@ async function setupFileHandling() {
   }
 
   // Task/Metadata
-  if (btnLoadTask) btnLoadTask.onclick = () => fileInputTask.click();
+  if (btnLoadTask) {
+    btnLoadTask.addEventListener('click', () => {
+      fileInputTask.value = '';
+      fileInputTask.click();
+    });
+  }
   if (fileInputTask) {
     fileInputTask.addEventListener('change', (e) => {
       const file = e.target.files[0];
@@ -124,7 +134,10 @@ async function setupFileHandling() {
   }
 
   // Drop zone per database principale
-  dropZone.onclick = () => fileInputMain.click();
+  dropZone.addEventListener('click', () => {
+    fileInputMain.value = '';
+    fileInputMain.click();
+  });
 
   ['dragover', 'dragenter'].forEach(ev => {
     dropZone.addEventListener(ev, (e) => {
