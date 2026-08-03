@@ -491,7 +491,6 @@ function buildTabs(){
     let posA = tabOrder.indexOf(a.key);
     let posB = tabOrder.indexOf(b.key);
     
-    // Se non trovato per key, prova per type
     if(posA === -1 && a.type) posA = tabOrder.indexOf(a.type);
     if(posB === -1 && b.type) posB = tabOrder.indexOf(b.type);
     
@@ -522,11 +521,11 @@ function activateTab(key){
   document.querySelectorAll('.panel').forEach(p=> p.classList.toggle('active', p.id === 'panel-'+key));
 
   const panel = document.getElementById('panel-'+key);
-  if(!panel) { console.error('❌ Panel non trovato per key:', key); return; }
-  if(panel.dataset.built) { console.log('Panel già costruito'); return; }
+  if(!panel) return;
+  if(panel.dataset.built) return;
   panel.dataset.built = '1';
 
-  if(key === 'overview'){ console.log('Rendering overview'); renderOverview(panel); return; }
+  if(key === 'overview'){ renderOverview(panel); return; }
   if(key === 'digital'){ renderDigital(panel); return; }
   if(key === 'monetica'){ renderMonetica(panel); return; }
   if(key === 'factoring'){ renderFactoring(panel); return; }
