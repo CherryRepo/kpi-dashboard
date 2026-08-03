@@ -1,8 +1,4 @@
 /* ============================================================
-   CONFIGURAZIONE LIBRERIA XLSX
-   ============================================================ */
-
-/* ============================================================
    CONFIGURAZIONE TEMA E STILI
    ============================================================ */
 
@@ -62,6 +58,7 @@ const fmtDate = (d) => d instanceof Date && !isNaN(d) ? d.toLocaleDateString('it
 /* ============================================================
    INDEXEDDB UTILITIES
    ============================================================ */
+
 const dbPromise = new Promise((resolve, reject) => {
   const request = indexedDB.open('myAppDB', 1);
   request.onerror = () => reject(request.error);
@@ -73,6 +70,7 @@ const dbPromise = new Promise((resolve, reject) => {
     }
   };
 });
+
 async function saveFileToIndexedDB(key, data) {
   const db = await dbPromise;
   const tx = db.transaction(['files'], 'readwrite');
@@ -83,6 +81,7 @@ async function saveFileToIndexedDB(key, data) {
     tx.onerror = () => reject(tx.error);
   });
 }
+
 async function loadFileFromIndexedDB(key) {
   const db = await dbPromise;
   const tx = db.transaction(['files'], 'readonly');
@@ -101,64 +100,81 @@ async function loadFileFromIndexedDB(key) {
 async function setupFileHandling() { 
   const fileInputMain = document.getElementById('fileInputMain');
   const fileInputTask = document.getElementById('fileInputTask');
-  const dropZone = document.getElementById('dropZone') || document.body;
+  const dropZone = document.getElementById('dropZone');
   const btnLoadMain = document.getElementById('btnLoadMain');
   const btnLoadTask = document.getElementById('btnLoadTask');
 
-  // Database principale
-  if (btnLoadMain) {
+  // 🔧 BOTTONE DATABASE PRINCIPALE - Reset input prima di click
+  if (btnLoadMain && fileInputMain) {
     btnLoadMain.addEventListener('click', () => {
       fileInputMain.value = '';
       fileInputMain.click();
     });
   }
+
+  // 🔧 INPUT FILE MAIN - Carica file quando selezionato
   if (fileInputMain) {
     fileInputMain.addEventListener('change', (e) => {
       const file = e.target.files[0];
-      if (file) handleFileMain(file);
+      if (file) {
+        handleFileMain(file);
+      }
     });
   }
 
-  // Task/Metadata
-  if (btnLoadTask) {
+  // 🔧 BOTTONE TASK - Reset input prima di click
+  if (btnLoadTask && fileInputTask) {
     btnLoadTask.addEventListener('click', () => {
       fileInputTask.value = '';
       fileInputTask.click();
     });
   }
+
+  // 🔧 INPUT FILE TASK - Carica file quando selezionato
   if (fileInputTask) {
     fileInputTask.addEventListener('change', (e) => {
       const file = e.target.files[0];
-      if (file) handleFileTask(file);
+      if (file) {
+        handleFileTask(file);
+      }
     });
   }
 
-  // Drop zone per database principale
-  dropZone.addEventListener('click', () => {
-    fileInputMain.value = '';
-    fileInputMain.click();
-  });
-
-  ['dragover', 'dragenter'].forEach(ev => {
-    dropZone.addEventListener(ev, (e) => {
-      e.preventDefault();
-      dropZone.classList.add('drag');
+  // 🔧 DROP ZONE - Reset input prima di click
+  if (dropZone && fileInputMain) {
+    dropZone.addEventListener('click', () => {
+      fileInputMain.value = '';
+      fileInputMain.click();
     });
-  });
 
-  ['dragleave', 'drop'].forEach(ev => {
-    dropZone.addEventListener(ev, (e) => {
+    // Drag over/enter
+    ['dragover', 'dragenter'].forEach(ev => {
+      dropZone.addEventListener(ev, (e) => {
+        e.preventDefault();
+        dropZone.classList.add('drag');
+      });
+    });
+
+    // Drag leave/drop
+    ['dragleave', 'drop'].forEach(ev => {
+      dropZone.addEventListener(ev, (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('drag');
+      });
+    });
+
+    // Drop file
+    dropZone.addEventListener('drop', (e) => {
       e.preventDefault();
       dropZone.classList.remove('drag');
+      const file = e.dataTransfer.files[0];
+      if (file) {
+        handleFileMain(file);
+      }
     });
-  });
+  }
 
-  dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    if (file) handleFileMain(file);
-  });
-
+  // 🔧 CARICA DA STORAGE AL BOOT
   const cachedMainBuffer = await loadFileFromIndexedDB('database_main');
   const cachedTaskBuffer = await loadFileFromIndexedDB('database_task');
   
@@ -166,8 +182,6 @@ async function setupFileHandling() {
     try {
       const wb = XLSX.read(cachedMainBuffer, { type: 'array', cellDates: true });
       parseWorkbook(wb);
-      const mainStatus = document.getElementById('mainFileStatus');
-      if (mainStatus) mainStatus.textContent = '✅ Caricato da storage';
     } catch (e) {
       console.error('Errore caricamento main da IndexedDB:', e);
     }
@@ -177,8 +191,6 @@ async function setupFileHandling() {
     try {
       const wb = XLSX.read(cachedTaskBuffer, { type: 'array', cellDates: true });
       parseTaskWorkbook(wb);
-      const taskStatus = document.getElementById('taskFileStatus');
-      if (taskStatus) taskStatus.textContent = '✅ Caricato da storage';
     } catch (e) {
       console.error('Errore caricamento task da IndexedDB:', e);
     }
@@ -200,11 +212,7 @@ function handleFileMain(file) {
     return;
   }
 
-  const fileInfo = document.getElementById('mainFileStatus');
   const loadingBar = document.getElementById('loadingBar');
-  const fileInputMain = document.getElementById('fileInputMain');
-  
-  // ❌ RIMUOVI: if (fileInfo) fileInfo.textContent = '⏳ Elaborazione...';
   if (loadingBar) loadingBar.style.display = 'block';
 
   const reader = new FileReader();
@@ -223,10 +231,8 @@ function handleFileMain(file) {
       }
 
       parseWorkbook(wb);
-
       await saveFileToIndexedDB('database_main', e.target.result);
 
-      if (fileInfo) fileInfo.textContent = '✅ ' + file.name;
       if (loadingBar) loadingBar.style.display = 'none';
 
       const cachedTask = await loadFileFromIndexedDB('database_task');
@@ -239,19 +245,14 @@ function handleFileMain(file) {
       }
 
     } catch (err) {
-      if (fileInfo) fileInfo.textContent = '❌ Errore';
       if (loadingBar) loadingBar.style.display = 'none';
       alert('❌ Errore: ' + err.message);
-    } finally {
-      // ✅ RESET INPUT PER PROSSIMO CLICK
-      fileInputMain.value = '';
     }
   };
 
   reader.onerror = () => {
     if (loadingBar) loadingBar.style.display = 'none';
     alert('❌ Errore nella lettura del file.');
-    fileInputMain.value = '';
   };
 
   if (isCSV) {
@@ -267,11 +268,7 @@ function handleFileTask(file) {
     return;
   }
 
-  const fileInfo = document.getElementById('taskFileStatus');
   const loadingBar = document.getElementById('loadingBar');
-  const fileInputTask = document.getElementById('fileInputTask');
-  
-  // ❌ RIMUOVI: if (fileInfo) fileInfo.textContent = '⏳ Elaborazione...';
   if (loadingBar) loadingBar.style.display = 'block';
 
   const reader = new FileReader();
@@ -290,10 +287,8 @@ function handleFileTask(file) {
       }
 
       parseTaskWorkbook(wb);
-
       await saveFileToIndexedDB('database_task', e.target.result);
 
-      if (fileInfo) fileInfo.textContent = '✅ ' + file.name;
       if (loadingBar) loadingBar.style.display = 'none';
 
       const cachedMain = await loadFileFromIndexedDB('database_main');
@@ -306,19 +301,14 @@ function handleFileTask(file) {
       }
 
     } catch (err) {
-      if (fileInfo) fileInfo.textContent = '❌ Errore';
       if (loadingBar) loadingBar.style.display = 'none';
       alert('❌ Errore: ' + err.message);
-    } finally {
-      // ✅ RESET INPUT PER PROSSIMO CLICK
-      fileInputTask.value = '';
     }
   };
 
   reader.onerror = () => {
     if (loadingBar) loadingBar.style.display = 'none';
     alert('❌ Errore nella lettura del file.');
-    fileInputTask.value = '';
   };
 
   if (isCSV) {
@@ -436,6 +426,52 @@ function findDimRow(sheetName) {
 }
 
 /* ============================================================
+   TASK DATA ENRICHMENT
+   ============================================================ */
+
+function enrichSheetWithTaskData(s) {
+  const taskData = getTaskDataForSheet(s.sheetName);
+  const taskActive = getTaskDataByFilter(s.sheetName, row => row.status === 'active');
+  
+  return {
+    ...s,
+    taskData: taskData,
+    taskActive: taskActive,
+    taskCount: taskActive ? taskActive.length : 0
+  };
+}
+
+/* ============================================================
+   INITIALIZATION
+   ============================================================ */
+
+window.addEventListener('DOMContentLoaded', async () => {
+  if (typeof XLSX !== 'undefined') {
+    await setupFileHandling();
+  } else {
+    alert('❌ Errore: La libreria Excel non è stata caricata.\nRicarica la pagina e riprova.');
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* ============================================================
    GENERIC HELPERS
    ============================================================ */
 
@@ -545,30 +581,3 @@ function el(tag, cls, html) {
   if (html !== undefined) e.innerHTML = html;
   return e;
 }
-
-/* ============================================================
-   TASK DATA ENRICHMENT
-   ============================================================ */
-function enrichSheetWithTaskData(s) {
-  const taskData = getTaskDataForSheet(s.sheetName);
-  const taskActive = getTaskDataByFilter(s.sheetName, row => row.status === 'active');
-  
-  return {
-    ...s,
-    taskData: taskData,
-    taskActive: taskActive,
-    taskCount: taskActive ? taskActive.length : 0
-  };
-}
-
-/* ============================================================
-   INITIALIZATION
-   ============================================================ */
-
-window.addEventListener('DOMContentLoaded', async () => {
-  if (typeof XLSX !== 'undefined') {
-    await setupFileHandling();  // ✅ Aspetta direttamente
-  } else {
-    alert('❌ Errore: La libreria Excel non è stata caricata.\nRicarica la pagina e riprova.');
-  }
-});
