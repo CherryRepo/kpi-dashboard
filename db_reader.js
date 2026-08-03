@@ -192,9 +192,11 @@ function handleFile(file) {
    ============================================================ */
 
 window.addEventListener('DOMContentLoaded', () => {
-  console.log('🚀 Pagina caricata');
+  console.log('🚀 db_reader.js caricato');
   initXLSX(() => {
     setupFileHandling();
+    window.READY.core = true; // ← Flag
+    console.log('✅ Core pronto');
   });
 });
 

@@ -11,6 +11,21 @@
 
   <script src="db_reader.js"></script>
   <script src="render.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Aspetta che entrambi gli script siano pronti
+      const checkReady = setInterval(() => {
+        if (window.READY.isReady) {
+          clearInterval(checkReady);
+          console.log('✅ Applicazione pronta');
+          // Opzionale: nascondi loading, show UI
+          const loadingBar = document.getElementById('loadingBar');
+          if (loadingBar) loadingBar.style.opacity = '0.5';
+        }
+      }, 50);
+    });
+  </script>
 </head>
 
 <body>

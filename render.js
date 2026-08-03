@@ -2170,3 +2170,8 @@ function renderGeneric(panel, s){
     </div>
   `;
 }
+
+window.addEventListener('DOMContentLoaded', () => {
+  window.READY.renderers = true; // ← Flag
+  console.log('✅ Renderers pronti');
+});
