@@ -629,7 +629,8 @@ function renderOverview(panel) {
           <table class="area-table">
             <thead>
               <tr class="area-name-row">
-                <th colspan="2">${area}</th>
+                <th>${area}</th>
+                <th class="spacer"></th>
                 <th class="group-label" colspan="3">Totale struttura</th>
               </tr>
               <tr class="col-label-row">
