@@ -99,62 +99,42 @@ async function loadFileFromIndexedDB(key) {
 
 function setupFileHandling() { 
   const fileInputMain = document.getElementById('fileInputMain');
-  const fileInputTask = document.getElementById('fileInputTask');
-  const dropZone = document.getElementById('dropZone');
   const btnLoadMain = document.getElementById('btnLoadMain');
-  const btnLoadTask = document.getElementById('btnLoadTask');
+  const dropZone = document.getElementById('dropZone');
 
-  // 🔧 BOTTONE DATABASE PRINCIPALE
+  // Bottone per caricare il file
   if (btnLoadMain && fileInputMain) {
     btnLoadMain.addEventListener('click', () => {
-      fileInputMain.value = '';
+      fileInputMain.value = ''; // Reset PRIMA di cliccare
       fileInputMain.click();
     });
   }
 
-  // 🔧 INPUT FILE MAIN
+  // Quando scegli il file
   if (fileInputMain) {
     fileInputMain.addEventListener('change', (e) => {
       const file = e.target.files[0];
-      if (file) handleFileMain(file);
+      if (file) {
+        handleFileMain(file);
+      }
     });
   }
 
-  // 🔧 BOTTONE TASK
-  if (btnLoadTask && fileInputTask) {
-    btnLoadTask.addEventListener('click', () => {
-      fileInputTask.value = '';
-      fileInputTask.click();
-    });
-  }
-
-  // 🔧 INPUT FILE TASK
-  if (fileInputTask) {
-    fileInputTask.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (file) handleFileTask(file);
-    });
-  }
-
-  // 🔧 DROP ZONE
+  // Drop zone
   if (dropZone && fileInputMain) {
     dropZone.addEventListener('click', () => {
-      fileInputMain.value = '';
+      fileInputMain.value = ''; // Reset PRIMA di cliccare
       fileInputMain.click();
     });
 
-    ['dragover', 'dragenter'].forEach(ev => {
-      dropZone.addEventListener(ev, (e) => {
-        e.preventDefault();
-        dropZone.classList.add('drag');
-      });
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('drag');
     });
 
-    ['dragleave', 'drop'].forEach(ev => {
-      dropZone.addEventListener(ev, (e) => {
-        e.preventDefault();
-        dropZone.classList.remove('drag');
-      });
+    dropZone.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('drag');
     });
 
     dropZone.addEventListener('drop', (e) => {
@@ -165,44 +145,30 @@ function setupFileHandling() {
     });
   }
 
-  // 🔧 CARICA DA STORAGE IN BACKGROUND (senza bloccare)
-  loadCachedFiles();
+  // All'apertura: cerca il file nello storage
+  loadCachedFile();
 }
 
-// 🔧 CARICA DATI DA STORAGE (in background)
-async function loadCachedFiles() {
-  const cachedMainBuffer = await loadFileFromIndexedDB('database_main');
-  const cachedTaskBuffer = await loadFileFromIndexedDB('database_task');
+// Carica il file dallo storage
+async function loadCachedFile() {
+  const cached = await loadFileFromIndexedDB('database_v1_filtrato');
   
-  if (cachedMainBuffer) {
+  if (cached) {
     try {
-      const wb = XLSX.read(cachedMainBuffer, { type: 'array', cellDates: true });
+      const wb = XLSX.read(cached, { type: 'array', cellDates: true });
       parseWorkbook(wb);
+      buildTabs();
+      document.getElementById('emptyState').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
     } catch (e) {
-      console.error('Errore caricamento main:', e);
+      console.error('Errore caricamento:', e);
     }
-  }
-  
-  if (cachedTaskBuffer) {
-    try {
-      const wb = XLSX.read(cachedTaskBuffer, { type: 'array', cellDates: true });
-      parseTaskWorkbook(wb);
-    } catch (e) {
-      console.error('Errore caricamento task:', e);
-    }
-  }
-  
-  // Se entrambi caricati, mostra il dashboard
-  if (cachedMainBuffer && cachedTaskBuffer) {
-    buildTabs();
-    document.getElementById('emptyState').style.display = 'none';
-    document.getElementById('dashboard').style.display = 'block';
   }
 }
 
 function handleFileMain(file) {
   if (typeof XLSX === 'undefined') {
-    alert('❌ Libreria Excel non caricata.');
+    alert('Errore: Excel non caricato');
     return;
   }
 
@@ -217,37 +183,28 @@ function handleFileMain(file) {
       let wb;
 
       if (isCSV) {
-        const csv = e.target.result;
-        wb = XLSX.read(csv, { type: 'string', cellDates: true, defval: '' });
+        wb = XLSX.read(e.target.result, { type: 'string', cellDates: true });
       } else {
-        const data = new Uint8Array(e.target.result);
-        wb = XLSX.read(data, { type: 'array', cellDates: true, defval: '', blankrows: false });
+        wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array', cellDates: true });
       }
 
       parseWorkbook(wb);
-      await saveFileToIndexedDB('database_main', e.target.result);
+      await saveFileToIndexedDB('database_v1_filtrato', e.target.result);
 
       if (loadingBar) loadingBar.style.display = 'none';
-
-      // Ricarica anche il task
-      const cachedTask = await loadFileFromIndexedDB('database_task');
-      if (cachedTask) {
-        const wb2 = XLSX.read(cachedTask, { type: 'array', cellDates: true });
-        parseTaskWorkbook(wb2);
-        buildTabs();
-        document.getElementById('emptyState').style.display = 'none';
-        document.getElementById('dashboard').style.display = 'block';
-      }
+      buildTabs();
+      document.getElementById('emptyState').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
 
     } catch (err) {
       if (loadingBar) loadingBar.style.display = 'none';
-      alert('❌ Errore: ' + err.message);
+      alert('Errore: ' + err.message);
     }
   };
 
   reader.onerror = () => {
     if (loadingBar) loadingBar.style.display = 'none';
-    alert('❌ Errore nella lettura del file.');
+    alert('Errore nella lettura del file');
   };
 
   if (isCSV) {
@@ -256,6 +213,13 @@ function handleFileMain(file) {
     reader.readAsArrayBuffer(file);
   }
 }
+
+window.addEventListener('DOMContentLoaded', () => {
+  if (typeof XLSX !== 'undefined') {
+    setupFileHandling();
+  }
+});
+
 
 function handleFileTask(file) {
   if (typeof XLSX === 'undefined') {
