@@ -68,27 +68,38 @@ const fmtCurrency = new Intl.NumberFormat('it-IT', {
 const fmtDate = (d) => d instanceof Date && !isNaN(d) ? d.toLocaleDateString('it-IT') : '—';
 
 /* ============================================================
-   LOCALSTORAGE UTILITIES
+   INDEXEDDB UTILITIES
    ============================================================ */
-
-function saveToLocalStorage(key, data) {
-  try {
-    localStorage.setItem(key, JSON.stringify({
-      data,
-      timestamp: new Date().toISOString()
-    }));
-  } catch (e) {
-    alert('⚠️ Spazio storage esaurito');
-  }
+const dbPromise = new Promise((resolve, reject) => {
+  const request = indexedDB.open('myAppDB', 1);
+  request.onerror = () => reject(request.error);
+  request.onsuccess = () => resolve(request.result);
+  request.onupgradeneeded = (e) => {
+    const db = e.target.result;
+    if (!db.objectStoreNames.contains('files')) {
+      db.createObjectStore('files');
+    }
+  };
+});
+async function saveFileToIndexedDB(key, data) {
+  const db = await dbPromise;
+  const tx = db.transaction(['files'], 'readwrite');
+  const store = tx.objectStore('files');
+  store.put(data, key);
+  return new Promise((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
 }
-
-function loadFromLocalStorage(key) {
-  try {
-    const stored = localStorage.getItem(key);
-    return stored ? JSON.parse(stored) : null;
-  } catch (e) {
-    return null;
-  }
+async function loadFileFromIndexedDB(key) {
+  const db = await dbPromise;
+  const tx = db.transaction(['files'], 'readonly');
+  const store = tx.objectStore('files');
+  return new Promise((resolve, reject) => {
+    const request = store.get(key);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
 }
 
 /* ============================================================
@@ -143,29 +154,34 @@ function setupFileHandling() {
     if (file) handleFileMain(file);
   });
 
-  // Carica da localStorage all'avvio
-  const cachedMain = loadFromLocalStorage('database_main');
-  const cachedTask = loadFromLocalStorage('database_task');
-
-  if (cachedMain) {
-    STATE.dimRows = cachedMain.data.dimRows;
-    STATE.dimHeaders = cachedMain.data.dimHeaders;
-    STATE.domainSheets = cachedMain.data.domainSheets;
-    document.getElementById('fileInfoMain').textContent = '✅ Caricato da cache';
+  const cachedMainBuffer = await loadFileFromIndexedDB('database_main');
+  const cachedTaskBuffer = await loadFileFromIndexedDB('database_task');
+  if (cachedMainBuffer) {
+    try {
+      const wb = XLSX.read(cachedMainBuffer, { type: 'array', cellDates: true });
+      parseWorkbook(wb);
+      document.getElementById('fileInfoMain').textContent = '✅ Caricato da storage';
+    } catch (e) {
+      console.error('Errore caricamento main da IndexedDB:', e);
+    }
   }
-
-  if (cachedTask) {
-    STATE.taskData = cachedTask.data;
-    document.getElementById('fileInfoTask').textContent = '✅ Caricato da cache';
+  if (cachedTaskBuffer) {
+    try {
+      const wb = XLSX.read(cachedTaskBuffer, { type: 'array', cellDates: true });
+      parseTaskWorkbook(wb);
+      document.getElementById('fileInfoTask').textContent = '✅ Caricato da storage';
+    } catch (e) {
+      console.error('Errore caricamento task da IndexedDB:', e);
+    }
   }
-
   // Se entrambi sono cached, mostra il dashboard
-  if (cachedMain && cachedTask) {
+  if (cachedMainBuffer && cachedTaskBuffer) {
     buildTabs();
     document.getElementById('emptyState').style.display = 'none';
     document.getElementById('dashboard').style.display = 'block';
   }
 }
+
 
 function handleFileMain(file) {
   if (typeof XLSX === 'undefined') {
@@ -181,43 +197,31 @@ function handleFileMain(file) {
   const reader = new FileReader();
   const isCSV = file.name.toLowerCase().endsWith('.csv');
 
-  reader.onload = (e) => {
+  reader.onload = async (e) => {
     try {
       let wb;
 
       if (isCSV) {
         const csv = e.target.result;
-        wb = XLSX.read(csv, {
-          type: 'string',
-          cellDates: true,
-          defval: ''
-        });
+        wb = XLSX.read(csv, { type: 'string', cellDates: true, defval: '' });
       } else {
         const data = new Uint8Array(e.target.result);
-        wb = XLSX.read(data, {
-          type: 'array',
-          cellDates: true,
-          defval: '',
-          blankrows: false
-        });
+        wb = XLSX.read(data, { type: 'array', cellDates: true, defval: '', blankrows: false });
       }
 
       parseWorkbook(wb);
 
-      // Salva in localStorage
-      saveToLocalStorage('database_main', {
-        dimRows: STATE.dimRows,
-        dimHeaders: STATE.dimHeaders,
-        domainSheets: STATE.domainSheets
-      });
+    // Salva il buffer originale in IndexedDB
+      await saveFileToIndexedDB('database_main', e.target.result);
 
       if (fileInfo) fileInfo.textContent = '✅ ' + file.name;
       if (loadingBar) loadingBar.style.display = 'none';
 
-      // Controlla se task è già caricato
-      const cachedTask = loadFromLocalStorage('database_task');
+    // Controlla se task è già caricato
+      const cachedTask = await loadFileFromIndexedDB('database_task');
       if (cachedTask) {
-        STATE.taskData = cachedTask.data;
+        const wb2 = XLSX.read(cachedTask, { type: 'array', cellDates: true });
+        parseTaskWorkbook(wb2);
         buildTabs();
         document.getElementById('emptyState').style.display = 'none';
         document.getElementById('dashboard').style.display = 'block';
@@ -256,41 +260,31 @@ function handleFileTask(file) {
   const reader = new FileReader();
   const isCSV = file.name.toLowerCase().endsWith('.csv');
 
-  reader.onload = (e) => {
+  reader.onload = async (e) => {
     try {
       let wb;
 
       if (isCSV) {
         const csv = e.target.result;
-        wb = XLSX.read(csv, {
-          type: 'string',
-          cellDates: true,
-          defval: ''
-        });
+        wb = XLSX.read(csv, { type: 'string', cellDates: true, defval: '' });
       } else {
         const data = new Uint8Array(e.target.result);
-        wb = XLSX.read(data, {
-          type: 'array',
-          cellDates: true,
-          defval: '',
-          blankrows: false
-        });
+        wb = XLSX.read(data, { type: 'array', cellDates: true, defval: '', blankrows: false });
       }
 
       parseTaskWorkbook(wb);
 
-      // Salva in localStorage
-      saveToLocalStorage('database_task', STATE.taskData);
+    // Salva il buffer originale in IndexedDB
+      await saveFileToIndexedDB('database_task', e.target.result);
 
       if (fileInfo) fileInfo.textContent = '✅ ' + file.name;
       if (loadingBar) loadingBar.style.display = 'none';
 
-      // Controlla se main è già caricato
-      const cachedMain = loadFromLocalStorage('database_main');
+    // Controlla se main è già caricato
+      const cachedMain = await loadFileFromIndexedDB('database_main');
       if (cachedMain) {
-        STATE.dimRows = cachedMain.data.dimRows;
-        STATE.dimHeaders = cachedMain.data.dimHeaders;
-        STATE.domainSheets = cachedMain.data.domainSheets;
+        const wb2 = XLSX.read(cachedMain, { type: 'array', cellDates: true });
+        parseWorkbook(wb2);
         buildTabs();
         document.getElementById('emptyState').style.display = 'none';
         document.getElementById('dashboard').style.display = 'block';
