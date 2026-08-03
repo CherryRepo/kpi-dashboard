@@ -459,9 +459,11 @@ function buildSidebar(){
    TABS
    ============================================================ */
 function buildTabs(){
+  console.log('🔵 buildTabs() chiamato');
   const bar = document.getElementById('tabsBar');
   const panels = document.getElementById('panels');
   bar.innerHTML = ''; panels.innerHTML = '';
+
   const tabOrder = ['overview', 'ordinario', 'speciale', 'perfezionamenti', 'factoring', 'anagrafe', 'antifrode', 'ops_aml', 'bancassurance', 'digital', 'monetica'];
   const tabDefs = [{key:'overview', label:'Overview'}];
   const digitalTypes = ['digital_rapporti','digital_frodi','digital_raisin'];
@@ -470,47 +472,60 @@ function buildTabs(){
   const hasDigital = STATE.domainSheets.some(s => digitalTypes.includes(s.type));
   const hasMonetica = STATE.domainSheets.some(s => moneticaTypes.includes(s.type));
   const hasFactoring = STATE.domainSheets.some(s => factoringTypes.includes(s.type));
+
   const labelMap = {ordinario:'Credito & Factoring', speciale:'Credito Speciale', perfezionamenti:'Perfezionamenti credito ordinario', anagrafe:'Anagrafe', antifrode:'Antifrode', ops_aml:'OPS AML', bancassurance:'Wealth & Bancassurance'};
+
   STATE.domainSheets.forEach((s, idx)=>{
     if(digitalTypes.includes(s.type) || moneticaTypes.includes(s.type) || factoringTypes.includes(s.type)) return;
     tabDefs.push({key:'d'+idx, label:labelMap[s.type] || 'Dati (' + s.sheetName + ')'});
   });
+
   if(hasDigital) tabDefs.push({key:'digital', label:'Digital Bank'});
   if(hasMonetica) tabDefs.push({key:'monetica', label:'OPS Incassi, Pagamenti e Monetica'});
   if(hasFactoring) tabDefs.push({key:'factoring', label:'Factoring'});
-  // ← AGGIUNGI ORDINAMENTO
+
+  console.log('Prima sort:', tabDefs.map(t => t.key));
+
   tabDefs.sort((a, b) => {
     const indexA = tabOrder.indexOf(a.key);
     const indexB = tabOrder.indexOf(b.key);
     const posA = indexA === -1 ? 999 : indexA;
     const posB = indexB === -1 ? 999 : indexB;
+    console.log(`Comparando ${a.key}(${posA}) vs ${b.key}(${posB})`);
     return posA - posB;
   });
+
+  console.log('Dopo sort:', tabDefs.map(t => t.key));
+
   tabDefs.forEach(t=>{
     const tab = el('div','tab',`<span>${t.label}</span>`);
     tab.dataset.key = t.key;
     tab.onclick = ()=>activateTab(t.key);
     bar.appendChild(tab);
+
     const panel = el('div','panel','');
     panel.id = 'panel-' + t.key;
     panels.appendChild(panel);
   });
 
+  console.log('🟢 Tab creati, attivando overview...');
   activateTab('overview');
 }
 
-
 function activateTab(key){
+  console.log('🟡 activateTab() chiamato con key:', key);
   STATE.activeTab = key;
   document.querySelectorAll('.tab').forEach(t=> t.classList.toggle('active', t.dataset.key===key));
   document.querySelectorAll('.nav-item').forEach(t=> t.classList.toggle('active', t.dataset.key===key));
   document.querySelectorAll('.panel').forEach(p=> p.classList.toggle('active', p.id === 'panel-'+key));
 
   const panel = document.getElementById('panel-'+key);
-  if(panel.dataset.built) return;
+  console.log('Panel trovato?', !!panel);
+  if(!panel) { console.error('❌ Panel non trovato per key:', key); return; }
+  if(panel.dataset.built) { console.log('Panel già costruito'); return; }
   panel.dataset.built = '1';
 
-  if(key === 'overview'){ renderOverview(panel); return; }
+  if(key === 'overview'){ console.log('Rendering overview'); renderOverview(panel); return; }
   if(key === 'digital'){ renderDigital(panel); return; }
   if(key === 'monetica'){ renderMonetica(panel); return; }
   if(key === 'factoring'){ renderFactoring(panel); return; }
