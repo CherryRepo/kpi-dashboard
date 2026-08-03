@@ -102,7 +102,8 @@ function buildSidebar(){
 function buildTabs(){
   const bar = document.getElementById('tabsBar');
   const panels = document.getElementById('panels');
-  bar.innerHTML = ''; panels.innerHTML = '';
+  bar.innerHTML = '';
+  panels.innerHTML = '';
 
   const tabOrder = ['overview', 'ordinario', 'speciale', 'perfezionamenti', 'factoring', 'anagrafe', 'antifrode', 'ops_aml', 'bancassurance', 'digital', 'monetica'];
   const tabDefs = [{key:'overview', label:'Overview'}];

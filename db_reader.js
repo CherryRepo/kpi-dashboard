@@ -4,10 +4,8 @@
 
 function initXLSX(callback) {
   if (typeof XLSX !== 'undefined') {
-    console.log('✅ XLSX caricato correttamente');
     callback();
   } else {
-    console.error('❌ XLSX non disponibile');
     alert('❌ Errore: La libreria Excel non è stata caricata.\nRicarica la pagina e riprova.');
   }
 }
@@ -115,8 +113,6 @@ function setupFileHandling() {
 }
 
 function handleFile(file) {
-  console.log('📂 File selezionato:', file.name);
-  
   if (typeof XLSX === 'undefined') {
     alert('❌ Libreria Excel non caricata.');
     return;
@@ -131,10 +127,7 @@ function handleFile(file) {
   const isCSV = file.name.toLowerCase().endsWith('.csv');
 
   reader.onload = (e) => {
-    try {
-      console.log('📖 Inizio lettura:', isCSV ? 'CSV' : 'XLSX');
-      const startTime = performance.now();
-      
+    try {      
       let wb;
 
       if (isCSV) {
@@ -156,18 +149,12 @@ function handleFile(file) {
         });
       }
 
-      console.log('✅ File caricato in', (performance.now() - startTime).toFixed(0) + 'ms');
-      console.log('📄 Fogli:', wb.SheetNames);
-
       parseWorkbook(wb);
 
-      const totalTime = (performance.now() - startTime).toFixed(0);
       if (fileInfo) fileInfo.textContent = '✅ ' + file.name + ' (' + totalTime + 'ms)';
       if (loadingBar) loadingBar.style.display = 'none';
-      console.log('✅ Completato in', totalTime + 'ms');
 
     } catch (err) {
-      console.error('❌ Errore:', err);
       if (fileInfo) fileInfo.textContent = '❌ Errore';
       if (loadingBar) loadingBar.style.display = 'none';
       alert('❌ Errore: ' + err.message);
@@ -186,17 +173,6 @@ function handleFile(file) {
     reader.readAsArrayBuffer(file);
   }
 }
-
-/* ============================================================
-   INIZIALIZZAZIONE
-   ============================================================ */
-
-window.addEventListener('DOMContentLoaded', () => {
-  console.log('🚀 Pagina caricata');
-  initXLSX(() => {
-    setupFileHandling();
-  });
-});
 
 /* ============================================================
    PARSE WORKBOOK -> classify sheets
