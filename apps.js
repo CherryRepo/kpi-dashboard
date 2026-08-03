@@ -477,7 +477,12 @@ function buildTabs(){
 
   STATE.domainSheets.forEach((s, idx)=>{
     if(digitalTypes.includes(s.type) || moneticaTypes.includes(s.type) || factoringTypes.includes(s.type)) return;
-    tabDefs.push({key:'d'+idx, label:labelMap[s.type] || 'Dati (' + s.sheetName + ')', type: s.type});
+    console.log(`🔍 Aggiungendo tab d${idx} con type: ${s.type}`); // ← DEBUG
+    tabDefs.push({
+      key:'d'+idx, 
+      label:labelMap[s.type] || 'Dati (' + s.sheetName + ')', 
+      type: s.type
+    });
   });
 
   if(hasDigital) tabDefs.push({key:'digital', label:'Digital Bank', type:'digital'});
