@@ -564,8 +564,9 @@ function renderOverview(panel) {
   const totFteAsIs = rows.reduce((a, r) => a + (Number(r['FTE AS IS - in forza']) || 0), 0);
   const totFteStim = rows.reduce((a, r) => a + (Number(r['FTE Stimati']) || 0), 0);
   const totNS = rows.reduce((a, r) => a + (Number(r['Need/Surplus']) || 0), 0);
-  const nDeficit = rows.filter(r => (Number(r['Need/Surplus']) || 0) < -0.005).length;
-  const nSurplus = rows.filter(r => (Number(r['Need/Surplus']) || 0) > 0.005).length;
+  const nDeficit = rows.filter(r => (Number(r['Need/Surplus']) || 0) < 0).length;
+  const nSurplus = rows.filter(r => (Number(r['Need/Surplus']) || 0) > 0).length;
+
 
   const uo1Options = [...new Set(rows.map(r => r.uo1livello_descrizione).filter(Boolean))];
 
