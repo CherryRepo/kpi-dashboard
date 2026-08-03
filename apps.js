@@ -2485,11 +2485,11 @@ function renderMonetica(panel){
 
   mkChart('monBonificiChart',{type:'bar', data:{labels:months, datasets:[{label:'Bonifici',data:months.map(m=>bonificiMonth[m]||0),backgroundColor:PALETTE.info}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
 
-  mkChart('monVolumeBonificiChart',{type:'bar', data:{labels:months, datasets:[{label:'Volume (€)',data:months.map(m=>volumeMonth[m]||0),backgroundColor:PALETTE.accent}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.navy}}}}});
+  mkChart('monVolumeBonificiChart',{type:'bar', data:{labels:months, datasets:[{label:'Volume (€)',data:months.map(m=>volumeMonth[m]||0),backgroundColor:PALETTE.navy}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
 
-  mkChart('monDaEsteroMonthChart',{type:'bar', data:{labels:mesiEstero, datasets:[{label:'Operazioni',data:mesiEstero.map(m=>daEsteroMonth[m]||0),backgroundColor:PALETTE.info}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.pos}}}}});
+  mkChart('monDaEsteroMonthChart',{type:'bar', data:{labels:mesiEstero, datasets:[{label:'Operazioni',data:mesiEstero.map(m=>daEsteroMonth[m]||0),backgroundColor:PALETTE.pos}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
 
-  mkChart('monDaEsteroVolChart',{type:'bar', data:{labels:mesiEstero, datasets:[{label:'Volume (€)',data:mesiEstero.map(m=>daEsteroVolMonth[m]||0),backgroundColor:PALETTE.accent}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.warn}}}}});
+  mkChart('monDaEsteroVolChart',{type:'bar', data:{labels:mesiEstero, datasets:[{label:'Volume (€)',data:mesiEstero.map(m=>daEsteroVolMonth[m]||0),backgroundColor:PALETTE.danger}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
 
   mkChart('monDaEsteroPaeseChart',{type:'bar', data:{labels:paeseListDaEstero, datasets:[{label:'Bonifici',data:paeseListDaEstero.map(p=>daEsteroPaese[p]||0),backgroundColor:PALETTE.violet}]}, options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false},ticks:{font:{size:10}}}}}});
 
@@ -2505,7 +2505,7 @@ function renderMonetica(panel){
 
   mkChart('monCassetteChart',{type:'bar', data:{labels:months, datasets:[{label:'Cassette',data:months.map(m=>cassetteMonth[m]||0),backgroundColor:PALETTE.warn}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
 
-  mkChart('monBuCassetteChart',{type:'bar', data:{labels:byBuCassette.map(x=>x[0]), datasets:[{label:'Cassette',data:byBuCassette.map(x=>x[1]),backgroundColor:PALETTE.violet}]}, options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.danger}}, y:{grid:{display:false},ticks:{font:{size:10}}}}}});
+  mkChart('monBuCassetteChart',{type:'bar', data:{labels:byBuCassette.map(x=>x[0]), datasets:[{label:'Cassette',data:byBuCassette.map(x=>x[1]),backgroundColor:PALETTE.danger}]}, options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false},ticks:{font:{size:10}}}}}});
 }
 
 /* ============================================================
