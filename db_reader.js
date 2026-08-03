@@ -106,7 +106,7 @@ async function loadFileFromIndexedDB(key) {
    GESTIONE FILE
    ============================================================ */
 
-function setupFileHandling() {
+async function setupFileHandling() {  // ✅ AGGIUNGI async
   const fileInputMain = document.getElementById('fileInputMain');
   const fileInputTask = document.getElementById('fileInputTask');
   const dropZone = document.getElementById('dropZone') || document.body;
@@ -156,6 +156,7 @@ function setupFileHandling() {
 
   const cachedMainBuffer = await loadFileFromIndexedDB('database_main');
   const cachedTaskBuffer = await loadFileFromIndexedDB('database_task');
+
   if (cachedMainBuffer) {
     try {
       const wb = XLSX.read(cachedMainBuffer, { type: 'array', cellDates: true });
@@ -546,8 +547,8 @@ function enrichSheetWithTaskData(s) {
    INITIALIZATION
    ============================================================ */
 
-window.addEventListener('DOMContentLoaded', () => {
-  initXLSX(() => {
-    setupFileHandling();
+window.addEventListener('DOMContentLoaded', async () => {
+  initXLSX(async () => {
+    await setupFileHandling();
   });
 });
