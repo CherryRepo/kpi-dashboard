@@ -633,11 +633,7 @@ function renderOverview(panel) {
                 <th class="group-label" colspan="3">Totale struttura</th>
               </tr>
               <tr class="col-label-row">
-                <th>Struttura</th>
-                <th></th>
-                <th>FTE AS-IS</th>
-                <th>FTE NEED</th>
-                <th>Delta FTE</th>
+                <th colspan="2">Struttura</th><th>FTE AS-IS</th><th>FTE NEED</th><th>Delta FTE</th>
               </tr>
             </thead>
             <tbody>
