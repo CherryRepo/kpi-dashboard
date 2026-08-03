@@ -123,7 +123,9 @@ function handleFile(file) {
   }
 
   const fileInfo = document.getElementById('fileInfo');
+  const loadingBar = document.getElementById('loadingBar');
   if (fileInfo) fileInfo.textContent = '⏳ Elaborazione: ' + file.name;
+  if (loadingBar) loadingBar.style.display = 'block';
 
   const reader = new FileReader();
   const isCSV = file.name.toLowerCase().endsWith('.csv');
@@ -161,16 +163,19 @@ function handleFile(file) {
 
       const totalTime = (performance.now() - startTime).toFixed(0);
       if (fileInfo) fileInfo.textContent = '✅ ' + file.name + ' (' + totalTime + 'ms)';
+      if (loadingBar) loadingBar.style.display = 'none';
       console.log('✅ Completato in', totalTime + 'ms');
 
     } catch (err) {
       console.error('❌ Errore:', err);
       if (fileInfo) fileInfo.textContent = '❌ Errore';
+      if (loadingBar) loadingBar.style.display = 'none';
       alert('❌ Errore: ' + err.message);
     }
   };
 
   reader.onerror = () => {
+    if (loadingBar) loadingBar.style.display = 'none';
     alert('❌ Errore nella lettura del file.');
   };
 
@@ -192,7 +197,6 @@ window.addEventListener('DOMContentLoaded', () => {
     setupFileHandling();
   });
 });
-
 
 /* ============================================================
    PARSE WORKBOOK -> classify sheets
@@ -230,7 +234,6 @@ function parseWorkbook(wb){
   document.getElementById('emptyState').style.display = 'none';
   document.getElementById('dashboard').style.display = 'block';
 }
-
 
 function classifySheet(sheetName) {
   const name = String(sheetName).toLowerCase().trim();
