@@ -97,14 +97,14 @@ async function loadFileFromIndexedDB(key) {
    GESTIONE FILE
    ============================================================ */
 
-async function setupFileHandling() { 
+function setupFileHandling() { 
   const fileInputMain = document.getElementById('fileInputMain');
   const fileInputTask = document.getElementById('fileInputTask');
   const dropZone = document.getElementById('dropZone');
   const btnLoadMain = document.getElementById('btnLoadMain');
   const btnLoadTask = document.getElementById('btnLoadTask');
 
-  // 🔧 BOTTONE DATABASE PRINCIPALE - Reset input prima di click
+  // 🔧 BOTTONE DATABASE PRINCIPALE
   if (btnLoadMain && fileInputMain) {
     btnLoadMain.addEventListener('click', () => {
       fileInputMain.value = '';
@@ -112,17 +112,15 @@ async function setupFileHandling() {
     });
   }
 
-  // 🔧 INPUT FILE MAIN - Carica file quando selezionato
+  // 🔧 INPUT FILE MAIN
   if (fileInputMain) {
     fileInputMain.addEventListener('change', (e) => {
       const file = e.target.files[0];
-      if (file) {
-        handleFileMain(file);
-      }
+      if (file) handleFileMain(file);
     });
   }
 
-  // 🔧 BOTTONE TASK - Reset input prima di click
+  // 🔧 BOTTONE TASK
   if (btnLoadTask && fileInputTask) {
     btnLoadTask.addEventListener('click', () => {
       fileInputTask.value = '';
@@ -130,24 +128,21 @@ async function setupFileHandling() {
     });
   }
 
-  // 🔧 INPUT FILE TASK - Carica file quando selezionato
+  // 🔧 INPUT FILE TASK
   if (fileInputTask) {
     fileInputTask.addEventListener('change', (e) => {
       const file = e.target.files[0];
-      if (file) {
-        handleFileTask(file);
-      }
+      if (file) handleFileTask(file);
     });
   }
 
-  // 🔧 DROP ZONE - Reset input prima di click
+  // 🔧 DROP ZONE
   if (dropZone && fileInputMain) {
     dropZone.addEventListener('click', () => {
       fileInputMain.value = '';
       fileInputMain.click();
     });
 
-    // Drag over/enter
     ['dragover', 'dragenter'].forEach(ev => {
       dropZone.addEventListener(ev, (e) => {
         e.preventDefault();
@@ -155,7 +150,6 @@ async function setupFileHandling() {
       });
     });
 
-    // Drag leave/drop
     ['dragleave', 'drop'].forEach(ev => {
       dropZone.addEventListener(ev, (e) => {
         e.preventDefault();
@@ -163,18 +157,20 @@ async function setupFileHandling() {
       });
     });
 
-    // Drop file
     dropZone.addEventListener('drop', (e) => {
       e.preventDefault();
       dropZone.classList.remove('drag');
       const file = e.dataTransfer.files[0];
-      if (file) {
-        handleFileMain(file);
-      }
+      if (file) handleFileMain(file);
     });
   }
 
-  // 🔧 CARICA DA STORAGE AL BOOT
+  // 🔧 CARICA DA STORAGE IN BACKGROUND (senza bloccare)
+  loadCachedFiles();
+}
+
+// 🔧 CARICA DATI DA STORAGE (in background)
+async function loadCachedFiles() {
   const cachedMainBuffer = await loadFileFromIndexedDB('database_main');
   const cachedTaskBuffer = await loadFileFromIndexedDB('database_task');
   
@@ -183,7 +179,7 @@ async function setupFileHandling() {
       const wb = XLSX.read(cachedMainBuffer, { type: 'array', cellDates: true });
       parseWorkbook(wb);
     } catch (e) {
-      console.error('Errore caricamento main da IndexedDB:', e);
+      console.error('Errore caricamento main:', e);
     }
   }
   
@@ -192,17 +188,15 @@ async function setupFileHandling() {
       const wb = XLSX.read(cachedTaskBuffer, { type: 'array', cellDates: true });
       parseTaskWorkbook(wb);
     } catch (e) {
-      console.error('Errore caricamento task da IndexedDB:', e);
+      console.error('Errore caricamento task:', e);
     }
   }
   
-  // Se entrambi sono cached, mostra il dashboard
+  // Se entrambi caricati, mostra il dashboard
   if (cachedMainBuffer && cachedTaskBuffer) {
     buildTabs();
-    const emptyState = document.getElementById('emptyState');
-    const dashboard = document.getElementById('dashboard');
-    if (emptyState) emptyState.style.display = 'none';
-    if (dashboard) dashboard.style.display = 'block';
+    document.getElementById('emptyState').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
   }
 }
 
@@ -235,6 +229,7 @@ function handleFileMain(file) {
 
       if (loadingBar) loadingBar.style.display = 'none';
 
+      // Ricarica anche il task
       const cachedTask = await loadFileFromIndexedDB('database_task');
       if (cachedTask) {
         const wb2 = XLSX.read(cachedTask, { type: 'array', cellDates: true });
@@ -291,6 +286,7 @@ function handleFileTask(file) {
 
       if (loadingBar) loadingBar.style.display = 'none';
 
+      // Ricarica anche il main
       const cachedMain = await loadFileFromIndexedDB('database_main');
       if (cachedMain) {
         const wb2 = XLSX.read(cachedMain, { type: 'array', cellDates: true });
@@ -445,13 +441,14 @@ function enrichSheetWithTaskData(s) {
    INITIALIZATION
    ============================================================ */
 
-window.addEventListener('DOMContentLoaded', async () => {
+window.addEventListener('DOMContentLoaded', () => {
   if (typeof XLSX !== 'undefined') {
-    await setupFileHandling();
+    setupFileHandling(); // ✅ NO await - bottoni pronti subito
   } else {
     alert('❌ Errore: La libreria Excel non è stata caricata.\nRicarica la pagina e riprova.');
   }
 });
+
 
 
 
