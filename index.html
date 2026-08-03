@@ -8,6 +8,9 @@
   
   <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <script src="db_reader.js"></script>
+  <script src="render.js"></script>
 </head>
 
 <body>
@@ -28,7 +31,7 @@
       <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" class="file-input">
     </div>
   </div>
-  
+
   <div id="loadingBar" style="display:none; height:3px; background:linear-gradient(90deg, var(--info) 0%, var(--navy) 50%, var(--info) 100%); background-size:200% 100%; animation: loading 1.5s infinite;"></div>
 
   <div class="shell">
@@ -55,6 +58,5 @@
     </div>
     <footer class="note">Documento strettamente riservato e ad uso interno &middot; elaborazione locale, nessun dato lascia il browser.</footer>
   </div>
-  <script src="apps.js"></script>
 </body>
 </html>
