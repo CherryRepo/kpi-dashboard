@@ -361,3 +361,11 @@ function el(tag, cls, html){
   if(html !== undefined) e.innerHTML = html;
   return e;
 }
+
+console.log('📦 db_reader.js completamente caricato');
+if (window.READY) {
+  window.READY.core = true;
+  console.log('✔️ READY.core = true');
+} else {
+  console.error('❌ window.READY non trovato!');
+}
