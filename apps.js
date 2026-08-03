@@ -535,9 +535,6 @@ function activateTab(key){
   if(panel.dataset.built) return;
   panel.dataset.built = '1';
 
-  document.getElementById('tabsBar').style.display = 'block';
-  document.getElementById('panels').style.display = 'block';
-
   if(key === 'overview'){ renderOverview(panel); return; }
   if(key === 'digital'){ renderDigital(panel); return; }
   if(key === 'monetica'){ renderMonetica(panel); return; }
