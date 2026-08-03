@@ -189,7 +189,9 @@ function handleFileMain(file) {
 
   const fileInfo = document.getElementById('mainFileStatus');
   const loadingBar = document.getElementById('loadingBar');
-  if (fileInfo) fileInfo.textContent = '⏳ Elaborazione...';
+  const fileInputMain = document.getElementById('fileInputMain');
+  
+  // ❌ RIMUOVI: if (fileInfo) fileInfo.textContent = '⏳ Elaborazione...';
   if (loadingBar) loadingBar.style.display = 'block';
 
   const reader = new FileReader();
@@ -209,13 +211,11 @@ function handleFileMain(file) {
 
       parseWorkbook(wb);
 
-    // Salva il buffer originale in IndexedDB
       await saveFileToIndexedDB('database_main', e.target.result);
 
       if (fileInfo) fileInfo.textContent = '✅ ' + file.name;
       if (loadingBar) loadingBar.style.display = 'none';
 
-    // Controlla se task è già caricato
       const cachedTask = await loadFileFromIndexedDB('database_task');
       if (cachedTask) {
         const wb2 = XLSX.read(cachedTask, { type: 'array', cellDates: true });
@@ -229,12 +229,16 @@ function handleFileMain(file) {
       if (fileInfo) fileInfo.textContent = '❌ Errore';
       if (loadingBar) loadingBar.style.display = 'none';
       alert('❌ Errore: ' + err.message);
+    } finally {
+      // ✅ RESET INPUT PER PROSSIMO CLICK
+      fileInputMain.value = '';
     }
   };
 
   reader.onerror = () => {
     if (loadingBar) loadingBar.style.display = 'none';
     alert('❌ Errore nella lettura del file.');
+    fileInputMain.value = '';
   };
 
   if (isCSV) {
@@ -250,9 +254,11 @@ function handleFileTask(file) {
     return;
   }
 
-  const fileInfo = document.getElementById('taskFileStatus'); 
+  const fileInfo = document.getElementById('taskFileStatus');
   const loadingBar = document.getElementById('loadingBar');
-  if (fileInfo) fileInfo.textContent = '⏳ Elaborazione...';
+  const fileInputTask = document.getElementById('fileInputTask');
+  
+  // ❌ RIMUOVI: if (fileInfo) fileInfo.textContent = '⏳ Elaborazione...';
   if (loadingBar) loadingBar.style.display = 'block';
 
   const reader = new FileReader();
@@ -272,13 +278,11 @@ function handleFileTask(file) {
 
       parseTaskWorkbook(wb);
 
-    // Salva il buffer originale in IndexedDB
       await saveFileToIndexedDB('database_task', e.target.result);
 
       if (fileInfo) fileInfo.textContent = '✅ ' + file.name;
       if (loadingBar) loadingBar.style.display = 'none';
 
-    // Controlla se main è già caricato
       const cachedMain = await loadFileFromIndexedDB('database_main');
       if (cachedMain) {
         const wb2 = XLSX.read(cachedMain, { type: 'array', cellDates: true });
@@ -292,12 +296,16 @@ function handleFileTask(file) {
       if (fileInfo) fileInfo.textContent = '❌ Errore';
       if (loadingBar) loadingBar.style.display = 'none';
       alert('❌ Errore: ' + err.message);
+    } finally {
+      // ✅ RESET INPUT PER PROSSIMO CLICK
+      fileInputTask.value = '';
     }
   };
 
   reader.onerror = () => {
     if (loadingBar) loadingBar.style.display = 'none';
     alert('❌ Errore nella lettura del file.');
+    fileInputTask.value = '';
   };
 
   if (isCSV) {
