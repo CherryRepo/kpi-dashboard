@@ -886,7 +886,7 @@ function renderCredito(panel, s){
   mkChart('crOrganoTempoChart', {type:'bar', data:{labels:organoTempoSorted.map(x=>x[0]), datasets:[{label:'Giorni medi', data:organoTempoSorted.map(x=>Number(x[1].toFixed(1))), backgroundColor:PALETTE.violet}]},
     options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false}, ticks:{font:{size:10.5}}}}}});
 
-  mkChart('crScopoChart', {type:'bar', data:{labels:byScopo.map(x=>x[0]), datasets:[{label:'Pratiche', data:byScopo.map(x=>x[1]), backgroundColor:PALETTE.accent}]},
+  mkChart('crScopoChart', {type:'bar', data:{labels:byScopo.map(x=>x[0]), datasets:[{label:'Pratiche', data:byScopo.map(x=>x[1]), backgroundColor:PALETTE.navy}]},
     options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false}, ticks:{font:{size:10}}}}}});
 
   mkChart('crTempiChart', {type:'bar', data:{labels:bucketLabels, datasets:[{label:'Pratiche', data:bucketCounts, backgroundColor: bucketLabels.map((_,i)=> CHART_SERIES[i])}]},
@@ -1044,7 +1044,7 @@ function renderCreditoSpeciale(panel, s){
   mkChart('crOrganoTempoChart2', {type:'bar', data:{labels:organoTempoSorted.map(x=>x[0]), datasets:[{label:'Giorni medi', data:organoTempoSorted.map(x=>Number(x[1].toFixed(1))), backgroundColor:PALETTE.violet}]},
     options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false}, ticks:{font:{size:10.5}}}}}});
 
-  mkChart('crScopoChart2', {type:'bar', data:{labels:byScopo.map(x=>x[0]), datasets:[{label:'Pratiche', data:byScopo.map(x=>x[1]), backgroundColor:PALETTE.accent}]},
+  mkChart('crScopoChart2', {type:'bar', data:{labels:byScopo.map(x=>x[0]), datasets:[{label:'Pratiche', data:byScopo.map(x=>x[1]), backgroundColor:PALETTE.navy}]},
     options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false}, ticks:{font:{size:10}}}}}});
 
   mkChart('crTempiChart2', {type:'bar', data:{labels:bucketLabels, datasets:[{label:'Pratiche', data:bucketCounts, backgroundColor: bucketLabels.map((_,i)=> CHART_SERIES[i])}]},
@@ -1737,7 +1737,7 @@ function renderAnagrafe(panel, s){
   mkChart('anTrendChart', {type:'line', data:{labels:months, datasets:[{label:'Censimenti', data:months.map(m=>byMonth.get(m)), borderColor:PALETTE.accent, backgroundColor:'rgba(47,111,179,0.12)', fill:true, tension:.3}]},
     options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
 
-  mkChart('anNaturaChart', {type:'bar', data:{labels:naturaCounts.map(x=>x[0]), datasets:[{label:'Nominativi', data:naturaCounts.map(x=>x[1]), backgroundColor:PALETTE.info}]},
+  mkChart('anNaturaChart', {type:'bar', data:{labels:naturaCounts.map(x=>x[0]), datasets:[{label:'Nominativi', data:naturaCounts.map(x=>x[1]), backgroundColor:PALETTE.navy}]},
     options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false}, ticks:{font:{size:10}}}}}});
 
   mkChart('anStatusChart', {type:'pie', data:{labels:statusCounts.map(x=>x[0]), datasets:[{data:statusCounts.map(x=>x[1]), backgroundColor:CHART_SERIES}]},
@@ -2485,11 +2485,11 @@ function renderMonetica(panel){
 
   mkChart('monBonificiChart',{type:'bar', data:{labels:months, datasets:[{label:'Bonifici',data:months.map(m=>bonificiMonth[m]||0),backgroundColor:PALETTE.info}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
 
-  mkChart('monVolumeBonificiChart',{type:'bar', data:{labels:months, datasets:[{label:'Volume (€)',data:months.map(m=>volumeMonth[m]||0),backgroundColor:PALETTE.accent}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
+  mkChart('monVolumeBonificiChart',{type:'bar', data:{labels:months, datasets:[{label:'Volume (€)',data:months.map(m=>volumeMonth[m]||0),backgroundColor:PALETTE.accent}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.navy}}}}});
 
-  mkChart('monDaEsteroMonthChart',{type:'bar', data:{labels:mesiEstero, datasets:[{label:'Operazioni',data:mesiEstero.map(m=>daEsteroMonth[m]||0),backgroundColor:PALETTE.info}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
+  mkChart('monDaEsteroMonthChart',{type:'bar', data:{labels:mesiEstero, datasets:[{label:'Operazioni',data:mesiEstero.map(m=>daEsteroMonth[m]||0),backgroundColor:PALETTE.info}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.pos}}}}});
 
-  mkChart('monDaEsteroVolChart',{type:'bar', data:{labels:mesiEstero, datasets:[{label:'Volume (€)',data:mesiEstero.map(m=>daEsteroVolMonth[m]||0),backgroundColor:PALETTE.accent}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
+  mkChart('monDaEsteroVolChart',{type:'bar', data:{labels:mesiEstero, datasets:[{label:'Volume (€)',data:mesiEstero.map(m=>daEsteroVolMonth[m]||0),backgroundColor:PALETTE.accent}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.warn}}}}});
 
   mkChart('monDaEsteroPaeseChart',{type:'bar', data:{labels:paeseListDaEstero, datasets:[{label:'Bonifici',data:paeseListDaEstero.map(p=>daEsteroPaese[p]||0),backgroundColor:PALETTE.violet}]}, options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false},ticks:{font:{size:10}}}}}});
 
@@ -2505,7 +2505,7 @@ function renderMonetica(panel){
 
   mkChart('monCassetteChart',{type:'bar', data:{labels:months, datasets:[{label:'Cassette',data:months.map(m=>cassetteMonth[m]||0),backgroundColor:PALETTE.warn}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
 
-  mkChart('monBuCassetteChart',{type:'bar', data:{labels:byBuCassette.map(x=>x[0]), datasets:[{label:'Cassette',data:byBuCassette.map(x=>x[1]),backgroundColor:PALETTE.violet}]}, options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false},ticks:{font:{size:10}}}}}});
+  mkChart('monBuCassetteChart',{type:'bar', data:{labels:byBuCassette.map(x=>x[0]), datasets:[{label:'Cassette',data:byBuCassette.map(x=>x[1]),backgroundColor:PALETTE.violet}]}, options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.danger}}, y:{grid:{display:false},ticks:{font:{size:10}}}}}});
 }
 
 /* ============================================================
