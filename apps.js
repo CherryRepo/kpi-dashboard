@@ -550,75 +550,114 @@ document.addEventListener('DOMContentLoaded', () => {
 /* ============================================================
    PANEL: OVERVIEW / DIMENSIONAMENTO
    ============================================================ */
-function renderOverview(panel){
+function renderOverview(panel) {
   const rows = STATE.dimRows;
-  if(!rows.length){ panel.innerHTML = '<div class="no-data">Nessun dato di dimensionamento nel primo foglio.</div>'; return; }
+  if (!rows.length) {
+    panel.innerHTML = '<div class="no-data">Nessun dato di dimensionamento nel primo foglio.</div>';
+    return;
+  }
 
-  const totHC = rows.reduce((a,r)=> a + (Number(r.HC)||0), 0);
-  const totFteAsIs = rows.reduce((a,r)=> a + (Number(r['FTE AS IS - in forza'])||0), 0);
-  const totFteStim = rows.reduce((a,r)=> a + (Number(r['FTE Stimati'])||0), 0);
-  const totNS = rows.reduce((a,r)=> a + (Number(r['Need/Surplus'])||0), 0);
-  const nDeficit = rows.filter(r=> (Number(r['Need/Surplus'])||0) < -0.5).length;
-  const nSurplus = rows.filter(r=> (Number(r['Need/Surplus'])||0) > 0.5).length;
+  const totHC = rows.reduce((a, r) => a + (Number(r.HC) || 0), 0);
+  const totFteAsIs = rows.reduce((a, r) => a + (Number(r['FTE AS IS - in forza']) || 0), 0);
+  const totFteStim = rows.reduce((a, r) => a + (Number(r['FTE Stimati']) || 0), 0);
+  const totNS = rows.reduce((a, r) => a + (Number(r['Need/Surplus']) || 0), 0);
+  const nDeficit = rows.filter(r => (Number(r['Need/Surplus']) || 0) < -0.5).length;
+  const nSurplus = rows.filter(r => (Number(r['Need/Surplus']) || 0) > 0.5).length;
 
-  const uo1Options = [...new Set(rows.map(r=>r.uo1livello_descrizione).filter(Boolean))];
+  const uo1Options = [...new Set(rows.map(r => r.uo1livello_descrizione).filter(Boolean))];
 
   panel.innerHTML = `
-    <div class="panel-head"><h2>Overview</h2><span class="meta">${rows.length} strutture censite</span></div>
+    <div class="panel-head">
+      <h2>Overview</h2>
+      <span class="meta">${rows.length} strutture censite</span>
+    </div>
     <div class="kpi-row">
-      <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Headcount totale</div><div class="val">${fmtInt.format(totHC)}</div></div>
-      <div class="kpi" style="--kc:${PALETTE.accent}"><div class="lbl">FTE as-is</div><div class="val">${fmtDec.format(totFteAsIs)}</div></div>
-      <div class="kpi" style="--kc:${PALETTE.violet}"><div class="lbl">FTE stimati</div><div class="val">${fmtDec.format(totFteStim)}</div></div>
-      <div class="kpi" style="--kc:${totNS>=0?PALETTE.warn:PALETTE.danger}"><div class="lbl">Need / Surplus netto</div><div class="val">${totNS>0?'+':''}${fmtDec.format(totNS)}</div>
-        <div class="sub">${nDeficit} strutture in deficit · ${nSurplus} in surplus</div></div>
+      <div class="kpi" style="--kc:${PALETTE.info}">
+        <div class="lbl">Headcount totale</div>
+        <div class="val">${fmtInt.format(totHC)}</div>
+      </div>
+      <div class="kpi" style="--kc:${PALETTE.accent}">
+        <div class="lbl">FTE as-is</div>
+        <div class="val">${fmtDec.format(totFteAsIs)}</div>
+      </div>
+      <div class="kpi" style="--kc:${PALETTE.violet}">
+        <div class="lbl">FTE stimati</div>
+        <div class="val">${fmtDec.format(totFteStim)}</div>
+      </div>
+      <div class="kpi" style="--kc:${totNS >= 0 ? PALETTE.warn : PALETTE.danger}">
+        <div class="lbl">Need / Surplus netto</div>
+        <div class="val">${totNS > 0 ? '+' : ''}${fmtDec.format(totNS)}</div>
+        <div class="sub">${nDeficit} strutture in deficit · ${nSurplus} in surplus</div>
+      </div>
     </div>
     <div class="filters">
-      <select id="ovFilterUo1"><option value="">Tutte le direzioni (UO1)</option>${uo1Options.map(o=>`<option value="${o}">${o}</option>`).join('')}</select>
+      <select id="ovFilterUo1">
+        <option value="">Tutte le direzioni (UO1)</option>
+        ${uo1Options.map(o => `<option value="${o}">${o}</option>`).join('')}
+      </select>
       <input class="textfilter" id="ovSearch" placeholder="Cerca struttura...">
     </div>
     <div id="ovAreaGrid" class="area-grid"></div>
-    <p class="hint" style="margin:6px 0 18px">Delta FTE = FTE Need − FTE as-is. Verde: capacità adeguata o in surplus · Ambra: fabbisogno aggiuntivo.</p>
-    <h3 style="font-family:var(--font-display);font-size:14px;color:var(--navy-2);margin:4px 0 10px">Vista tabellare dettagliata</h3>
+    <p class="hint" style="margin:6px 0 18px">
+      Delta FTE = FTE Need − FTE as-is. Verde: capacità adeguata o in surplus · Ambra: fabbisogno aggiuntivo.
+    </p>
+    <h3 style="font-family:var(--font-display);font-size:14px;color:var(--navy-2);margin:4px 0 10px">
+      Vista tabellare dettagliata
+    </h3>
     <div class="table-wrap scroll">
       <table class="dt" id="ovTable"></table>
     </div>
   `;
 
-  function draw(){
+  function draw() {
     const uo1 = document.getElementById('ovFilterUo1').value;
     const q = document.getElementById('ovSearch').value.toLowerCase();
-    let f = rows.filter(r=> (!uo1 || r.uo1livello_descrizione===uo1) && (!q || String(r['UO LAST']||'').toLowerCase().includes(q)));
+    let f = rows.filter(r =>
+      (!uo1 || r.uo1livello_descrizione === uo1) &&
+      (!q || String(r['UO LAST'] || '').toLowerCase().includes(q))
+    );
 
     // grouped area tables (visual style: banner per area + pill values)
     const areaGrid = document.getElementById('ovAreaGrid');
-    const areaOrder = [...new Set(f.map(r=>r.uo1livello_descrizione || '(area non specificata)'))];
-    areaGrid.innerHTML = areaOrder.map(area=>{
-      const areaRows = f.filter(r=> (r.uo1livello_descrizione || '(area non specificata)') === area);
+    const areaOrder = [...new Set(f.map(r => r.uo1livello_descrizione || '(area non specificata)'))];
+    areaGrid.innerHTML = areaOrder.map(area => {
+      const areaRows = f.filter(r =>
+        (r.uo1livello_descrizione || '(area non specificata)') === area
+      );
       return `
-      <div class="area-block">
-        <table class="area-table">
-          <thead>
-            <tr class="area-name-row">
-              <th>${area}</th>
-              <th class="spacer"></th>
-              <th class="group-label" colspan="3">Totale struttura</th>
-            </tr>
-            <tr class="col-label-row">
-              <th></th><th></th><th>FTE AS-IS</th><th>FTE NEED</th><th>Delta FTE</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${areaRows.map(r=>`
-              <tr>
-                <td>${r['UO LAST']||''}</td>
-                <td class="tdspacer"></td>
-                <td class="numcell">${pillFte(r['FTE AS IS - in forza'])}</td>
-                <td class="numcell">${pillFte(r['FTE Stimati'])}</td>
-                <td class="numcell">${pillDelta(r['Need/Surplus'])}</td>
-              </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>`;
+        <div class="area-block">
+          <table class="area-table">
+            <thead>
+              <tr class="area-name-row">
+                <th>${area}</th>
+                <th class="spacer"></th>
+                <th class="group-label" colspan="3">Totale struttura</th>
+              </tr>
+              <tr class="col-label-row">
+                <th></th>
+                <th></th>
+                <th>FTE AS-IS</th>
+                <th>FTE NEED</th>
+                <th>Delta FTE</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${areaRows
+                .map(
+                  r => `
+                <tr>
+                  <td>${r['UO LAST'] || ''}</td>
+                  <td class="tdspacer"></td>
+                  <td class="numcell">${pillFte(r['FTE AS IS - in forza'])}</td>
+                  <td class="numcell">${pillFte(r['FTE Stimati'])}</td>
+                  <td class="numcell">${pillDelta(r['Need/Surplus'])}</td>
+                </tr>`
+                )
+                .join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
     }).join('');
 
     const table = document.getElementById('ovTable');
@@ -638,29 +677,40 @@ function renderOverview(panel){
         </tr>
       </thead>
       <tbody>
-        ${f.map(r=>{
-          const ns = Number(r['Need/Surplus'])||0;
-          return `
+        ${f
+          .map(r => {
+            const ns = Number(r['Need/Surplus']) || 0;
+            return `
             <tr class="table-row-org">
-              <td>${r['UO LAST']||''}</td>
-              <td>${r.uo1livello_descrizione||''}</td>
-              <td>${r.uo2livello_descrizione||''}</td>
-              <td>${r.HC??''}</td>
-              <td>${r['HC - in forza']??''}</td>
+              <td>${r['UO LAST'] || ''}</td>
+              <td>${r.uo1livello_descrizione || ''}</td>
+              <td>${r.uo2livello_descrizione || ''}</td>
+              <td>${r.HC ?? ''}</td>
+              <td>${r['HC - in forza'] ?? ''}</td>
             </tr>
             <tr class="table-row-lending">
-              <td>${r['FTE AS IS - in forza']!=null?fmtDec.format(r['FTE AS IS - in forza']):''}</td>
-              <td>${r['FTE Stimati']!=null?fmtDec.format(r['FTE Stimati']):''}</td>
-              <td><span class="badge ${ns<0?'neg':'pos'}">${ns>0?'+':''}${fmtDec.format(ns)}</span></td>
+              <td>${
+                r['FTE AS IS - in forza'] != null
+                  ? fmtDec.format(r['FTE AS IS - in forza'])
+                  : ''
+              }</td>
+              <td>${r['FTE Stimati'] != null ? fmtDec.format(r['FTE Stimati']) : ''}</td>
+              <td>
+                <span class="badge ${ns < 0 ? 'neg' : 'pos'}">
+                  ${ns > 0 ? '+' : ''}${fmtDec.format(ns)}
+                </span>
+              </td>
             </tr>`;
-        }).join('')}
-      </tbody>`;
+          })
+          .join('')}
+      </tbody>
+    `;
   }
+
   document.getElementById('ovFilterUo1').onchange = draw;
   document.getElementById('ovSearch').oninput = draw;
   draw();
 }
-
 
 /* ============================================================
    Shared: struttura header card for domain panels
