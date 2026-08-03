@@ -363,6 +363,7 @@ function el(tag, cls, html){
 function buildSidebar(){
   const nav = document.getElementById('navList');
   nav.innerHTML = '';
+  const itemOrder = ['overview', 'ordinario', 'speciale', 'perfezionamenti', 'factoring', 'anagrafe', 'antifrode', 'ops_aml', 'bancassurance', 'digital', 'monetica'];
   const items = [{key:'overview', label:'Panoramica dimensionamento', tag:'DIM'}];
   const digitalTypes = ['digital_rapporti','digital_frodi','digital_raisin'];
   const moneticaTypes = ['monetica_bonifici_banca','monetica_cassa','monetica_cassette','monetica_bonifici_estero'];
@@ -377,6 +378,7 @@ function buildSidebar(){
     bancassurance:'Wealth & Bancassurance',
     generic:'Foglio dati'
   };
+  
   STATE.domainSheets.forEach((s, idx)=>{
     if(digitalTypes.includes(s.type) || moneticaTypes.includes(s.type)) return;
     const structLabel = s.dimRow 
@@ -412,6 +414,14 @@ function buildSidebar(){
       tag:'FAC'
     });
   }
+
+  items.sort((a, b) => {
+    const indexA = itemOrder.indexOf(a.key);
+    const indexB = itemOrder.indexOf(b.key);
+    const posA = indexA === -1 ? 999 : indexA;
+    const posB = indexB === -1 ? 999 : indexB;
+    return posA - posB;
+  });
 
   items.forEach(it=>{
     const div = el('div','nav-item',`<span class="dot"></span><span>${it.label}</span><small>${it.tag}</small>`);
@@ -513,7 +523,10 @@ function activateTab(key){
   else renderGeneric(panel, s);
 }
 
-document.addEventListener('DOMContentLoaded', setupFileHandling);
+document.addEventListener('DOMContentLoaded', () => {
+  setupFileHandling();
+  activateTab('overview');
+});
 
 /* ============================================================
    PANEL: OVERVIEW / DIMENSIONAMENTO
