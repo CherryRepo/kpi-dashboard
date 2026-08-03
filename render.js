@@ -1,8 +1,3 @@
-// Accedi ai task data in qualsiasi render
-const taskData = getTaskDataForSheet(s.sheetName);
-// Oppure filtra
-const filteredTasks = getTaskDataByFilter(s.sheetName, row => row.status === 'active');
-
 /* ============================================================
    SIDEBAR
    ============================================================ */
