@@ -6,50 +6,11 @@
   <title>Sala Controllo</title>
   <link rel="stylesheet" href="styles.css">
 
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      // Aspetta che entrambi gli script siano pronti
-      const checkReady = setInterval(() => {
-        if (window.READY.isReady) {
-          clearInterval(checkReady);
-          console.log('✅ Applicazione pronta');
-          // Opzionale: nascondi loading, show UI
-          const loadingBar = document.getElementById('loadingBar');
-          if (loadingBar) loadingBar.style.opacity = '0.5';
-        }
-      }, 50);
-    });
-  </script>
-  
   <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
   <script src="db_reader.js"></script>
   <script src="render.js"></script>
-
-    <!-- Trigger finale -->
-  <script>
-    console.log('🔧 Trigger script caricato');
-    
-    document.addEventListener('DOMContentLoaded', () => {
-      console.log('📍 DOMContentLoaded - inizio check');
-      console.log('  READY:', window.READY);
-      
-      const checkReady = setInterval(() => {
-        console.log(`⏳ Check: core=${window.READY.core}, renderers=${window.READY.renderers}`);
-        
-        if (window.READY && window.READY.isReady) {
-          clearInterval(checkReady);
-          console.log('✅ Applicazione completamente pronta!');
-        }
-      }, 200);
-      // Timeout di sicurezza
-      setTimeout(() => {
-        clearInterval(checkReady);
-        console.warn('⏱️ Timeout raggiunto');
-      }, 5000);
-    });
-  </script>
 </head>
 
 <body>

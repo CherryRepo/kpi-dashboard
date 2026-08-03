@@ -192,11 +192,9 @@ function handleFile(file) {
    ============================================================ */
 
 window.addEventListener('DOMContentLoaded', () => {
-  console.log('🚀 db_reader.js caricato');
+  console.log('🚀 Pagina caricata');
   initXLSX(() => {
     setupFileHandling();
-    window.READY.core = true; // ← Flag
-    console.log('✅ Core pronto');
   });
 });
 
@@ -362,10 +360,3 @@ function el(tag, cls, html){
   return e;
 }
 
-console.log('📦 db_reader.js completamente caricato');
-if (window.READY) {
-  window.READY.core = true;
-  console.log('✔️ READY.core = true');
-} else {
-  console.error('❌ window.READY non trovato!');
-}

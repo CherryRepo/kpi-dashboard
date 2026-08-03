@@ -2170,16 +2170,3 @@ function renderGeneric(panel, s){
     </div>
   `;
 }
-
-window.addEventListener('DOMContentLoaded', () => {
-  window.READY.renderers = true; // ← Flag
-  console.log('✅ Renderers pronti');
-});
-
-console.log('📦 render.js completamente caricato');
-if (window.READY) {
-  window.READY.renderers = true;
-  console.log('✔️ READY.renderers = true');
-} else {
-  console.error('❌ window.READY non trovato!');
-}
