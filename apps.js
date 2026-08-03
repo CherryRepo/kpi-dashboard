@@ -378,7 +378,7 @@ function buildSidebar(){
     bancassurance:'Wealth & Bancassurance',
     generic:'Foglio dati'
   };
-  
+
   STATE.domainSheets.forEach((s, idx)=>{
     if(digitalTypes.includes(s.type) || moneticaTypes.includes(s.type)) return;
     const structLabel = s.dimRow 
@@ -462,7 +462,7 @@ function buildTabs(){
   const bar = document.getElementById('tabsBar');
   const panels = document.getElementById('panels');
   bar.innerHTML = ''; panels.innerHTML = '';
-
+  const tabOrder = ['overview', 'ordinario', 'speciale', 'perfezionamenti', 'factoring', 'anagrafe', 'antifrode', 'ops_aml', 'bancassurance', 'digital', 'monetica'];
   const tabDefs = [{key:'overview', label:'Overview'}];
   const digitalTypes = ['digital_rapporti','digital_frodi','digital_raisin'];
   const moneticaTypes = ['monetica_bonifici_banca','monetica_cassa','monetica_cassette', 'monetica_bonifici_estero'];
@@ -470,28 +470,33 @@ function buildTabs(){
   const hasDigital = STATE.domainSheets.some(s => digitalTypes.includes(s.type));
   const hasMonetica = STATE.domainSheets.some(s => moneticaTypes.includes(s.type));
   const hasFactoring = STATE.domainSheets.some(s => factoringTypes.includes(s.type));
-
   const labelMap = {ordinario:'Credito & Factoring', speciale:'Credito Speciale', perfezionamenti:'Perfezionamenti credito ordinario', anagrafe:'Anagrafe', antifrode:'Antifrode', ops_aml:'OPS AML', bancassurance:'Wealth & Bancassurance'};
-
   STATE.domainSheets.forEach((s, idx)=>{
     if(digitalTypes.includes(s.type) || moneticaTypes.includes(s.type) || factoringTypes.includes(s.type)) return;
     tabDefs.push({key:'d'+idx, label:labelMap[s.type] || 'Dati (' + s.sheetName + ')'});
   });
-
   if(hasDigital) tabDefs.push({key:'digital', label:'Digital Bank'});
   if(hasMonetica) tabDefs.push({key:'monetica', label:'OPS Incassi, Pagamenti e Monetica'});
   if(hasFactoring) tabDefs.push({key:'factoring', label:'Factoring'});
-
+  // ← AGGIUNGI ORDINAMENTO
+  tabDefs.sort((a, b) => {
+    const indexA = tabOrder.indexOf(a.key);
+    const indexB = tabOrder.indexOf(b.key);
+    const posA = indexA === -1 ? 999 : indexA;
+    const posB = indexB === -1 ? 999 : indexB;
+    return posA - posB;
+  });
   tabDefs.forEach(t=>{
     const tab = el('div','tab',`<span>${t.label}</span>`);
     tab.dataset.key = t.key;
     tab.onclick = ()=>activateTab(t.key);
     bar.appendChild(tab);
-
     const panel = el('div','panel','');
     panel.id = 'panel-' + t.key;
     panels.appendChild(panel);
   });
+
+  activateTab('overview');
 }
 
 
@@ -525,7 +530,6 @@ function activateTab(key){
 
 document.addEventListener('DOMContentLoaded', () => {
   setupFileHandling();
-  activateTab('overview');
 });
 
 /* ============================================================
