@@ -233,8 +233,28 @@ function parseWorkbook(wb) {
   const dimJson = XLSX.utils.sheet_to_json(dimSheet, { defval: null });
   STATE.dimRows = dimJson;
   STATE.dimHeaders = dimJson.length ? Object.keys(dimJson[0]) : [];
+
+  if (sheetNames.length > 1) {
+    const taskSheet = wb.Sheets[sheetNames[1]];
+    const taskJson = XLSX.utils.sheet_to_json(taskSheet, { defval: null });
+    STATE.taskData = taskJson.map(row => ({
+      id_task: row.id_task || null,
+      nome_task: row.nome_task || null,
+      pezzi: row.pezzi ? Number(row.pezzi) : null,
+      tempi: row.tempi ? Number(row.tempi) : null,
+      fte_teorico: row.fte_teorico ? Number(row.fte_teorico) : null,
+      fte_asis_ripartito: row.fte_asis_ripartito ? Number(row.fte_asis_ripartito) : null,
+      ripartizione: row.Ripartizione ? Number(row.Ripartizione) : null,
+      id_uo: normalizeId(row.id_uo)
+    }));
+  } else {
+    STATE.taskData = [];
+  }
+
   STATE.domainSheets = [];
-  for (let i = 1; i < sheetNames.length; i++) {
+  
+  // 📌 FOGLI RESTANTI: Domain sheets
+  for (let i = 2; i < sheetNames.length; i++) {
     const name = sheetNames[i];
     const ws = wb.Sheets[name];
     const rows = XLSX.utils.sheet_to_json(ws, { defval: null });
@@ -244,6 +264,7 @@ function parseWorkbook(wb) {
     const dimRow = findDimRow(name);
     STATE.domainSheets.push({ sheetName: name, type, headers, rows, dimRow });
   }
+  
   const typeOrder = ['ordinario', 'speciale', 'perfezionamenti', 'anagrafe', 'antifrode', 'ops_aml', 'bancassurance', 'generic'];
   STATE.domainSheets.sort((a, b) => {
     const orderA = typeOrder.indexOf(a.type);
@@ -264,7 +285,7 @@ function classifySheet(sheetName) {
   if (name.includes('10001100023100036v4')) return 'monetica_bonifici_estero';
   if (name.includes('10001100023100034')) return 'ops_aml';
   if (name.includes('10001100023100044')) return 'antifrode';
-  if (name.includes('100011000231')) return 'anagrafe';
+  if (name.includes('10001100023000001')) return 'anagrafe';
   if (name.includes('10004100067100079')) return 'perfezionamenti';
   if (name.includes('10004100067100080v1')) return 'factoring_cedenti';
   if (name.includes('10004100067100080v2')) return 'factoring_debitori';
@@ -280,6 +301,28 @@ function findDimRow(sheetName) {
     row = STATE.dimRows.find(r => String(r.ID).startsWith(String(sheetName).slice(0, 8)));
   }
   return row || null;
+}
+
+/**
+ * Normalizza gli ID da formato "10001-100023-100034----" 
+ * a formato "10001100023100034"
+ */
+function normalizeId(id) {
+  if (!id) return null;
+  return String(id).replace(/-/g, '').trim();
+}
+/**
+ * Trova le task associate a uno sheet in base all'ID
+ */
+function getTasksForSheet(sheetName) {
+  const normalizedSheetId = normalizeId(sheetName);
+  if (!normalizedSheetId) return [];
+  
+  return STATE.taskData.filter(task => {
+    if (!task.id_uo) return false;
+    // Match esatto cifra per cifra
+    return task.id_uo === normalizedSheetId;
+  });
 }
 
 /* ============================================================

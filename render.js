@@ -396,6 +396,48 @@ function structHeaderHtml(s, panelTitle){
     </table>`;
 }
 
+
+/* ============================================================
+   Shared: tabella HTML per le task associate a uno sheet
+   ============================================================ */
+function renderTaskTable(tasks) {
+  if (!tasks || tasks.length === 0) {
+    return '<p class="hint">Nessuna task associata a questa UO.</p>';
+  }
+  
+  return `
+    <div class="section-title">Task associate <span class="count-badge">${tasks.length} task</span></div>
+    <div class="table-wrap">
+      <table class="task-table">
+        <thead>
+          <tr>
+            <th style="text-align:left">ID Task</th>
+            <th style="text-align:left">Nome Task</th>
+            <th style="text-align:center">Pezzi</th>
+            <th style="text-align:center">Tempi (min)</th>
+            <th style="text-align:center">FTE Teorico</th>
+            <th style="text-align:center">FTE AS-IS Ripartito</th>
+            <th style="text-align:center">Ripartizione</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tasks.map(t => `
+            <tr>
+              <td style="text-align:left">${t.id_task || '—'}</td>
+              <td style="text-align:left">${t.nome_task || '—'}</td>
+              <td style="text-align:center">${t.pezzi !== null ? fmtDec.format(t.pezzi) : '—'}</td>
+              <td style="text-align:center">${t.tempi !== null ? fmtDec.format(t.tempi) : '—'}</td>
+              <td style="text-align:center">${t.fte_teorico !== null ? fmtDec.format(t.fte_teorico) : '—'}</td>
+              <td style="text-align:center">${t.fte_asis_ripartito !== null ? fmtDec.format(t.fte_asis_ripartito) : '—'}</td>
+              <td style="text-align:center; color:${PALETTE.info}; font-weight:500">${t.ripartizione !== null ? fmtDec.format(t.ripartizione * 100) + '%' : '—'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
 /* ============================================================
    PANEL: CREDITO ORDINARIO & FACTORING
    ============================================================ */
@@ -533,6 +575,8 @@ function renderCredito(panel, s){
         <canvas id="crTipoChart"></canvas>
       </div>
     </div>
+
+    ${renderTaskTable(getTasksForSheet(s.sheetName))}
   `;
 
   mkChart('crOrganoChart', {type:'bar', data:{labels:byOrgano.map(x=>x[0]), datasets:[{label:'Pratiche', data:byOrgano.map(x=>x[1]), backgroundColor:PALETTE.info}]},
@@ -692,6 +736,8 @@ function renderCreditoSpeciale(panel, s){
         <canvas id="crTipoChart2"></canvas>
       </div>
     </div>
+
+    ${renderTaskTable(getTasksForSheet(s.sheetName))}
   `;
 
   mkChart('crOrganoChart2', {type:'bar', data:{labels:byOrgano.map(x=>x[0]), datasets:[{label:'Pratiche', data:byOrgano.map(x=>x[1]), backgroundColor:PALETTE.info}]},
@@ -834,6 +880,8 @@ function renderPerfezionamenti(panel, s){
       <p class="card-sub">Pratiche 2026</p>
       <canvas id="crBuChart"></canvas>
     </div>
+
+    ${renderTaskTable(getTasksForSheet(s.sheetName))}
   `;
 
   // ============================================================
@@ -1174,6 +1222,8 @@ function renderFactoring(panel, s){
         <canvas id="dbNdgPerProdotto"></canvas>
       </div>
     </div>
+
+    ${renderTaskTable(getTasksForSheet(s.sheetName))}
   `;
 
   // ============================================================
@@ -1389,6 +1439,8 @@ function renderAnagrafe(panel, s){
       <div class="card"><h3>Natura giuridica (top 12)</h3><p class="card-sub">forma societaria dei nominativi censiti</p><canvas id="anNaturaChart"></canvas></div>
       <div class="card"><h3>Stato cliente</h3><p class="card-sub">${statusCounts.length? 'des_status_generic' : 'dato non disponibile'}</p><canvas id="anStatusChart"></canvas></div>
     </div>
+
+    ${renderTaskTable(getTasksForSheet(s.sheetName))}
   `;
 
   mkChart('anTrendChart', {type:'line', data:{labels:months, datasets:[{label:'Censimenti', data:months.map(m=>byMonth.get(m)), borderColor:PALETTE.info, backgroundColor:'rgba(47,111,179,0.12)', fill:true, tension:.3}]},
@@ -1445,6 +1497,8 @@ function renderAntifrode(panel, s){
     <div class="grid cols-2" style="margin-bottom:16px">
       <div class="card" style="grid-column:1/-1"><h3>Volumi per cluster di frode</h3><p class="card-sub">tipologia di frode rilevata</p><canvas id="afClusterChart"></canvas></div>
     </div>
+
+    ${renderTaskTable(getTasksForSheet(s.sheetName))}
   `;
 
   const classColors = {'FRODE CONFERMATA':PALETTE.danger, 'FALSO POSITIVO FRODE':PALETTE.warn, 'NON CLASSIFICABILE':PALETTE.info};
@@ -1531,6 +1585,8 @@ function renderOpsAml(panel, s){
       <div class="card"><h3>Stato workflow (rischio alto)</h3><p class="card-sub">NDG distinti</p><canvas id="amlWorkflowChart"></canvas></div>
       <div class="card"><h3>Tipo verifica (rischio alto)</h3><p class="card-sub">NDG distinti</p><canvas id="amlTipoChart"></canvas></div>
     </div>
+
+    ${renderTaskTable(getTasksForSheet(s.sheetName))}
   `;
 
   // GRAFICI
@@ -1586,6 +1642,8 @@ function renderBancassurance(panel, s){
         <canvas id="baVolumeChart"></canvas>
       </div>
     </div>
+
+    ${renderTaskTable(getTasksForSheet(s.sheetName))}
   `;
 
   mkChart('baOrdiniChart', { type: 'bar', data: { labels: months, datasets: statiArray.map(stato => ({ label: stato, data: months.map(m => ordiniByMonthStato[m]?.[stato] || 0), backgroundColor: statoColorMap[stato], borderColor: statoColorMap[stato], borderWidth: 0 })) }, options: { scales: { x: {stacked: true, grid: {display: false}}, y: {stacked: true, grid: {color: PALETTE.grid}} }, plugins: { legend: {position: 'bottom', labels: {boxWidth: 10, font: {size: 10.5}}} } } });
@@ -1755,6 +1813,8 @@ function renderDigital(panel){
       <p class="card-sub">Numero bonifici analizzati - 2026</p>
       <canvas id="digitalRaisinChart"></canvas>
     </div>
+
+    ${renderTaskTable(getTasksForSheet(s.sheetName))}
   `;
 
   // ============================================================
@@ -2142,6 +2202,8 @@ function renderMonetica(panel){
         <canvas id="monBuCassetteChart"></canvas>
       </div>
     </div>
+
+    ${renderTaskTable(getTasksForSheet(s.sheetName))}
   `;
 
   mkChart('monBonificiChart',{type:'bar', data:{labels:months, datasets:[{label:'Bonifici',data:months.map(m=>bonificiMonth[m]||0),backgroundColor:PALETTE.info}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
