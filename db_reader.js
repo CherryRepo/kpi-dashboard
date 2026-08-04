@@ -105,7 +105,7 @@ function setupFileHandling() {
   // Bottone per caricare il file
   if (btnLoadMain && fileInputMain) {
     btnLoadMain.addEventListener('click', () => {
-      fileInputMain.value = ''; // Reset PRIMA di cliccare
+      fileInputMain.value = '';
       fileInputMain.click();
     });
   }
@@ -123,7 +123,7 @@ function setupFileHandling() {
   // Drop zone
   if (dropZone && fileInputMain) {
     dropZone.addEventListener('click', () => {
-      fileInputMain.value = ''; // Reset PRIMA di cliccare
+      fileInputMain.value = '';
       fileInputMain.click();
     });
 
@@ -145,24 +145,35 @@ function setupFileHandling() {
     });
   }
 
-  // All'apertura: cerca il file nello storage
+  // All'apertura: carica il file dallo storage
   loadCachedFile();
 }
 
-// Carica il file dallo storage
+// Carica il file dallo storage all'apertura
 async function loadCachedFile() {
-  const cached = await loadFileFromIndexedDB('database_v1_filtrato');
-  
-  if (cached) {
-    try {
+  try {
+    const cached = await loadFileFromIndexedDB('database_v1_filtrato');
+    
+    if (cached) {
+      const loadingBar = document.getElementById('loadingBar');
+      if (loadingBar) loadingBar.style.display = 'block';
+
       const wb = XLSX.read(cached, { type: 'array', cellDates: true });
       parseWorkbook(wb);
-      buildTabs();
+      
+      // ⭐ Attendi che tutti i tab siano pronti
+      await buildTabsAsync();
+      
       document.getElementById('emptyState').style.display = 'none';
       document.getElementById('dashboard').style.display = 'block';
-    } catch (e) {
-      console.error('Errore caricamento:', e);
+
+      // ⭐ NASCONDE LA BARRA SOLO ALLA FINE
+      if (loadingBar) loadingBar.style.display = 'none';
     }
+  } catch (e) {
+    console.error('Errore caricamento cache:', e);
+    const loadingBar = document.getElementById('loadingBar');
+    if (loadingBar) loadingBar.style.display = 'none';
   }
 }
 
@@ -191,10 +202,14 @@ function handleFileMain(file) {
       parseWorkbook(wb);
       await saveFileToIndexedDB('database_v1_filtrato', e.target.result);
 
-      if (loadingBar) loadingBar.style.display = 'none';
-      buildTabs();
+      // ⭐ Attendi che tutti i tab siano pronti
+      await buildTabsAsync();
+
       document.getElementById('emptyState').style.display = 'none';
       document.getElementById('dashboard').style.display = 'block';
+
+      // ⭐ NASCONDE LA BARRA SOLO ALLA FINE
+      if (loadingBar) loadingBar.style.display = 'none';
 
     } catch (err) {
       if (loadingBar) loadingBar.style.display = 'none';
@@ -213,13 +228,6 @@ function handleFileMain(file) {
     reader.readAsArrayBuffer(file);
   }
 }
-
-window.addEventListener('DOMContentLoaded', () => {
-  if (typeof XLSX !== 'undefined') {
-    setupFileHandling();
-  }
-});
-
 
 function handleFileTask(file) {
   if (typeof XLSX === 'undefined') {
@@ -248,17 +256,21 @@ function handleFileTask(file) {
       parseTaskWorkbook(wb);
       await saveFileToIndexedDB('database_task', e.target.result);
 
-      if (loadingBar) loadingBar.style.display = 'none';
-
-      // Ricarica anche il main
-      const cachedMain = await loadFileFromIndexedDB('database_main');
+      // Ricarica il main
+      const cachedMain = await loadFileFromIndexedDB('database_v1_filtrato');
       if (cachedMain) {
         const wb2 = XLSX.read(cachedMain, { type: 'array', cellDates: true });
         parseWorkbook(wb2);
-        buildTabs();
+
+        // ⭐ Attendi che tutti i tab siano pronti
+        await buildTabsAsync();
+
         document.getElementById('emptyState').style.display = 'none';
         document.getElementById('dashboard').style.display = 'block';
       }
+
+      // ⭐ NASCONDE LA BARRA SOLO ALLA FINE
+      if (loadingBar) loadingBar.style.display = 'none';
 
     } catch (err) {
       if (loadingBar) loadingBar.style.display = 'none';
@@ -390,6 +402,11 @@ function findDimRow(sheetName) {
    ============================================================ */
 
 function enrichSheetWithTaskData(s) {
+  if (!s || !s.sheetName) {
+    console.warn('enrichSheetWithTaskData: sheet is invalid', s);
+    return s;
+  }
+
   const taskData = getTaskDataForSheet(s.sheetName);
   const taskActive = getTaskDataByFilter(s.sheetName, row => row.status === 'active');
   
@@ -402,12 +419,32 @@ function enrichSheetWithTaskData(s) {
 }
 
 /* ============================================================
+   BUILD TABS ASYNC
+   ============================================================ */
+
+async function buildTabsAsync() {
+  return new Promise((resolve) => {
+    // Chiama la funzione buildTabs() (che deve essere in render.js)
+    if (typeof buildTabs === 'function') {
+      buildTabs();
+    }
+    
+    // Attendi che il DOM sia aggiornato
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        resolve();
+      });
+    });
+  });
+}
+
+/* ============================================================
    INITIALIZATION
    ============================================================ */
 
 window.addEventListener('DOMContentLoaded', () => {
   if (typeof XLSX !== 'undefined') {
-    setupFileHandling(); // ✅ NO await - bottoni pronti subito
+    setupFileHandling();
   } else {
     alert('❌ Errore: La libreria Excel non è stata caricata.\nRicarica la pagina e riprova.');
   }
