@@ -1223,7 +1223,7 @@ function renderFactoring(panel, s){
       </div>
     </div>
 
-    ${renderTaskTable(getTasksForSheet(s.sheetName))}
+    ${renderTaskTable(getTasksForSheet(FACTORING_ID))}
   `;
 
   // ============================================================
@@ -1814,7 +1814,7 @@ function renderDigital(panel){
       <canvas id="digitalRaisinChart"></canvas>
     </div>
 
-    ${renderTaskTable(getTasksForSheet(s.sheetName))}
+    ${renderTaskTable(getTasksForSheet(DIGITAL_BANK_ID))}
   `;
 
   // ============================================================
@@ -2203,7 +2203,7 @@ function renderMonetica(panel){
       </div>
     </div>
 
-    ${renderTaskTable(getTasksForSheet(s.sheetName))}
+    ${renderTaskTable(getTasksForSheet(MONETICA_ID))}
   `;
 
   mkChart('monBonificiChart',{type:'bar', data:{labels:months, datasets:[{label:'Bonifici',data:months.map(m=>bonificiMonth[m]||0),backgroundColor:PALETTE.info}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
