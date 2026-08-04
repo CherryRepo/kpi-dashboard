@@ -84,7 +84,7 @@ function buildSidebar(){
   STATE.dimRows.forEach(r=>{
     const ns = Number(r['Need/Surplus'])||0;
     const depth = ['uo1livello_descrizione','uo2livello_descrizione','uo3livello_descrizione','uo4livello_descrizione','nucleo_descrizione'].filter(k=>r[k] && String(r[k]).trim() !== '').length;
-    const color = ns < -0.5 ? PALETTE.danger : ns > 0.5 ? PALETTE.warn : PALETTE.accent;
+    const color = ns < -0.5 ? PALETTE.danger : ns > 0.5 ? PALETTE.warn : PALETTE.info;
     const barH = 6 + Math.round((Math.abs(ns)/maxAbs)*16);
 
     const row = el('div','tree-row');
@@ -219,11 +219,11 @@ function renderOverview(panel) {
         <div class="lbl">Headcount totale</div>
         <div class="val">${fmtInt.format(totHC)}</div>
       </div>
-      <div class="kpi" style="--kc:${PALETTE.accent}">
+      <div class="kpi" style="--kc:${PALETTE.info}">
         <div class="lbl">FTE as-is</div>
         <div class="val">${fmtDec.format(totFteAsIs)}</div>
       </div>
-      <div class="kpi" style="--kc:${PALETTE.violet}">
+      <div class="kpi" style="--kc:${PALETTE.warn}">
         <div class="lbl">FTE stimati</div>
         <div class="val">${fmtDec.format(totFteStim)}</div>
       </div>
@@ -337,7 +337,7 @@ function renderOverview(panel) {
               }</td>
               <td>${r['FTE Stimati'] != null ? fmtDec.format(r['FTE Stimati']) : ''}</td>
               <td>
-                <span class="badge ${ns < 0 ? 'neg' : 'pos'}">
+                <span class="badge ${ns < 0 ? 'danger' : 'pos'}">
                   ${ns > 0 ? '+' : ''}${fmtDec.format(ns)}
                 </span>
               </td>
@@ -399,7 +399,6 @@ function renderCredito(panel, s){
     "Small Business"
   ];
 
-  const enriched = enrichSheetWithTaskData(s);
   const rows = s.rows.filter(r=> ALLOWED_TIPO_ISTRUTTORIA.includes(r.des_tipo_istruttoria));
   const excludedCount = s.rows.length - rows.length;
   const total = rows.length;
@@ -456,7 +455,7 @@ function renderCredito(panel, s){
     const k = monthKeyOf(r);
     if(!k) return;
     const tipo = String(r.des_tipo_delibera||'').toLowerCase();
-    if(!byMonthDelibera.has(k)) byMonthDelibera.set(k, {pos:0, neg:0, altro:0});
+    if(!byMonthDelibera.has(k)) byMonthDelibera.set(k, {pos:0, danger:0, altro:0});
     const m = byMonthDelibera.get(k);
     if(tipo.includes('positiv')) m.pos++;
     else if(tipo.includes('negativ')) m.neg++;
@@ -469,8 +468,8 @@ function renderCredito(panel, s){
     <div class="kpi-row">
       <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Pratiche totali</div><div class="val">${fmtInt.format(total)}</div></div>
       <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">In lavorazione</div><div class="val">${fmtInt.format(inLavRows.length)}</div></div>
-      <div class="kpi" style="--kc:${PALETTE.accent}"><div class="lbl">Completate</div><div class="val">${fmtInt.format(completedRows.length)}</div></div>
-      <div class="kpi" style="--kc:${PALETTE.violet}"><div class="lbl">Tempo medio lavorazione</div><div class="val">${fmtDec.format(avgGiorni)} gg</div></div>
+      <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Completate</div><div class="val">${fmtInt.format(completedRows.length)}</div></div>
+      <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">Tempo medio lavorazione</div><div class="val">${fmtDec.format(avgGiorni)} gg</div></div>
     </div>
     <div class="grid cols-2" style="margin-bottom:16px">
       <div class="card"><h3>Pratiche per organo deliberante</h3><canvas id="crOrganoChart"></canvas></div>
@@ -486,8 +485,8 @@ function renderCredito(panel, s){
     <div class="kpi-row">
       <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">Pratiche in lavorazione</div><div class="val">${fmtInt.format(inLavRows.length)}</div></div>
       <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Tempo medio lavorazione</div><div class="val">${fmtDec.format(avgGiorniInLav)} gg</div></div>
-      <div class="kpi" style="--kc:${PALETTE.violet}"><div class="lbl">Tempo medio in coda</div><div class="val">${fmtDec.format(avgGiorniCoda)} gg</div></div>
-      <div class="kpi" style="--kc:${PALETTE.accent}"><div class="lbl">Operatori coinvolti</div><div class="val">${opStats.length}</div></div>
+      <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">Tempo medio in coda</div><div class="val">${fmtDec.format(avgGiorniCoda)} gg</div></div>
+      <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Operatori coinvolti</div><div class="val">${opStats.length}</div></div>
     </div>
     <div class="grid cols-2" style="margin-bottom:16px">
       <div class="card"><h3>Stato istruttoria (in lavorazione)</h3><p class="card-sub">dettaglio stati non completati</p><canvas id="crStatoInLavChart"></canvas></div>
@@ -505,7 +504,7 @@ function renderCredito(panel, s){
     <div class="section-title">Pratiche completate <span class="count-badge">${fmtInt.format(completedRows.length)} pratiche</span></div>
     <p class="section-desc">Il tipo delibera (positiva/negativa) è significativo solo per le pratiche con stato istruttoria "Completa".</p>
     <div class="kpi-row">
-      <div class="kpi" style="--kc:${PALETTE.accent}"><div class="lbl">Completate</div><div class="val">${fmtInt.format(completedRows.length)}</div></div>
+      <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Completate</div><div class="val">${fmtInt.format(completedRows.length)}</div></div>
       <div class="kpi" style="--kc:${PALETTE.pos||'#1c8a45'}"><div class="lbl">Delibere positive</div><div class="val">${fmtInt.format(positiva)}</div><div class="sub">${fmtDec.format(pctPositiva)}% delle completate</div></div>
       <div class="kpi" style="--kc:${PALETTE.danger}"><div class="lbl">Delibere negative</div><div class="val">${fmtInt.format(negativa)}</div></div>
       <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Tempo medio lavorazione</div><div class="val">${fmtDec.format(avgGiorniCompleted)} gg</div></div>
@@ -528,7 +527,7 @@ function renderCredito(panel, s){
     options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false}, ticks:{font:{size:10.5}}}}}});
 
   const organoTempoSorted = mapToSorted(avgGiorniByOrgano);
-  mkChart('crOrganoTempoChart', {type:'bar', data:{labels:organoTempoSorted.map(x=>x[0]), datasets:[{label:'Giorni medi', data:organoTempoSorted.map(x=>Number(x[1].toFixed(1))), backgroundColor:PALETTE.violet}]},
+  mkChart('crOrganoTempoChart', {type:'bar', data:{labels:organoTempoSorted.map(x=>x[0]), datasets:[{label:'Giorni medi', data:organoTempoSorted.map(x=>Number(x[1].toFixed(1))), backgroundColor:PALETTE.warn}]},
     options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false}, ticks:{font:{size:10.5}}}}}});
 
   mkChart('crScopoChart', {type:'bar', data:{labels:byScopo.map(x=>x[0]), datasets:[{label:'Pratiche', data:byScopo.map(x=>x[1]), backgroundColor:PALETTE.navy}]},
@@ -542,7 +541,7 @@ function renderCredito(panel, s){
 
   mkChart('crDeliberaTrendChart', {type:'bar', data:{labels:deliberaMonths, datasets:[
       {label:'Positive', data:deliberaMonths.map(m=>byMonthDelibera.get(m).pos), backgroundColor:'#1c8a45'},
-      {label:'Negative', data:deliberaMonths.map(m=>byMonthDelibera.get(m).neg), backgroundColor:PALETTE.danger},
+      {label:'Negative', data:deliberaMonths.map(m=>byMonthDelibera.get(m).danger), backgroundColor:PALETTE.danger},
       {label:'Altro', data:deliberaMonths.map(m=>byMonthDelibera.get(m).altro), backgroundColor:PALETTE.text}
     ]},
     options:{plugins:{legend:{position:'bottom', labels:{boxWidth:10,font:{size:10.5}}}}, scales:{x:{stacked:true, grid:{display:false}}, y:{stacked:true, grid:{color:PALETTE.grid}}}}});
@@ -558,7 +557,7 @@ function renderCreditoSpeciale(panel, s){
   const ALLOWED_TIPO_ISTRUTTORIA_V2 = [
     "Corporate Investment Banking",
   ];
-  const enriched = enrichSheetWithTaskData(s);
+  
   const rows = s.rows.filter(r=> ALLOWED_TIPO_ISTRUTTORIA_V2.includes(r.des_tipo_istruttoria));
   const excludedCount = s.rows.length - rows.length;
   const total = rows.length;
@@ -615,7 +614,7 @@ function renderCreditoSpeciale(panel, s){
     const k = monthKeyOf(r);
     if(!k) return;
     const tipo = String(r.des_tipo_delibera||'').toLowerCase();
-    if(!byMonthDelibera.has(k)) byMonthDelibera.set(k, {pos:0, neg:0, altro:0});
+    if(!byMonthDelibera.has(k)) byMonthDelibera.set(k, {pos:0, danger:0, altro:0});
     const m = byMonthDelibera.get(k);
     if(tipo.includes('positiv')) m.pos++;
     else if(tipo.includes('negativ')) m.neg++;
@@ -628,8 +627,8 @@ function renderCreditoSpeciale(panel, s){
     <div class="kpi-row">
       <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Pratiche totali</div><div class="val">${fmtInt.format(total)}</div></div>
       <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">In lavorazione</div><div class="val">${fmtInt.format(inLavRows.length)}</div></div>
-      <div class="kpi" style="--kc:${PALETTE.accent}"><div class="lbl">Completate</div><div class="val">${fmtInt.format(completedRows.length)}</div></div>
-      <div class="kpi" style="--kc:${PALETTE.violet}"><div class="lbl">Tempo medio lavorazione</div><div class="val">${fmtDec.format(avgGiorni)} gg</div></div>
+      <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Completate</div><div class="val">${fmtInt.format(completedRows.length)}</div></div>
+      <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">Tempo medio lavorazione</div><div class="val">${fmtDec.format(avgGiorni)} gg</div></div>
     </div>
     <div class="grid cols-2" style="margin-bottom:16px">
       <div class="card"><h3>Pratiche per organo deliberante</h3><canvas id="crOrganoChart2"></canvas></div>
@@ -645,8 +644,8 @@ function renderCreditoSpeciale(panel, s){
     <div class="kpi-row">
       <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">Pratiche in lavorazione</div><div class="val">${fmtInt.format(inLavRows.length)}</div></div>
       <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Tempo medio lavorazione</div><div class="val">${fmtDec.format(avgGiorniInLav)} gg</div></div>
-      <div class="kpi" style="--kc:${PALETTE.violet}"><div class="lbl">Tempo medio in coda</div><div class="val">${fmtDec.format(avgGiorniCoda)} gg</div></div>
-      <div class="kpi" style="--kc:${PALETTE.accent}"><div class="lbl">Operatori coinvolti</div><div class="val">${opStats.length}</div></div>
+      <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">Tempo medio in coda</div><div class="val">${fmtDec.format(avgGiorniCoda)} gg</div></div>
+      <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Operatori coinvolti</div><div class="val">${opStats.length}</div></div>
     </div>
     <div class="grid cols-2" style="margin-bottom:16px">
       <div class="card"><h3>Stato istruttoria (in lavorazione)</h3><p class="card-sub">dettaglio stati non completati</p><canvas id="crStatoInLavChart2"></canvas></div>
@@ -664,7 +663,7 @@ function renderCreditoSpeciale(panel, s){
     <div class="section-title">Pratiche completate <span class="count-badge">${fmtInt.format(completedRows.length)} pratiche</span></div>
     <p class="section-desc">Il tipo delibera (positiva/negativa) è significativo solo per le pratiche con stato istruttoria "Completa".</p>
     <div class="kpi-row">
-      <div class="kpi" style="--kc:${PALETTE.accent}"><div class="lbl">Completate</div><div class="val">${fmtInt.format(completedRows.length)}</div></div>
+      <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Completate</div><div class="val">${fmtInt.format(completedRows.length)}</div></div>
       <div class="kpi" style="--kc:${PALETTE.pos||'#1c8a45'}"><div class="lbl">Delibere positive</div><div class="val">${fmtInt.format(positiva)}</div><div class="sub">${fmtDec.format(pctPositiva)}% delle completate</div></div>
       <div class="kpi" style="--kc:${PALETTE.danger}"><div class="lbl">Delibere negative</div><div class="val">${fmtInt.format(negativa)}</div></div>
       <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Tempo medio lavorazione</div><div class="val">${fmtDec.format(avgGiorniCompleted)} gg</div></div>
@@ -687,7 +686,7 @@ function renderCreditoSpeciale(panel, s){
     options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false}, ticks:{font:{size:10.5}}}}}});
 
   const organoTempoSorted = mapToSorted(avgGiorniByOrgano);
-  mkChart('crOrganoTempoChart2', {type:'bar', data:{labels:organoTempoSorted.map(x=>x[0]), datasets:[{label:'Giorni medi', data:organoTempoSorted.map(x=>Number(x[1].toFixed(1))), backgroundColor:PALETTE.violet}]},
+  mkChart('crOrganoTempoChart2', {type:'bar', data:{labels:organoTempoSorted.map(x=>x[0]), datasets:[{label:'Giorni medi', data:organoTempoSorted.map(x=>Number(x[1].toFixed(1))), backgroundColor:PALETTE.warn}]},
     options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false}, ticks:{font:{size:10.5}}}}}});
 
   mkChart('crScopoChart2', {type:'bar', data:{labels:byScopo.map(x=>x[0]), datasets:[{label:'Pratiche', data:byScopo.map(x=>x[1]), backgroundColor:PALETTE.navy}]},
@@ -701,7 +700,7 @@ function renderCreditoSpeciale(panel, s){
 
   mkChart('crDeliberaTrendChart2', {type:'bar', data:{labels:deliberaMonths, datasets:[
       {label:'Positive', data:deliberaMonths.map(m=>byMonthDelibera.get(m).pos), backgroundColor:'#1c8a45'},
-      {label:'Negative', data:deliberaMonths.map(m=>byMonthDelibera.get(m).neg), backgroundColor:PALETTE.danger},
+      {label:'Negative', data:deliberaMonths.map(m=>byMonthDelibera.get(m).danger), backgroundColor:PALETTE.danger},
       {label:'Altro', data:deliberaMonths.map(m=>byMonthDelibera.get(m).altro), backgroundColor:PALETTE.text}
     ]},
     options:{plugins:{legend:{position:'bottom', labels:{boxWidth:10,font:{size:10.5}}}}, scales:{x:{stacked:true, grid:{display:false}}, y:{stacked:true, grid:{color:PALETTE.grid}}}}});
@@ -714,7 +713,6 @@ function renderCreditoSpeciale(panel, s){
    PANEL: CONTRATTI E PERFEZIONAMENTI CREDITO ORDINARIO 
    ============================================================ */
 function renderPerfezionamenti(panel, s){
-  const enriched = enrichSheetWithTaskData(s);
   const rows = s.rows;
 
   // ============================================================
@@ -794,11 +792,11 @@ function renderPerfezionamenti(panel, s){
         <div class="lbl">Pratiche perfezionate 2026</div>
         <div class="val">${fmtInt.format(perfezionati2026.length)}</div>
       </div>
-      <div class="kpi" style="--kc:${PALETTE.accent}">
+      <div class="kpi" style="--kc:${PALETTE.info}">
         <div class="lbl">Business unit</div>
         <div class="val">${fmtInt.format(buArray.length)}</div>
       </div>
-      <div class="kpi" style="--kc:${PALETTE.violet}">
+      <div class="kpi" style="--kc:${PALETTE.warn}">
         <div class="lbl">Tempo medio lavorazione</div>
         <div class="val">${fmtDec.format(avgGiorniOverall)} gg</div>
         <div class="sub">delibera → operativa</div>
@@ -869,12 +867,12 @@ function renderPerfezionamenti(panel, s){
           const val = avgGiorniByMonth[m];
           return val ? Number(val.toFixed(1)) : 0;
         }),
-        borderColor: PALETTE.violet,
+        borderColor: PALETTE.warn,
         backgroundColor: 'rgba(184,159,132,0.1)',
         tension: 0.4,
         fill: true,
         pointRadius: 4,
-        pointBackgroundColor: PALETTE.violet
+        pointBackgroundColor: PALETTE.warn
       }]
     },
     options: {
@@ -921,7 +919,7 @@ function renderPerfezionamenti(panel, s){
 const FACTORING_ID = '10004100067100080';
 
 function renderFactoring(panel, s){
-  const enriched = enrichSheetWithTaskData(s);
+
   const cedenti = STATE.domainSheets.find(s=>s.type==='factoring_cedenti');
   const debitori = STATE.domainSheets.find(s=>s.type==='factoring_debitori');
 
@@ -1098,7 +1096,7 @@ function renderFactoring(panel, s){
         <div class="lbl">Accordato totale</div>
         <div class="val">${fmtCurrency.format(accordatoTotaleCedenti)}</div>
       </div>
-      <div class="kpi" style="--kc:${PALETTE.accent}">
+      <div class="kpi" style="--kc:${PALETTE.info}">
         <div class="lbl">Impiego totale</div>
         <div class="val">${fmtCurrency.format(impiegoTotaleCedenti)}</div>
       </div>
@@ -1146,7 +1144,7 @@ function renderFactoring(panel, s){
         <div class="lbl">Accordato medio per debitore pro solvendo</div>
         <div class="val">${fmtCurrency.format(accordatoMedioSolvendo)}</div>
       </div>
-      <div class="kpi" style="--kc:${PALETTE.accent}">
+      <div class="kpi" style="--kc:${PALETTE.info}">
         <div class="lbl">Accordato medio per debitore pro soluto</div>
         <div class="val">${fmtCurrency.format(accordatoMedioSoluto)}</div>
       </div>
@@ -1178,7 +1176,7 @@ function renderFactoring(panel, s){
         label: 'Pratiche',
         data: monthsCedenti.map(m => pratichePerMeseCedenti[m] || 0),
         backgroundColor: PALETTE.navy,
-        borderColor: PALETTE.accent,
+        borderColor: PALETTE.info,
         borderWidth: 0
       }]
     },
@@ -1296,7 +1294,7 @@ function renderFactoring(panel, s){
         {
           label: 'Accordato Soluto',
           data: monthsDebitori.map(m => accordatoPerMeseSoluto[m] || 0),
-          backgroundColor: PALETTE.accent,
+          backgroundColor: PALETTE.info,
           borderColor: PALETTE.navy,
           borderWidth: 0
         }
@@ -1351,7 +1349,6 @@ function renderAnagrafe(panel, s){
     return ALLOWED_BU.includes(t);
   };
 
-  const enriched = enrichSheetWithTaskData(s);
   const rows = s.rows.filter(r=> isAllowedBU(r.des_business_unit));
   const excludedCount = s.rows.length - rows.length;
   const dates = rows.map(r=> toDate(r.dta_censimento)).filter(Boolean);
@@ -1370,7 +1367,7 @@ function renderAnagrafe(panel, s){
     <div class="section-title">Statistiche censimenti anagrafe 2026</div>
     <div class="kpi-row">
       <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Nominativi censiti</div><div class="val">${fmtInt.format(rows.length)}</div></div>
-      <div class="kpi" style="--kc:${PALETTE.violet}"><div class="lbl">Nature giuridiche distinte</div><div class="val">${new Set(rows.map(r=>r.des_natura_giuridica)).size}</div></div>
+      <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">Nature giuridiche distinte</div><div class="val">${new Set(rows.map(r=>r.des_natura_giuridica)).size}</div></div>
       <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">Periodo censimento</div><div class="val" style="font-size:15px">${fmtDate(minD)} → ${fmtDate(maxD)}</div></div>
     </div>
     <div class="card" style="margin-bottom:16px">
@@ -1382,7 +1379,7 @@ function renderAnagrafe(panel, s){
     </div>
   `;
 
-  mkChart('anTrendChart', {type:'line', data:{labels:months, datasets:[{label:'Censimenti', data:months.map(m=>byMonth.get(m)), borderColor:PALETTE.accent, backgroundColor:'rgba(47,111,179,0.12)', fill:true, tension:.3}]},
+  mkChart('anTrendChart', {type:'line', data:{labels:months, datasets:[{label:'Censimenti', data:months.map(m=>byMonth.get(m)), borderColor:PALETTE.info, backgroundColor:'rgba(47,111,179,0.12)', fill:true, tension:.3}]},
     options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
 
   mkChart('anNaturaChart', {type:'bar', data:{labels:naturaCounts.map(x=>x[0]), datasets:[{label:'Nominativi', data:naturaCounts.map(x=>x[1]), backgroundColor:PALETTE.navy}]},
@@ -1397,7 +1394,6 @@ function renderAnagrafe(panel, s){
    ============================================================ */
 function renderAntifrode(panel, s){
 
-  const enriched = enrichSheetWithTaskData(s);
   const rows = s.rows;
   const countKey = rows[0].hasOwnProperty('conteggio') ? 'conteggio' : Object.keys(rows[0]).find(k=> typeof rows[0][k] === 'number');
   const total = rows.reduce((a,r)=> a + (Number(r[countKey])||0), 0);
@@ -1428,7 +1424,7 @@ function renderAntifrode(panel, s){
       <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Segnalazioni totali</div><div class="val">${fmtInt.format(total)}</div></div>
       <div class="kpi" style="--kc:${PALETTE.danger}"><div class="lbl">Frodi confermate</div><div class="val">${fmtInt.format(confermate)}</div><div class="sub">${fmtDec.format(tassoConferma)}% del totale</div></div>
       <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">Falsi positivi</div><div class="val">${fmtInt.format(byClass.get('FALSO POSITIVO FRODE')||0)}</div></div>
-      <div class="kpi" style="--kc:${PALETTE.violet}"><div class="lbl">Cluster di frode monitorati</div><div class="val">${clusterSorted.length}</div></div>
+      <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">Cluster di frode monitorati</div><div class="val">${clusterSorted.length}</div></div>
     </div>
     <div class="grid cols-2" style="margin-bottom:16px">
       <div class="card"><h3>Andamento mensile per classificazione</h3><p class="card-sub">frodi confermate / falsi positivi / non classificabili</p><canvas id="afTrendChart"></canvas></div>
@@ -1458,7 +1454,6 @@ function renderAntifrode(panel, s){
    ============================================================ */
 function renderOpsAml(panel, s){
 
-  const enriched = enrichSheetWithTaskData(s);
   const rows = s.rows;
   const isAlto = (r)=> String(r.fascia_rischio||'').toLowerCase().includes('alt');
   const altoRows = rows.filter(isAlto);
@@ -1504,7 +1499,7 @@ function renderOpsAml(panel, s){
     <p class="section-desc">Focus sulle posizioni in fascia di rischio alto: avanzamento delle adeguate verifiche e tempi di lavorazione.</p>
     
     <div class="kpi-row">
-      <div class="kpi" style="--kc:${PALETTE.accent}"><div class="lbl">Verifiche completate</div><div class="val">${fmtInt.format(completedAltoNdg)}</div><div class="sub">${fmtDec.format(altoNdg ? completedAltoNdg/altoNdg*100 : 0)}% del rischio alto</div></div>
+      <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Verifiche completate</div><div class="val">${fmtInt.format(completedAltoNdg)}</div><div class="sub">${fmtDec.format(altoNdg ? completedAltoNdg/altoNdg*100 : 0)}% del rischio alto</div></div>
       <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">Da lavorare</div><div class="val">${fmtInt.format(pendingAltoNdg)}</div><div class="sub">${fmtDec.format(altoNdg ? pendingAltoNdg/altoNdg*100 : 0)}% del rischio alto</div></div>
       <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Tempo medio</div><div class="val">${fmtDec.format(avgGiorniAlto)} gg</div><div class="sub">data uscita − inserimento</div></div>
       <div class="kpi" style="--kc:${PALETTE.danger}"><div class="lbl">Scadute e non completate</div><div class="val">${fmtInt.format(scaduteNdg)}</div><div class="sub">data scadenza ADV superata</div></div>
@@ -1533,7 +1528,7 @@ function renderOpsAml(panel, s){
   mkChart('amlBuChart', {type:'bar', data:{labels:byBU.map(x=>x[0]), datasets:[{label:'NDG', data:byBU.map(x=>x[1]), backgroundColor:PALETTE.info}]},
     options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false}, ticks:{font:{size:10}}}}}});
 
-  mkChart('amlClusterChart', {type:'bar', data:{labels:byCluster.map(x=>x[0]), datasets:[{label:'NDG', data:byCluster.map(x=>x[1]), backgroundColor:PALETTE.violet}]},
+  mkChart('amlClusterChart', {type:'bar', data:{labels:byCluster.map(x=>x[0]), datasets:[{label:'NDG', data:byCluster.map(x=>x[1]), backgroundColor:PALETTE.warn}]},
     options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false}, ticks:{font:{size:10}}}}}});
 
   mkChart('amlWorkflowChart', {type:'pie', data:{labels:byWorkflow.map(x=>x[0]), datasets:[{data:byWorkflow.map(x=>x[1]), backgroundColor:CHART_SERIES}]},
@@ -1546,7 +1541,6 @@ function renderOpsAml(panel, s){
 /* ============================================================ PANEL: BANCASSURANCE ============================================================ */
 function renderBancassurance(panel, s){
 
-  const enriched = enrichSheetWithTaskData(s);
   const rows = s.rows;
   const bancassurance = rows.filter(r => r && r.data_ordine);
   const statiSet = new Set(bancassurance.map(r => r.descrizione_stato).filter(Boolean));
@@ -1565,8 +1559,8 @@ function renderBancassurance(panel, s){
     <div class="section-title">Statistiche su ordini di trasferimento titoli, fondi, ecc... 2026</div>
     <div class="kpi-row">
       <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Ordini totali</div><div class="val">${fmtInt.format(bancassurance.length)}</div></div>
-      <div class="kpi" style="--kc:${PALETTE.accent}"><div class="lbl">Volume totale</div><div class="val">€ ${fmtInt.format(volumeTotal)}</div></div>
-      <div class="kpi" style="--kc:${PALETTE.violet}"><div class="lbl">Volume medio mensile</div><div class="val">€ ${fmtInt.format(volumeAvg)}</div></div>
+      <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Volume totale</div><div class="val">€ ${fmtInt.format(volumeTotal)}</div></div>
+      <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">Volume medio mensile</div><div class="val">€ ${fmtInt.format(volumeAvg)}</div></div>
     </div>
     <div class="grid cols-2">
       <div class="card">
@@ -1594,7 +1588,6 @@ const DIGITAL_BANK_ID = '10001100023100042100130';
 
 function renderDigital(panel){
 
-  const enriched = enrichSheetWithTaskData(s);
   const rapporti = STATE.domainSheets.find(s=>s.type==='digital_rapporti');
   const frodi = STATE.domainSheets.find(s=>s.type==='digital_frodi');
   const raisin = STATE.domainSheets.find(s=>s.type==='digital_raisin');
@@ -1708,7 +1701,7 @@ function renderDigital(panel){
         <div class="val">${fmtInt.format(frodi2026.length)}</div>
       </div>
 
-      <div class="kpi" style="--kc:${PALETTE.accent}">
+      <div class="kpi" style="--kc:${PALETTE.info}">
         <div class="lbl">Bonifici Raisin controllati 2026</div>
         <div class="val">${fmtInt.format(raisin2026.length)}</div>
       </div>
@@ -1820,7 +1813,7 @@ function renderDigital(panel){
       datasets:[{
         label:'Bonifici Raisin',
         data:months.map(m=>raisinMonth[m]||0),
-        backgroundColor:PALETTE.accent
+        backgroundColor:PALETTE.info
       }]
     }
   });
@@ -1833,7 +1826,6 @@ const MONETICA_ID = '10001100023100036';
 
 function renderMonetica(panel){
 
-  const enriched = enrichSheetWithTaskData(s);
   const bonifici = STATE.domainSheets.find(s=>s.type==='monetica_bonifici_banca');
   const cassa = STATE.domainSheets.find(s=>s.type==='monetica_cassa');
   const cassette = STATE.domainSheets.find(s=>s.type==='monetica_cassette');
@@ -1976,7 +1968,7 @@ function renderMonetica(panel){
   const filialeDatasets = [
     {label:'Cambiali', data:filialArray.map(f=>operByFilialeType[f].cambiali||0), backgroundColor:PALETTE.info},
     {label:'Tesoreria', data:filialArray.map(f=>operByFilialeType[f].tesoreria||0), backgroundColor:PALETTE.warn},
-    {label:'Circolari', data:filialArray.map(f=>operByFilialeType[f].circolari||0), backgroundColor:PALETTE.violet}
+    {label:'Circolari', data:filialArray.map(f=>operByFilialeType[f].circolari||0), backgroundColor:PALETTE.warn}
   ];
 
   /* ============================================================ CASSETTE ============================================================ */
@@ -2009,7 +2001,7 @@ function renderMonetica(panel){
         <div class="lbl">Bonifici banca eseguiti</div>
         <div class="val">${fmtInt.format(bonifici2026.length)}</div>
       </div>
-      <div class="kpi" style="--kc:${PALETTE.accent}">
+      <div class="kpi" style="--kc:${PALETTE.info}">
         <div class="lbl">C/C aperti con portabilità</div>
         <div class="val">${fmtInt.format(196)}</div>
       </div>
@@ -2047,7 +2039,7 @@ function renderMonetica(panel){
         <div class="lbl">Bonifici da estero</div>
         <div class="val">${fmtInt.format(bonificiDaEstero.length)}</div>
       </div>
-      <div class="kpi" style="--kc:${PALETTE.accent}">
+      <div class="kpi" style="--kc:${PALETTE.info}">
         <div class="lbl">Volume totale</div>
         <div class="val">€ ${fmtInt.format(Object.values(daEsteroVolMonth).reduce((a,b)=>a+b,0))}</div>
       </div>
@@ -2072,7 +2064,7 @@ function renderMonetica(panel){
 
     <div class="section-title">Bonifici verso estero <span class="count-badge">${fmtInt.format(bonificiVersoEstero.length)} operazioni</span></div>
     <div class="kpi-row">
-      <div class="kpi" style="--kc:${PALETTE.violet}">
+      <div class="kpi" style="--kc:${PALETTE.warn}">
         <div class="lbl">Bonifici verso estero</div>
         <div class="val">${fmtInt.format(bonificiVersoEstero.length)}</div>
       </div>
@@ -2105,11 +2097,11 @@ function renderMonetica(panel){
         <div class="lbl">Cambiali</div>
         <div class="val">${fmtInt.format(totCambiali)}</div>
       </div>
-      <div class="kpi" style="--kc:${PALETTE.accent}">
+      <div class="kpi" style="--kc:${PALETTE.info}">
         <div class="lbl">Operazioni tesoreria</div>
         <div class="val">${fmtInt.format(totTesoreria)}</div>
       </div>
-      <div class="kpi" style="--kc:${PALETTE.violet}">
+      <div class="kpi" style="--kc:${PALETTE.warn}">
         <div class="lbl">Ass. circolari</div>
         <div class="val">${fmtInt.format(totCircolari)}</div>
       </div>
@@ -2148,7 +2140,7 @@ function renderMonetica(panel){
 
   mkChart('monDaEsteroVolChart',{type:'bar', data:{labels:mesiEstero, datasets:[{label:'Volume (€)',data:mesiEstero.map(m=>daEsteroVolMonth[m]||0),backgroundColor:PALETTE.danger}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
 
-  mkChart('monDaEsteroPaeseChart',{type:'bar', data:{labels:paeseListDaEstero, datasets:[{label:'Bonifici',data:paeseListDaEstero.map(p=>daEsteroPaese[p]||0),backgroundColor:PALETTE.violet}]}, options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false},ticks:{font:{size:10}}}}}});
+  mkChart('monDaEsteroPaeseChart',{type:'bar', data:{labels:paeseListDaEstero, datasets:[{label:'Bonifici',data:paeseListDaEstero.map(p=>daEsteroPaese[p]||0),backgroundColor:PALETTE.warn}]}, options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false},ticks:{font:{size:10}}}}}});
 
   mkChart('monVersoEsteroMonthChart',{type:'bar', data:{labels:mesiEstero, datasets:[{label:'Operazioni',data:mesiEstero.map(m=>versoEsteroMonth[m]||0),backgroundColor:PALETTE.warn}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
 
@@ -2170,14 +2162,13 @@ function renderMonetica(panel){
    ============================================================ */
 function renderGeneric(panel, s){
 
-  const enriched = enrichSheetWithTaskData(s);
   const rows = s.rows;
   const headers = s.headers;
   const sample = rows.slice(0,50);
   panel.innerHTML = structHeaderHtml(s, 'Foglio dati non classificato') + `
     <div class="kpi-row">
       <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Righe</div><div class="val">${fmtInt.format(rows.length)}</div></div>
-      <div class="kpi" style="--kc:${PALETTE.accent}"><div class="lbl">Colonne</div><div class="val">${headers.length}</div></div>
+      <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Colonne</div><div class="val">${headers.length}</div></div>
     </div>
     <p class="hint">Questo foglio non corrisponde alla firma di colonne attesa per Anagrafe, Antifrode o Credito & Factoring. Anteprima delle prime 50 righe:</p>
     <div class="table-wrap scroll">
