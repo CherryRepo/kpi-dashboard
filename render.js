@@ -1,4 +1,16 @@
 /* ============================================================
+   LOADING BAR
+   ============================================================ */
+async function waitWithLoadingBar(startTime) {
+  const loadingBar = document.getElementById('loadingBar');
+  const dashboard = document.getElementById('dashboard');
+  
+  // Nascondi la barra e mostra la dashboard
+  if (loadingBar) loadingBar.style.display = 'none';
+  if (dashboard) dashboard.style.display = 'block';
+}
+
+/* ============================================================
    SIDEBAR
    ============================================================ */
 function buildSidebar(){
