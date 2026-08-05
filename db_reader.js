@@ -206,20 +206,6 @@ function handleFileMain(file) {
 }
 
 /* ============================================================
-   PARSE TASK WORKBOOK
-   ============================================================ */
-
-function parseTaskWorkbook(wb) {
-  const sheetNames = wb.SheetNames;
-  STATE.taskData = {};
-  sheetNames.forEach(sheetName => {
-    const ws = wb.Sheets[sheetName];
-    const rows = XLSX.utils.sheet_to_json(ws, { defval: null });
-    STATE.taskData[sheetName] = rows;
-  });
-}
-
-/* ============================================================
    PARSE WORKBOOK -> classify sheets
    ============================================================ */
 
