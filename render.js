@@ -442,29 +442,43 @@ function renderKPITable(taskData) {
   if (!taskData) {
     return '<p class="hint">Nessun dato task disponibile.</p>';
   }
-  
-  return `
-    <div class="table-wrap" style="height:45px;">
-      <table class="task-table" style="width:100%; border-collapse:collapse;">
-        <thead>
-          <tr style="background-color:${PALETTE.grid};">
-            <th style="text-align:center; padding:4px; border:none;">Pezzi Teorico</th>
-            <th style="text-align:center; padding:4px; border:none;">FTE Teorico</th>
-            <th style="text-align:center; padding:4px; border:none;">Pezzi Actual</th>
-            <th style="text-align:center; padding:4px; border:none;">FTE Actual</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr style="background-color:#fff; line-height:1; height:auto;">
-            <td style="text-align:center; padding:4px; border:none;">${taskData.pezzi !== null ? fmtDec.format(taskData.pezzi) : '—'}</td>
-            <td style="text-align:center; padding:4px; border:none;">${taskData.fte_teorico !== null ? fmtDec.format(taskData.fte_teorico) : '—'}</td>
-            <td style="text-align:center; padding:4px; border:none;">${taskData.pezzi_actual !== null ? fmtDec.format(taskData.pezzi_actual) : '—'}</td>
-            <td style="text-align:center; padding:4px; border:none;">${taskData.fte_actual !== null ? fmtDec.format(taskData.fte_actual) : '—'}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
 
+  const fteTeorico = taskData.fte_teorico;
+  const fteActual = taskData.fte_actual;
+
+  // Verde se FTE Teorico > FTE Actual, rosso altrimenti
+  const statusColor = fteTeorico !== null && fteActual !== null && fteTeorico > fteActual ? '#22c55e' : '#ef4444';
+
+  return `
+    <div style="display:flex; align-items:stretch; gap:0; height:40px; border:1px solid ${PALETTE.info}; border-radius:8px; overflow:hidden; background:#f5f5f5;">
+      <!-- Card 1 -->
+      <div style="min-width:105px; padding:5px 12px; display:flex; flex-direction:column; justify-content:center; align-items:center; background:${PALETTE.grid}; border-right:1px solid #fff;">
+        <div style="font-size:11px; font-weight:400; line-height:1.1;">Pezzi Teorico</div>
+        <div style="font-size:14px; font-weight:700; line-height:1.2; margin-top:3px;">${taskData.pezzi !== null ? fmtDec.format(taskData.pezzi) : '—'}</div>
+      </div>
+
+      <!-- Card 2 -->
+      <div style="min-width:105px; padding:5px 12px; display:flex; flex-direction:column; justify-content:center; align-items:center; background:${PALETTE.grid}; border-right:1px solid #fff;">
+        <div style="font-size:11px; font-weight:400; line-height:1.1;">FTE Teorico</div>
+        <div style="font-size:14px; font-weight:700; line-height:1.2; margin-top:3px;">${taskData.fte_teorico !== null ? fmtDec.format(taskData.fte_teorico) : '—'}</div>
+      </div>
+
+      <!-- Card 3 -->
+      <div style="min-width:105px; padding:5px 12px; display:flex; flex-direction:column; justify-content:center; align-items:center; background:${PALETTE.grid}; border-right:1px solid #fff;">
+        <div style="font-size:11px; font-weight:400; line-height:1.1;">Pezzi Actual</div>
+        <div style="font-size:14px; font-weight:700; line-height:1.2; margin-top:3px;">${taskData.pezzi_actual !== null ? fmtDec.format(taskData.pezzi_actual) : '—'}</div>
+      </div>
+
+      <!-- Card 4 + pallino -->
+      <div style="min-width:105px; padding:5px 12px; display:flex; align-items:center; justify-content:center; gap:10px; background:${PALETTE.grid};">
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center;">
+          <div style="font-size:11px; font-weight:400; line-height:1.1;">FTE Actual</div>
+          <div style="font-size:14px; font-weight:700; line-height:1.2; margin-top:3px;">${taskData.fte_actual !== null ? fmtDec.format(taskData.fte_actual) : '—'}</div>
+        </div>
+        <!-- Stato -->
+        <span style="width:9px; height:9px; min-width:9px; border-radius:50%; background:${statusColor}; display:inline-block;"></span>
+      </div>
+    </div>
   `;
 }
 
