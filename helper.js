@@ -12,7 +12,9 @@ const PALETTE = {
   pos: '#6f9277',
   neg: '#9fb8d6', 
   text: '#6e8c9c', 
-  grid: 'rgba(46,72,87,0.08)'
+  grid: 'rgba(46,72,87,0.08)',
+  grey: '#bcbcbc',
+  grey666: '#666666'
 };
 
 const CHART_SERIES = [
@@ -28,8 +30,13 @@ Chart.defaults.borderColor = PALETTE.grid;
 /* ============================================================
    FORMATTERS
    ============================================================ */
-
 const fmtInt = new Intl.NumberFormat('it-IT');
+
+const fmtIntRound = new Intl.NumberFormat('it-IT', {
+  maximumFractionDigits: 0,
+  minimumFractionDigits: 0
+});
+
 const fmtDec = new Intl.NumberFormat('it-IT', {
   maximumFractionDigits: 1,
   minimumFractionDigits: 1

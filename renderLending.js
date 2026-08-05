@@ -260,9 +260,8 @@ function renderCredito(panel, s){
   panel.innerHTML = structHeaderHtml(s, 'Credito Ordinario & Factoring - Lending') + `
 	<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
     <div>
-			<div class="section-title">Delibere nuovo fido SMEs 2026</div>
       <div class="card" style="position:relative; height:380px; display:flex; flex-direction:column; justify-content:center;">
-	      <h3 style="margin:0; margin-top:-10px;">SMEs - Delibere per mese</h3>
+	      <h3 style="margin:0; margin-top:-10px;">Delibere nuovo fido SMEs 2026</h3>
 	      <canvas id="smeDeliberaChart" style="flex:1; width:100%; height:650px; max-width:100%; margin-top:20px;"></canvas>
 	      <div style="position:absolute; top:12px; right:12px; padding:4px; font-size:0.8em; line-height:1;">
 		      ${renderKPITable(taskDataSMEs)}
@@ -270,9 +269,8 @@ function renderCredito(panel, s){
       </div>
 		</div>
     <div>
-			<div class="section-title">Delibere nuovo fido Retail 2026</div>
       <div class="card" style="position:relative; height:380px; display:flex; flex-direction:column; justify-content:center;">
-	      <h3 style="margin:0; margin-top:-10px;">Retail - Delibere per mese</h3>
+	      <h3 style="margin:0; margin-top:-10px;">Delibere nuovo fido Retail 2026</h3>
 	      <canvas id="retailDeliberaChart" style="flex:1; width:100%; height:650px; max-width:100%; margin-top:20px;"></canvas>
 	      <div style="position:absolute; top:12px; right:12px; padding:4px; font-size:0.8em; line-height:1;">
 		      ${renderKPITable(taskDataRetail)}
@@ -283,9 +281,8 @@ function renderCredito(panel, s){
 
 	<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
     <div>
-			<div class="section-title">Delibere Revisioni/Proroghe/Variazioni 2026</div>
       <div class="card" style="position:relative; height:380px; display:flex; flex-direction:column; justify-content:center;">
-	      <h3 style="margin:0; margin-top:-10px;">Delibere per mese</h3>
+	      <h3 style="margin:0; margin-top:-10px;">Delibere Revisioni/Proroghe/Variazioni 2026</h3>
 	      <canvas id="revisioniDeliberaChart" style="flex:1; width:100%; height:650px; max-width:100%; margin-top:20px;"></canvas>
 	      <div style="position:absolute; top:12px; right:12px; padding:4px; font-size:0.8em; line-height:1;">
 		      ${renderKPITable(taskDataRevisioni)}
@@ -293,9 +290,8 @@ function renderCredito(panel, s){
       </div>
 		</div>
     <div>
-			<div class="section-title">Delibere Carte di Credito 2026</div>
       <div class="card" style="position:relative; height:380px; display:flex; flex-direction:column; justify-content:center;">
-	      <h3 style="margin:0; margin-top:-10px;">Delibere per mese</h3>
+	      <h3 style="margin:0; margin-top:-10px;">Delibere Carte di Credito 2026</h3>
 	      <canvas id="carteDeliberaChart" style="flex:1; width:100%; height:650px; max-width:100%; margin-top:20px;"></canvas>
 	      <div style="position:absolute; top:12px; right:12px; padding:4px; font-size:0.8em; line-height:1;">
 		      ${renderKPITable(taskDataCarte)}
@@ -380,16 +376,16 @@ function renderCredito(panel, s){
     ? carteMonthsData.reduce((sum, d) => sum + (d.pos + d.neg), 0) / carteMonthsData.length 
     : 0;
 
-  mkChart('smeDeliberaChart', {type:'bar', data:{labels:smeMonthsData.map(d=>d.month), datasets:[{label:'Positive', data:smeMonthsData.map(d=>d.pos), backgroundColor:PALETTE.pos}, {label:'Negative', data:smeMonthsData.map(d=>d.neg), backgroundColor:PALETTE.danger}, {label:'Media Mensile', data:Array(smeMonthsData.length).fill(carteTotalAvg), type:'line', borderColor:PALETTE.warn, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[0]}}, {label:'Target', data:Array(smeMonthsData.length).fill(72-carteTotalAvg), type:'line', borderColor:PALETTE.navy, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[5,5]}}]}, 
+  mkChart('smeDeliberaChart', {type:'bar', data:{labels:smeMonthsData.map(d=>d.month), datasets:[{label:'Positive', data:smeMonthsData.map(d=>d.pos), backgroundColor:PALETTE.accent}, {label:'Negative', data:smeMonthsData.map(d=>d.neg), backgroundColor:PALETTE.danger}, {label:'Media Mensile', data:Array(smeMonthsData.length).fill(carteTotalAvg), type:'line', borderColor:PALETTE.navy, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[0]}}, {label:'Target', data:Array(smeMonthsData.length).fill(72-carteTotalAvg), type:'line', borderColor:PALETTE.grey, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[5,5]}}]}, 
     options:{indexAxis:'x', plugins:{legend:{display:true, position:'bottom', labels:{usePointStyle:true, generateLabels:(chart)=>{return chart.data.datasets.map((d,i)=>{const isLine = d.type === 'line'; return {text:d.label, fillStyle:isLine ? 'transparent' : d.backgroundColor, strokeStyle:isLine ? d.borderColor : 'transparent', lineWidth:isLine ? 2 : 0, pointStyle:isLine ? 'line' : 'rect', hidden:!chart.isDatasetVisible(i), index:i};})}}}}, scales:{x:{grid:{color:PALETTE.grid}, stacked:true}, y:{grid:{display:true, color:PALETTE.grid}, ticks:{font:{size:12}}, stacked:true}}}});
    
-  mkChart('retailDeliberaChart', {type:'bar', data:{labels:retailMonthsData.map(d=>d.month), datasets:[{label:'Positive', data:retailMonthsData.map(d=>d.pos), backgroundColor:PALETTE.pos}, {label:'Negative', data:retailMonthsData.map(d=>d.neg), backgroundColor:PALETTE.danger}, {label:'Media Mensile', data:Array(retailMonthsData.length).fill(retailTotalAvg), type:'line', borderColor:PALETTE.warn, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[0]}}, {label:'Target', data:Array(retailMonthsData.length).fill(100-retailTotalAvg), type:'line', borderColor:PALETTE.navy, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[5,5]}}]}, 
+  mkChart('retailDeliberaChart', {type:'bar', data:{labels:retailMonthsData.map(d=>d.month), datasets:[{label:'Positive', data:retailMonthsData.map(d=>d.pos), backgroundColor:PALETTE.accent}, {label:'Negative', data:retailMonthsData.map(d=>d.neg), backgroundColor:PALETTE.danger}, {label:'Media Mensile', data:Array(retailMonthsData.length).fill(retailTotalAvg), type:'line', borderColor:PALETTE.navy, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[0]}}, {label:'Target', data:Array(retailMonthsData.length).fill(100-retailTotalAvg), type:'line', borderColor:PALETTE.grey, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[5,5]}}]}, 
     options:{indexAxis:'x', plugins:{legend:{display:true, position:'bottom', labels:{usePointStyle:true, generateLabels:(chart)=>{return chart.data.datasets.map((d,i)=>{const isLine = d.type === 'line'; return {text:d.label, fillStyle:isLine ? 'transparent' : d.backgroundColor, strokeStyle:isLine ? d.borderColor : 'transparent', lineWidth:isLine ? 2 : 0, pointStyle:isLine ? 'line' : 'rect', hidden:!chart.isDatasetVisible(i), index:i};})}}}}, scales:{x:{grid:{color:PALETTE.grid}, stacked:true}, y:{grid:{display:true, color:PALETTE.grid}, ticks:{font:{size:12}}, stacked:true}}}});
 
-  mkChart('revisioniDeliberaChart', {type:'bar', data:{labels:revisioniMonthsData.map(d=>d.month), datasets:[{label:'Positive', data:revisioniMonthsData.map(d=>d.pos), backgroundColor:PALETTE.pos}, {label:'Negative', data:revisioniMonthsData.map(d=>d.neg), backgroundColor:PALETTE.danger}, {label:'Media Mensile', data:Array(revisioniMonthsData.length).fill(revisioniTotalAvg), type:'line', borderColor:PALETTE.warn, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[0]}}, {label:'Target', data:Array(revisioniMonthsData.length).fill(231-revisioniTotalAvg), type:'line', borderColor:PALETTE.navy, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[5,5]}}]}, 
+  mkChart('revisioniDeliberaChart', {type:'bar', data:{labels:revisioniMonthsData.map(d=>d.month), datasets:[{label:'Positive', data:revisioniMonthsData.map(d=>d.pos), backgroundColor:PALETTE.accent}, {label:'Negative', data:revisioniMonthsData.map(d=>d.neg), backgroundColor:PALETTE.danger}, {label:'Media Mensile', data:Array(revisioniMonthsData.length).fill(revisioniTotalAvg), type:'line', borderColor:PALETTE.navy, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[0]}}, {label:'Target', data:Array(revisioniMonthsData.length).fill(231-revisioniTotalAvg), type:'line', borderColor:PALETTE.grey, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[5,5]}}]}, 
     options:{indexAxis:'x', plugins:{legend:{display:true, position:'bottom', labels:{usePointStyle:true, generateLabels:(chart)=>{return chart.data.datasets.map((d,i)=>{const isLine = d.type === 'line'; return {text:d.label, fillStyle:isLine ? 'transparent' : d.backgroundColor, strokeStyle:isLine ? d.borderColor : 'transparent', lineWidth:isLine ? 2 : 0, pointStyle:isLine ? 'line' : 'rect', hidden:!chart.isDatasetVisible(i), index:i};})}}}}, scales:{x:{grid:{color:PALETTE.grid}, stacked:true}, y:{grid:{display:true, color:PALETTE.grid}, ticks:{font:{size:12}}, stacked:true}}}});
   
-  mkChart('carteDeliberaChart', {type:'bar', data:{labels:carteMonthsData.map(d=>d.month), datasets:[{label:'Positive', data:carteMonthsData.map(d=>d.pos), backgroundColor:PALETTE.pos}, {label:'Negative', data:carteMonthsData.map(d=>d.neg), backgroundColor:PALETTE.danger}, {label:'Media Mensile', data:Array(carteMonthsData.length).fill(carteTotalAvg), type:'line', borderColor:PALETTE.warn, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[0]}}, {label:'Target', data:Array(carteMonthsData.length).fill(25-carteTotalAvg), type:'line', borderColor:PALETTE.navy, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[5,5]}}]}, 
+  mkChart('carteDeliberaChart', {type:'bar', data:{labels:carteMonthsData.map(d=>d.month), datasets:[{label:'Positive', data:carteMonthsData.map(d=>d.pos), backgroundColor:PALETTE.accent}, {label:'Negative', data:carteMonthsData.map(d=>d.neg), backgroundColor:PALETTE.danger}, {label:'Media Mensile', data:Array(carteMonthsData.length).fill(carteTotalAvg), type:'line', borderColor:PALETTE.navy, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[0]}}, {label:'Target', data:Array(carteMonthsData.length).fill(25-carteTotalAvg), type:'line', borderColor:PALETTE.grey, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[5,5]}}]}, 
     options:{indexAxis:'x', plugins:{legend:{display:true, position:'bottom', labels:{usePointStyle:true, generateLabels:(chart)=>{return chart.data.datasets.map((d,i)=>{const isLine = d.type === 'line'; return {text:d.label, fillStyle:isLine ? 'transparent' : d.backgroundColor, strokeStyle:isLine ? d.borderColor : 'transparent', lineWidth:isLine ? 2 : 0, pointStyle:isLine ? 'line' : 'rect', hidden:!chart.isDatasetVisible(i), index:i};})}}}}, scales:{x:{grid:{color:PALETTE.grid}, stacked:true}, y:{grid:{display:true, color:PALETTE.grid}, ticks:{font:{size:12}}, stacked:true}}}});
 
   mkChart('crOrganoChart', {type:'bar', data:{labels:byOrgano.map(x=>x[0]), datasets:[{label:'Pratiche', data:byOrgano.map(x=>x[1]), backgroundColor:PALETTE.info}]},
