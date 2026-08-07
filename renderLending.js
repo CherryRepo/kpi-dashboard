@@ -300,7 +300,7 @@ function renderCredito(panel, s){
 		</div>
   </div>
 
-  <div class="section-title">Statistiche generali su pratiche 2026</div>
+  <div class="section-title">Statistiche generali e approfondimenti su pratiche 2026</div>
     <div class="kpi-row">
       <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Pratiche totali</div><div class="val">${fmtInt.format(total)}</div></div>
       <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">In lavorazione</div><div class="val">${fmtInt.format(inLavRows.length)}</div></div>

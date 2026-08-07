@@ -450,20 +450,20 @@ function renderKPITable(taskData) {
   const statusColor = fteTeorico !== null && fteActual !== null && fteTeorico > fteActual ? '#22c55e' : '#ef4444';
 
   return `
-    <div style="display:flex; align-items:stretch; gap:0; height:40px; border:1px solid ${PALETTE.grey666}; border-radius:8px; overflow:hidden; background:#f5f5f5;">
-      <div style="min-width:105px; padding:5px 12px; display:flex; flex-direction:column; justify-content:center; align-items:center; background:${PALETTE.grid}; border-right:1px solid #fff;">
+    <div style="display:flex; align-items:stretch; gap:0; height:40px; border:1px solid ${PALETTE.grey666}; border-radius:8px; overflow:hidden; background:#f5f5f5; max-width:400px; width:100%;">
+      <div style="min-width:70px; padding:5px 12px; display:flex; flex-direction:column; justify-content:center; align-items:center; background:${PALETTE.grid}; border-right:1px solid #fff;">
         <div style="font-size:11px; font-weight:400; line-height:1.1; color:#666666">Target</div>
         <div style="font-size:14px; font-weight:700; line-height:1.2; margin-top:3px;">${taskData.pezzi !== null ? fmtIntRound.format(taskData.pezzi) : '—'}</div>
       </div>
-      <div style="min-width:105px; padding:5px 12px; display:flex; flex-direction:column; justify-content:center; align-items:center; background:${PALETTE.grid}; border-right:1px solid #fff;">
+      <div style="min-width:70px; padding:5px 12px; display:flex; flex-direction:column; justify-content:center; align-items:center; background:${PALETTE.grid}; border-right:1px solid #fff;">
         <div style="font-size:11px; font-weight:400; line-height:1.1; color:#666666;">FTE Teorico</div>
         <div style="font-size:14px; font-weight:700; line-height:1.2; margin-top:3px;">${taskData.fte_teorico !== null ? fmtDec.format(taskData.fte_teorico) : '—'}</div>
       </div>
-      <div style="min-width:105px; padding:5px 12px; display:flex; flex-direction:column; justify-content:center; align-items:center; background:${PALETTE.grid}; border-right:1px solid #fff;">
+      <div style="min-width:70px; padding:5px 12px; display:flex; flex-direction:column; justify-content:center; align-items:center; background:${PALETTE.grid}; border-right:1px solid #fff;">
         <div style="font-size:11px; font-weight:400; line-height:1.1; color:#666666;">Media Mensile</div>
         <div style="font-size:14px; font-weight:700; line-height:1.2; margin-top:3px;">${taskData.pezzi_actual !== null ? fmtIntRound.format(taskData.pezzi_actual) : '—'}</div>
       </div>
-      <div style="min-width:105px; padding:5px 12px; display:flex; align-items:center; justify-content:center; gap:10px; background:${PALETTE.grid};">
+      <div style="min-width:70px; padding:5px 12px; display:flex; align-items:center; justify-content:center; gap:10px; background:${PALETTE.grid};">
         <div style="display:flex; flex-direction:column; align-items:center; justify-content:center;">
           <div style="font-size:11px; font-weight:400; line-height:1.1; color:#666666;">FTE Actual</div>
           <div style="font-size:14px; font-weight:700; line-height:1.2; margin-top:3px;">${taskData.fte_actual !== null ? fmtDec.format(taskData.fte_actual) : '—'}</div>
