@@ -576,7 +576,7 @@ function renderCreditoSpeciale(panel, s){
   `;
 
   // ---- grafico mensile principale ----
-  mkChart('specialeDeliberaChart', {type:'bar', data:{labels:deliberaMonthsData.map(d=>d.month), datasets:[{label:'Pratiche completate', data:deliberaMonthsData.map(d=>d.totale), backgroundColor:PALETTE.info}, {label:'Media mensile', data:Array(deliberaMonthsData.length).fill(specialeMonthlyAvg), type:'line', borderColor:PALETTE.navy, borderWidth:2, fill:false, pointRadius:0, borderDash:[0]},
+  mkChart('specialeDeliberaChart', {type:'bar', data:{labels:deliberaMonthsData.map(d=>d.month), datasets:[{label:'Pratiche completate', data:deliberaMonthsData.map(d=>d.totale), backgroundColor:PALETTE.accent}, {label:'Media mensile', data:Array(deliberaMonthsData.length).fill(specialeMonthlyAvg), type:'line', borderColor:PALETTE.navy, borderWidth:2, fill:false, pointRadius:0, borderDash:[0]},
     {label:'Target', data:Array(deliberaMonthsData.length).fill(5-specialeMonthlyAvg), type:'line', borderColor:PALETTE.grey, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[5,5]}}]},
     options:{plugins:{legend:{display:true, position:'bottom', labels:{usePointStyle:true, generateLabels:(chart)=>chart.data.datasets.map((d,i)=>({text:d.label, fillStyle:d.type==='line'?'transparent':d.backgroundColor, strokeStyle:d.type==='line'?d.borderColor:'transparent', lineWidth:d.type==='line'?2:0, pointStyle:d.type==='line'?'line':'rect', hidden:!chart.isDatasetVisible(i), index:i}))}}}, scales:{x:{grid:{color:PALETTE.grid}, stacked:true}, y:{grid:{color:PALETTE.grid}, stacked:true}}}});
 

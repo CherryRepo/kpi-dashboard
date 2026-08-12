@@ -490,17 +490,23 @@ function renderMonetica(panel){
   panel.innerHTML = structHeaderHtml({sheetName: MONETICA_ID, dimRow: moneticaDimRow}, 'OPS Incassi, Pagamenti e Monetica - ORGANIZATION, ICT & HR') + `
   <div style="display:flex; flex-direction:column; gap:16px; margin-bottom:16px;">
     <div style="display:flex; gap:16px;">
-      <div class="card" style="padding:28px 24px; flex:1; min-width:0; overflow:hidden;">
+      <div class="card" style="padding:28px 24px; flex:1; min-width:0; overflow:hidden; display:flex; flex-direction:column;">
         <h3 style="margin:0 0 16px 0;">Aperture e chiusure conti con portabilità 2026</h3>
-        ${renderKPITable(taskDataMonetica1)}
+        <div style="flex:1; display:flex; align-items:center; justify-content:center;">
+          ${renderKPITable(taskDataMonetica1)}
+        </div>
       </div>
-      <div class="card" style="padding:28px 24px; flex:1; min-width:0; overflow:hidden;">
+      <div class="card" style="padding:28px 24px; flex:1; min-width:0; overflow:hidden; display:flex; flex-direction:column;">
         <h3 style="margin:0 0 16px 0;">Assegni circolari gestiti al 31/07/2026</h3>
-        ${renderKPITable(taskDataMoneticaAssegni)}
+        <div style="flex:1; display:flex; align-items:center; justify-content:center;">
+          ${renderKPITable(taskDataMoneticaAssegni)}
+        </div>
       </div>
-      <div class="card" style="padding:28px 24px; flex:1; min-width:0; overflow:hidden;">
+      <div class="card" style="padding:28px 24px; flex:1; min-width:0; overflow:hidden; display:flex; flex-direction:column;">
         <h3 style="margin:0 0 16px 0;">Portafoglio cambiali cliente 2026</h3>
-        ${renderKPITable(taskDataMoneticaCambiali)}
+        <div style="flex:1; display:flex; align-items:center; justify-content:center;">
+          ${renderKPITable(taskDataMoneticaCambiali)}
+        </div>
       </div>
     </div>
     <div style="display:flex; gap:16px;">
@@ -524,7 +530,7 @@ function renderMonetica(panel){
   </div>
 
     <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
-      <div class="section-title">KPI OPS Incassi, Pagamenti e Monetica 2026</div>
+      <div class="section-title">Approfondimenti OPS Incassi, Pagamenti e Monetica 2026</div>
       <div class="kpi-row">
         <div class="kpi" style="--kc:${PALETTE.info}">
           <div class="lbl">Bonifici banca eseguiti</div>
@@ -647,7 +653,6 @@ function renderMonetica(panel){
     <p class="card-sub">Distribuzione per filiale</p>
     <canvas id="monFilialeChart"></canvas>
   </div>
-  ${renderTaskTable(getTasksForSheet(MONETICA_ID))}
   `;
 
   mkChart('monBonificiChart',{type:'bar', data:{labels:months, datasets:[{label:'Bonifici',data:months.map(m=>bonificiMonth[m]||0),backgroundColor:PALETTE.info}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
@@ -779,32 +784,89 @@ function renderDigital(panel){
     ...Object.keys(raisinMonth)
   ])].sort();
 
+  // ---- task KPI ----
+  const tasksDigital = getTasksForSheet(DIGITAL_BANK_ID);
+
+  const digitalTaskConti = tasksDigital[1];
+  if (digitalTaskConti) {
+    taskDataDigitalConti = {
+      pezzi: digitalTaskConti.pezzi,
+      fte_teorico: digitalTaskConti.fte_teorico,
+      pezzi_actual: (rapportiAperti.length + rapportiChiusi.length) / MONTHS,
+      fte_actual: ((rapportiAperti.length + rapportiChiusi.length) / MONTHS * digitalTaskConti.tempi) / HOURS_PER_MONTH
+    };
+  }
+
+  const digitalTaskBonifici = tasksDigital[12];
+  if (digitalTaskBonifici) {
+    taskDataDigitalBonifici = {
+      pezzi: digitalTaskBonifici.pezzi,
+      fte_teorico: digitalTaskBonifici.fte_teorico,
+      pezzi_actual: raisin2026.length / MONTHS,
+      fte_actual: (raisin2026.length / MONTHS * digitalTaskBonifici.tempi) / HOURS_PER_MONTH
+    };
+  }
+
+  const digitalTaskFrodi = tasksDigital[20];
+  if (digitalTaskFrodi) {
+    taskDataDigitalFrodi = {
+      pezzi: digitalTaskFrodi.pezzi,
+      fte_teorico: digitalTaskFrodi.fte_teorico,
+      pezzi_actual: frodi2026.length / MONTHS,
+      fte_actual: (frodi2026.length / MONTHS * digitalTaskFrodi.tempi) / HOURS_PER_MONTH
+    };
+  }
+
   const digitalDimRow = findDimRow(DIGITAL_BANK_ID);
   panel.innerHTML = structHeaderHtml({sheetName: DIGITAL_BANK_ID, dimRow: digitalDimRow}, 'Digital Bank - ORGANIZATION, ICT & HR') + `
-    <div class="section-title">KPI Digital Bank 2026</div>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+    <div>
+      <div class="card" style="position:relative; height:380px; display:flex; flex-direction:column; justify-content:center;">
+        <h3 style="margin:0; margin-top:-10px;">Lavorazione pratiche Conto Online</h3>
+        <canvas id="ContiChart" style="flex:1; width:100%; height:650px; max-width:100%; margin-top:20px;"></canvas>
+        <div style="position:absolute; top:12px; right:12px; padding:4px; font-size:0.8em; line-height:1;">
+          ${renderKPITable(taskDataDigitalConti)}
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="position:relative; height:380px; display:flex; flex-direction:column; justify-content:center;">
+        <h3 style="margin:0; margin-top:-10px;">Controlli Raisin su bonifici in uscita</h3>
+        <canvas id="BonificiChart" style="flex:1; width:100%; height:650px; max-width:100%; margin-top:20px;"></canvas>
+        <div style="position:absolute; top:12px; right:12px; padding:4px; font-size:0.8em; line-height:1;">
+          ${renderKPITable(taskDataDigitalBonifici)}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:16px; position:relative;">
+    <h3 style="margin:0 0 4px;">Segnalazioni Antifrode</h3>
+    <p class="card-sub">pratiche completate per mese</p>
+    <div style="position:absolute; top:12px; right:12px;">
+      ${renderKPITable(taskDataDigitalFrodi)}
+    </div>
+    <canvas id="FrodiChart" style="width:100%; max-height:280px;"></canvas>
+  </div>
 
+    <div class="section-title">Approfondimenti Digital Bank 2026</div>
     <div class="kpi-row">
       <div class="kpi" style="--kc:${PALETTE.info}">
         <div class="lbl">Rapporti aperti 2026</div>
         <div class="val">${fmtInt.format(rapportiAperti.length)}</div>
       </div>
-
       <div class="kpi" style="--kc:${PALETTE.warn}">
         <div class="lbl">Rapporti chiusi 2026</div>
         <div class="val">${fmtInt.format(rapportiChiusi.length)}</div>
       </div>
-
       <div class="kpi" style="--kc:${PALETTE.danger}">
         <div class="lbl">Frodi segnalate 2026</div>
         <div class="val">${fmtInt.format(frodi2026.length)}</div>
       </div>
-
       <div class="kpi" style="--kc:${PALETTE.info}">
         <div class="lbl">Bonifici Raisin controllati 2026</div>
         <div class="val">${fmtInt.format(raisin2026.length)}</div>
       </div>
     </div>
-
     <div class="section-title">Rapporti nuovi/estinti</div>
     <div class="grid cols-2" style="margin-bottom:16px">
       <div class="card">
@@ -812,14 +874,12 @@ function renderDigital(panel){
         <p class="card-sub">Nuovi rapporti Digital Bank</p>
         <canvas id="digitalApertiChart"></canvas>
       </div>
-
       <div class="card">
         <h3>Rapporti chiusi per mese</h3>
         <p class="card-sub">Rapporti estinti</p>
         <canvas id="digitalChiusiChart"></canvas>
       </div>
     </div>
-
     <div class="section-title">Segnalazioni ad antifrode</div>
     <div class="grid cols-2">
       <div class="card">
@@ -827,27 +887,34 @@ function renderDigital(panel){
         <p class="card-sub">Data operazione frode - 2026</p>
         <canvas id="digitalFrodiChart"></canvas>
       </div>
-
       <div class="card">
         <h3>Cluster frode</h3>
         <p class="card-sub">Distribuzione segnalazioni 2026</p>
         <canvas id="digitalClusterChart"></canvas>
       </div>
     </div>
-
     <div class="section-title">Controlli su bonifici Raisin</div>
     <div class="card" style="margin-top:16px">
       <h3>Bonifici Raisin controllati per mese</h3>
       <p class="card-sub">Numero bonifici analizzati - 2026</p>
       <canvas id="digitalRaisinChart"></canvas>
     </div>
-
-    ${renderTaskTable(getTasksForSheet(DIGITAL_BANK_ID))}
   `;
 
   // ============================================================
-  // CHART: RAPPORTI APERTI STACKED PER CATEGORIA
+  // CHARTS
   // ============================================================
+
+  mkChart('ContiChart', {type:'bar', data:{labels:months, datasets:[{label:'Rapporti aperti', data:months.map(m=>Object.values(apertiMonthByCateg[m]||{}).reduce((a,b)=>a+b,0)), backgroundColor:PALETTE.info}, {label:'Rapporti chiusi', data:months.map(m=>chiusiMonth[m]||0), backgroundColor:PALETTE.danger}, {label:'Media Mensile', data:Array(months.length).fill((rapportiAperti.length + rapportiChiusi.length) / MONTHS), type:'line', borderColor:PALETTE.navy, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[0]}}, {label:'Target', data:Array(months.length).fill(46), type:'line', borderColor:PALETTE.grey, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[5,5]}}]},
+    options:{indexAxis:'x', plugins:{legend:{display:true, position:'bottom', labels:{usePointStyle:true, generateLabels:(chart)=>{return chart.data.datasets.map((d,i)=>{const isLine=d.type==='line'; return {text:d.label, fillStyle:isLine?'transparent':d.backgroundColor, strokeStyle:isLine?d.borderColor:'transparent', lineWidth:isLine?2:0, pointStyle:isLine?'line':'rect', hidden:!chart.isDatasetVisible(i), index:i};});}}}},
+    scales:{x:{grid:{color:PALETTE.grid}, stacked:true}, y:{grid:{display:true, color:PALETTE.grid}, ticks:{font:{size:12}}, stacked:true}}}});
+
+  mkChart('BonificiChart', {type:'bar', data:{labels:months, datasets:[{label:'Bonifici Raisin', data:months.map(m=>raisinMonth[m]||0), backgroundColor:PALETTE.accent}, {label:'Media Mensile', data:Array(months.length).fill(raisin2026.length / MONTHS), type:'line', borderColor:PALETTE.navy, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[0]}}, {label:'Target', data:Array(months.length).fill(10), type:'line', borderColor:PALETTE.grey, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[5,5]}}]},
+    options:{indexAxis:'x', plugins:{legend:{display:true, position:'bottom', labels:{usePointStyle:true, generateLabels:(chart)=>{return chart.data.datasets.map((d,i)=>{const isLine = d.type === 'line'; return {text:d.label, fillStyle:isLine ? 'transparent' : d.backgroundColor, strokeStyle:isLine ? d.borderColor : 'transparent', lineWidth:isLine ? 2 : 0, pointStyle:isLine ? 'line' : 'rect', hidden:!chart.isDatasetVisible(i), index:i};})}}}}, scales:{x:{grid:{color:PALETTE.grid}, stacked:true}, y:{grid:{display:true, color:PALETTE.grid}, ticks:{font:{size:12}}, stacked:false}}}});
+
+  mkChart('FrodiChart', {type:'bar', data:{labels:months, datasets:[{label:'Frodi', data:months.map(m=>frodiMonth[m]||0), backgroundColor:PALETTE.accent}, {label:'Media Mensile', data:Array(months.length).fill(frodi2026.length / MONTHS), type:'line', borderColor:PALETTE.navy, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[0]}}, {label:'Target', data:Array(months.length).fill(28), type:'line', borderColor:PALETTE.grey, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[5,5]}}]},
+    options:{indexAxis:'x', plugins:{legend:{display:true, position:'bottom', labels:{usePointStyle:true, generateLabels:(chart)=>{return chart.data.datasets.map((d,i)=>{const isLine = d.type === 'line'; return {text:d.label, fillStyle:isLine ? 'transparent' : d.backgroundColor, strokeStyle:isLine ? d.borderColor : 'transparent', lineWidth:isLine ? 2 : 0, pointStyle:isLine ? 'line' : 'rect', hidden:!chart.isDatasetVisible(i), index:i};})}}}}, scales:{x:{grid:{color:PALETTE.grid}, stacked:true}, y:{grid:{display:true, color:PALETTE.grid}, ticks:{font:{size:12}}, stacked:false}}}});
+ 
 
   const datasetsAperti = categoriArray.map(categ => ({
     label: categ,
@@ -857,66 +924,15 @@ function renderDigital(panel){
     borderWidth: 0
   }));
 
-  mkChart('digitalApertiChart',{
-    type:'bar',
-    data:{
-      labels:months,
-      datasets: datasetsAperti
-    },
-    options:{
-      scales:{
-        x:{stacked:true},
-        y:{stacked:true}
-      }
-    }
-  });
+  mkChart('digitalApertiChart', {type:'bar', data:{labels:months, datasets: datasetsAperti}, options:{scales:{x:{stacked:true}, y:{stacked:true}}}});
 
-  mkChart('digitalChiusiChart',{
-    type:'bar',
-    data:{
-      labels:months,
-      datasets:[{
-        label:'Rapporti chiusi',
-        data:months.map(m=>chiusiMonth[m]||0),
-        backgroundColor:PALETTE.warn
-      }]
-    }
-  });
+  mkChart('digitalChiusiChart', {type:'bar', data:{labels:months, datasets:[{label:'Rapporti chiusi', data:months.map(m=>chiusiMonth[m]||0), backgroundColor:PALETTE.warn}]}});
 
-  mkChart('digitalFrodiChart',{
-    type:'line',
-    data:{
-      labels:months,
-      datasets:[{
-        label:'Frodi',
-        data:months.map(m=>frodiMonth[m]||0),
-        borderColor:PALETTE.danger
-      }]
-    }
-  });
+  mkChart('digitalFrodiChart', {type:'line', data:{labels:months, datasets:[{label:'Frodi', data:months.map(m=>frodiMonth[m]||0), borderColor:PALETTE.danger}]}});
 
-  mkChart('digitalClusterChart',{
-    type:'doughnut',
-    data:{
-      labels:byClusterFrode.map(x=>x[0]),
-      datasets:[{
-        data:byClusterFrode.map(x=>x[1]),
-        backgroundColor:CHART_SERIES
-      }]
-    }
-  });
+  mkChart('digitalClusterChart', {type:'doughnut', data:{labels:byClusterFrode.map(x=>x[0]), datasets:[{data:byClusterFrode.map(x=>x[1]), backgroundColor:CHART_SERIES}]}});
 
-  mkChart('digitalRaisinChart',{
-    type:'bar',
-    data:{
-      labels:months,
-      datasets:[{
-        label:'Bonifici Raisin',
-        data:months.map(m=>raisinMonth[m]||0),
-        backgroundColor:PALETTE.info
-      }]
-    }
-  });
+  mkChart('digitalRaisinChart', {type:'bar', data:{labels:months, datasets:[{label:'Bonifici Raisin', data:months.map(m=>raisinMonth[m]||0), backgroundColor:PALETTE.info}]}});
 }
 
 /* ============================================================ PANEL: BANCASSURANCE ============================================================ */
@@ -935,31 +951,52 @@ function renderBancassurance(panel, s){
   const byStato = Object.entries(bancassurance.reduce((acc, r) => { const stato = r.descrizione_stato || 'N.D.'; acc[stato] = (acc[stato] || 0) + 1; return acc; }, {})).sort((a, b) => b[1] - a[1]);
   const volumeTotal = Object.values(volumeByMonth).reduce((a, b) => a + b, 0);
   const volumeAvg = months.length ? volumeTotal / months.length : 0;
+
+  // ---- task KPI ----
+  const tasksBancassurance = getTasksForSheet(s.sheetName);
+
+  const bancassuranceTask = tasksBancassurance[2];
+  if (bancassuranceTask) {
+    taskDataBancassurance = {
+      pezzi: bancassuranceTask.pezzi,
+      fte_teorico: bancassuranceTask.fte_teorico,
+      pezzi_actual: bancassurance.length / MONTHS,
+      fte_actual: (bancassurance.length / MONTHS * bancassuranceTask.tempi) / HOURS_PER_MONTH
+    };
+  }
   
   panel.innerHTML = structHeaderHtml(s, 'Wealth & Bancassurance - ORGANIZATION, ICT & HR') + `
-    <div class="section-title">Statistiche su ordini di trasferimento titoli, fondi, ecc... 2026</div>
+    <div class="card" style="margin-bottom:16px; position:relative;">
+      <h3 style="margin:0 0 4px;">Ordini di trasferimento titoli</h3>
+      <p class="card-sub">ordini mensili per stato</p>
+      <div style="position:absolute; top:12px; right:12px;">
+        ${renderKPITable(taskDataBancassurance)}
+      </div>
+      <canvas id="OrdiniChart" style="width:100%; max-height:280px;"></canvas>
+    </div>
+
+    <div class="section-title">Approfondimenti e statistiche su ordini di trasferimento titoli, fondi, ecc... 2026</div>
     <div class="kpi-row">
       <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Ordini totali</div><div class="val">${fmtInt.format(bancassurance.length)}</div></div>
       <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Volume totale</div><div class="val">€ ${fmtInt.format(volumeTotal)}</div></div>
       <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">Volume medio mensile</div><div class="val">€ ${fmtInt.format(volumeAvg)}</div></div>
     </div>
-    <div class="grid cols-2">
-      <div class="card">
-        <h3>Ordini mensili per stato</h3>
-        <p class="card-sub">data_ordine, suddiviso per descrizione_stato</p>
-        <canvas id="baOrdiniChart"></canvas>
-      </div>
-      <div class="card">
-        <h3>Volume mensile</h3>
-        <p class="card-sub">tot_generale_euro per mese</p>
-        <canvas id="baVolumeChart"></canvas>
-      </div>
+    <div class="card" style="margin-bottom:16px;">
+      <h3>Volume mensile</h3>
+      <p class="card-sub">tot_generale_euro per mese</p>
+      <canvas id="baVolumeChart"></canvas>
     </div>
-
-    ${renderTaskTable(getTasksForSheet(s.sheetName))}
+    <!-- ${renderTaskTable(getTasksForSheet(s.sheetName))} -->
   `;
 
-  mkChart('baOrdiniChart', { type: 'bar', data: { labels: months, datasets: statiArray.map(stato => ({ label: stato, data: months.map(m => ordiniByMonthStato[m]?.[stato] || 0), backgroundColor: statoColorMap[stato], borderColor: statoColorMap[stato], borderWidth: 0 })) }, options: { scales: { x: {stacked: true, grid: {display: false}}, y: {stacked: true, grid: {color: PALETTE.grid}} }, plugins: { legend: {position: 'bottom', labels: {boxWidth: 10, font: {size: 10.5}}} } } });
+
+  mkChart('OrdiniChart', {type:'bar', data:{labels:months, datasets:[
+    {label:'Ordini eseguiti', data:months.map(m=>Object.entries(ordiniByMonthStato[m]||{}).filter(([stato])=>stato.toLowerCase().includes('eseguit')).reduce((a,[,v])=>a+v,0)), backgroundColor:PALETTE.info},
+    {label:'Ordini da perfezionare', data:months.map(m=>Object.entries(ordiniByMonthStato[m]||{}).filter(([stato])=>!stato.toLowerCase().includes('eseguit')).reduce((a,[,v])=>a+v,0)), backgroundColor:PALETTE.danger},
+    {label:'Media Mensile', data:Array(months.length).fill(bancassurance.length/MONTHS), type:'line', borderColor:PALETTE.navy, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[0]}},
+    {label:'Target', data:Array(months.length).fill(527), type:'line', borderColor:PALETTE.grey, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[5,5]}}]},
+    options:{indexAxis:'x', plugins:{legend:{display:true, position:'bottom', labels:{usePointStyle:true, generateLabels:(chart)=>{return chart.data.datasets.map((d,i)=>{const isLine=d.type==='line'; return {text:d.label, fillStyle:isLine?'transparent':d.backgroundColor, strokeStyle:isLine?d.borderColor:'transparent', lineWidth:isLine?2:0, pointStyle:isLine?'line':'rect', hidden:!chart.isDatasetVisible(i), index:i};});}}}},
+    scales:{x:{grid:{color:PALETTE.grid}, stacked:true}, y:{grid:{display:true, color:PALETTE.grid}, ticks:{font:{size:12}}, stacked:true}}}});
 
   mkChart('baVolumeChart', { type: 'bar', data: { labels: months, datasets: [{ label: 'Volume (€)', data: months.map(m => volumeByMonth[m] || 0), backgroundColor: PALETTE.pos, borderColor: PALETTE.pos, borderWidth: 0 }] }, options: { scales: { x: {grid: {display: false}}, y: {grid: {color: PALETTE.grid}} }, plugins: { legend: {display: false} } } });
 }
