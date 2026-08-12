@@ -256,7 +256,7 @@ function renderCredito(panel, s){
       fte_actual: (carteCompletedRows.length / MONTHS * fifthTask.tempi) / HOURS_PER_MONTH
     };
   }
-
+  
   panel.innerHTML = structHeaderHtml(s, 'Credito Ordinario & Factoring - Lending') + `
 	<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
     <div>
@@ -470,25 +470,53 @@ function renderCreditoSpeciale(panel, s){
   const giorniCompleted = completedRows.map(r=> Number(r.nro_giorni_lavorazione)).filter(v=> !isNaN(v));
   const avgGiorniCompleted = giorniCompleted.length ? giorniCompleted.reduce((a,b)=>a+b,0)/giorniCompleted.length : 0;
 
+  // ---- dati mensili completate ----
   const monthKeyOf = (r)=>{
     const d = toDate(r.dta_delibera) || toDate(r.dta_istruttoria);
     return d ? monthKey(d) : null;
   };
-  const byMonthDelibera = new Map(); // month -> {pos, neg, altro}
+  const byMonthDelibera = new Map();
   completedRows.forEach(r=>{
     const k = monthKeyOf(r);
     if(!k) return;
-    const tipo = String(r.des_tipo_delibera||'').toLowerCase();
-    if(!byMonthDelibera.has(k)) byMonthDelibera.set(k, {pos:0, danger:0, altro:0});
-    const m = byMonthDelibera.get(k);
-    if(tipo.includes('positiv')) m.pos++;
-    else if(tipo.includes('negativ')) m.neg++;
-    else m.altro++;
+    if(!byMonthDelibera.has(k)) byMonthDelibera.set(k, {totale:0});
+    byMonthDelibera.get(k).totale++;
   });
   const deliberaMonths = [...byMonthDelibera.keys()].sort();
+  const deliberaMonthsData = deliberaMonths.map(m => ({
+    month: m,
+    totale: byMonthDelibera.get(m).totale
+  }));
+
+  // ---- media mensile ----
+  const specialeMonthlyAvg = deliberaMonthsData.length > 0
+    ? deliberaMonthsData.reduce((sum, d) => sum + d.totale, 0) / MONTHS
+    : 0;
+
+  // ---- task KPI ----
+  const tasksCreditoSpeciale = getTasksForSheet(s.sheetName);
+
+  const specialeTask = tasksCreditoSpeciale[0];
+  if (specialeTask) {
+    taskDataSpeciale = {
+      pezzi: specialeTask.pezzi,
+      fte_teorico: specialeTask.fte_teorico,
+      pezzi_actual: completedRows.length / MONTHS,
+      fte_actual: (completedRows.length / MONTHS * specialeTask.tempi) / HOURS_PER_MONTH
+    };
+  }
 
   panel.innerHTML = structHeaderHtml(s, 'Credito Speciale - Lending') + `
-    <div class="section-title">Statistiche generali su pratiche 2026</div>
+    <div class="card" style="margin-bottom:16px; position:relative;">
+      <h3 style="margin:0 0 4px;">Delibere BU Special Situations, FS, Lombard 2026</h3>
+      <p class="card-sub">pratiche completate per mese, delibere 100% positive</p>
+      <div style="position:absolute; top:12px; right:12px;">
+        ${renderKPITable(taskDataSpeciale)}
+      </div>
+      <canvas id="specialeDeliberaChart" style="width:100%; max-height:280px;"></canvas>
+    </div>
+
+    <div class="section-title">Statistiche generali e approfondimenti su pratiche 2026</div>
     <div class="kpi-row">
       <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Pratiche totali</div><div class="val">${fmtInt.format(total)}</div></div>
       <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">In lavorazione</div><div class="val">${fmtInt.format(inLavRows.length)}</div></div>
@@ -545,9 +573,12 @@ function renderCreditoSpeciale(panel, s){
         <canvas id="crTipoChart2"></canvas>
       </div>
     </div>
-
-    ${renderTaskTable(getTasksForSheet(s.sheetName))}
   `;
+
+  // ---- grafico mensile principale ----
+  mkChart('specialeDeliberaChart', {type:'bar', data:{labels:deliberaMonthsData.map(d=>d.month), datasets:[{label:'Pratiche completate', data:deliberaMonthsData.map(d=>d.totale), backgroundColor:PALETTE.info}, {label:'Media mensile', data:Array(deliberaMonthsData.length).fill(specialeMonthlyAvg), type:'line', borderColor:PALETTE.navy, borderWidth:2, fill:false, pointRadius:0, borderDash:[0]},
+    {label:'Target', data:Array(deliberaMonthsData.length).fill(5-specialeMonthlyAvg), type:'line', borderColor:PALETTE.grey, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[5,5]}}]},
+    options:{plugins:{legend:{display:true, position:'bottom', labels:{usePointStyle:true, generateLabels:(chart)=>chart.data.datasets.map((d,i)=>({text:d.label, fillStyle:d.type==='line'?'transparent':d.backgroundColor, strokeStyle:d.type==='line'?d.borderColor:'transparent', lineWidth:d.type==='line'?2:0, pointStyle:d.type==='line'?'line':'rect', hidden:!chart.isDatasetVisible(i), index:i}))}}}, scales:{x:{grid:{color:PALETTE.grid}, stacked:true}, y:{grid:{color:PALETTE.grid}, stacked:true}}}});
 
   mkChart('crOrganoChart2', {type:'bar', data:{labels:byOrgano.map(x=>x[0]), datasets:[{label:'Pratiche', data:byOrgano.map(x=>x[1]), backgroundColor:PALETTE.info}]},
     options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false}, ticks:{font:{size:10.5}}}}}});
@@ -565,10 +596,24 @@ function renderCreditoSpeciale(panel, s){
   mkChart('crStatoInLavChart2', {type:'pie', data:{labels:byStatoInLav.map(x=>x[0]), datasets:[{data:byStatoInLav.map(x=>x[1]), backgroundColor:CHART_SERIES}]},
     options:{plugins:{legend:{position:'right', labels:{boxWidth:10, font:{size:10.5}}}}}});
 
-  mkChart('crDeliberaTrendChart2', {type:'bar', data:{labels:deliberaMonths, datasets:[
-      {label:'Positive', data:deliberaMonths.map(m=>byMonthDelibera.get(m).pos), backgroundColor:'#1c8a45'},
-      {label:'Negative', data:deliberaMonths.map(m=>byMonthDelibera.get(m).danger), backgroundColor:PALETTE.danger},
-      {label:'Altro', data:deliberaMonths.map(m=>byMonthDelibera.get(m).altro), backgroundColor:PALETTE.text}
+  // byMonthDelibera ora ha solo totale, ricostruiamo per il trend
+  const byMonthDeliberaFull = new Map();
+  completedRows.forEach(r=>{
+    const k = monthKeyOf(r);
+    if(!k) return;
+    const tipo = String(r.des_tipo_delibera||'').toLowerCase();
+    if(!byMonthDeliberaFull.has(k)) byMonthDeliberaFull.set(k, {pos:0, neg:0, altro:0});
+    const m = byMonthDeliberaFull.get(k);
+    if(tipo.includes('positiv')) m.pos++;
+    else if(tipo.includes('negativ')) m.neg++;
+    else m.altro++;
+  });
+  const deliberaMonthsFull = [...byMonthDeliberaFull.keys()].sort();
+
+  mkChart('crDeliberaTrendChart2', {type:'bar', data:{labels:deliberaMonthsFull, datasets:[
+      {label:'Positive', data:deliberaMonthsFull.map(m=>byMonthDeliberaFull.get(m).pos), backgroundColor:'#1c8a45'},
+      {label:'Negative', data:deliberaMonthsFull.map(m=>byMonthDeliberaFull.get(m).neg), backgroundColor:PALETTE.danger},
+      {label:'Altro',    data:deliberaMonthsFull.map(m=>byMonthDeliberaFull.get(m).altro), backgroundColor:PALETTE.text}
     ]},
     options:{plugins:{legend:{position:'bottom', labels:{boxWidth:10,font:{size:10.5}}}}, scales:{x:{stacked:true, grid:{display:false}}, y:{stacked:true, grid:{color:PALETTE.grid}}}}});
 
@@ -576,8 +621,9 @@ function renderCreditoSpeciale(panel, s){
     options:{plugins:{legend:{position:'right', labels:{boxWidth:10, font:{size:10.5}}}}}});
 }
 
+
 /* ============================================================
-   PANEL: CONTRATTI E PERFEZIONAMENTI CREDITO ORDINARIO 
+   PANEL: CONTRATTI E PERFEZIONAMENTI CREDITO ORDINARIO
    ============================================================ */
 function renderPerfezionamenti(panel, s){
   const rows = s.rows;
@@ -586,10 +632,17 @@ function renderPerfezionamenti(panel, s){
   // PERFEZIONAMENTI 2026
   // ============================================================
 
-  const perfezionati2026 = rows.filter(r => {
-    const d = toDate(r.dta_decorrenza);
-    return d && d.getFullYear() === 2026;
-  });
+  const perfezionati2026 = (() => {
+    const seen = new Set();
+    return rows.filter(r => {
+      const d = toDate(r.dta_operativa);
+      if (!d || d.getFullYear() !== 2026) return false;
+      const id = r.cod_identif_fido;
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+  })();
 
   // Estrai business unit uniche
   const buSet = new Set(perfezionati2026.map(r => r.des_business_unit).filter(Boolean));
@@ -601,10 +654,10 @@ function renderPerfezionamenti(panel, s){
   // Trend mensile per BU
   const perfByMonthBU = {};
   perfezionati2026.forEach(r => {
-    const d = toDate(r.dta_decorrenza);
+    const d = toDate(r.dta_operativa);
     const k = monthKey(d);
     const bu = r.des_business_unit || 'N.D.';
-    
+
     if (!perfByMonthBU[k]) perfByMonthBU[k] = {};
     perfByMonthBU[k][bu] = (perfByMonthBU[k][bu] || 0) + 1;
   });
@@ -615,10 +668,10 @@ function renderPerfezionamenti(panel, s){
 
   const giorniDelibOp = perfezionati2026.map(r => {
     const dDelibera = toDate(r.dta_delibera);
-    const dOperativa = toDate(r.dta_decorrenza);
-    
+    const dOperativa = toDate(r.dta_operativa);
+
     if (!dDelibera || !dOperativa) return null;
-    
+
     const diffMs = dOperativa.getTime() - dDelibera.getTime();
     const diffGg = Math.round(diffMs / (1000 * 60 * 60 * 24));
     return {mese: monthKey(dOperativa), giorni: diffGg};
@@ -649,11 +702,128 @@ function renderPerfezionamenti(panel, s){
   const byBU = mapToSorted(countBy(perfezionati2026, 'des_business_unit'));
   const avgGiorniOverall = giorniDelibOp.length ? giorniDelibOp.reduce((a, b) => a + b.giorni, 0) / giorniDelibOp.length : 0;
 
-  const dimRow = findDimRow(s.sheetName);
-  
+    // ============================================================
+  // GRUPPI BU PERSONALIZZATI
+  // ============================================================
+
+  const BU_GROUPS = {
+    corporate: [
+      'Finanza Strutturata',
+      'Special Situations',
+      'Turnaround & Strategic Finance'
+    ],
+    retail: [
+      'Retail Banking'
+    ],
+  };
+
+  const buildBUGroup = (buList) => {
+    const filtered = perfezionati2026.filter(r => buList.includes(r.des_business_unit));
+    const byMonth = {};
+    filtered.forEach(r => {
+      const k = monthKey(toDate(r.dta_operativa));
+      if (!k) return;
+      byMonth[k] = (byMonth[k] || 0) + 1;
+    });
+    const monthsArr = Object.keys(byMonth).sort();
+    const totale = filtered.length;
+    const monthlyAvg = monthsArr.length ? totale / monthsArr.length : 0;
+    const monthsData = monthsArr.map(m => ({month: m, totale: byMonth[m]}));
+    return {filtered, byMonth, monthsArr, monthsData, totale, monthlyAvg};
+  };
+
+  const corporateGroup = buildBUGroup(BU_GROUPS.corporate);
+  const retailGroup    = buildBUGroup(BU_GROUPS.retail);
+
+  const DIPENDENTI = {
+    dipendenti: [
+      'MUTUO IPOTECARIO A DIP. CHERRY BANK',
+      'APERT. CRED. IN C/C A DIP. CHERRY BANK'
+    ],
+  };
+  const buildDIPGroup = (buList) => {
+    const filtered = perfezionati2026.filter(r => buList.includes(r.des_forma_tecnica));
+    const byMonth = {};
+    filtered.forEach(r => {
+      const k = monthKey(toDate(r.dta_operativa));
+      if (!k) return;
+      byMonth[k] = (byMonth[k] || 0) + 1;
+    });
+    const monthsArr = Object.keys(byMonth).sort();
+    const totale = filtered.length;
+    const monthlyAvg = monthsArr.length ? totale / monthsArr.length : 0;
+    const monthsData = monthsArr.map(m => ({month: m, totale: byMonth[m]}));
+    return {filtered, byMonth, monthsArr, monthsData, totale, monthlyAvg};
+  };
+
+  const DIPGroup    = buildDIPGroup(DIPENDENTI.dipendenti);
+
+  // ---- task KPI ----
+  const tasksPerfezionamenti = getTasksForSheet(s.sheetName);
+
+  const perfezionamentiTask1 = tasksPerfezionamenti[0];
+  if (perfezionamentiTask1) {
+    taskDataPerfezionamenti1 = {
+      pezzi: perfezionamentiTask1.pezzi,
+      fte_teorico: perfezionamentiTask1.fte_teorico,
+      pezzi_actual: corporateGroup.totale / MONTHS,
+      fte_actual: (corporateGroup.totale / MONTHS * perfezionamentiTask1.tempi) / HOURS_PER_MONTH
+    };
+  }
+
+  const perfezionamentiTask2 = tasksPerfezionamenti[1];
+  if (perfezionamentiTask2) {
+    taskDataPerfezionamenti2 = {
+      pezzi: perfezionamentiTask2.pezzi,
+      fte_teorico: perfezionamentiTask2.fte_teorico,
+      pezzi_actual: retailGroup.totale / MONTHS,
+      fte_actual: (retailGroup.totale / MONTHS * perfezionamentiTask2.tempi) / HOURS_PER_MONTH
+    };
+  }
+
+  const perfezionamentiTaskDipendenti = tasksPerfezionamenti[7];
+  if (perfezionamentiTaskDipendenti) {
+    taskDataPerfezionamentiDip = {
+      pezzi: perfezionamentiTaskDipendenti.pezzi,
+      fte_teorico: perfezionamentiTaskDipendenti.fte_teorico,
+      pezzi_actual: DIPGroup.totale / MONTHS,
+      fte_actual: (DIPGroup.totale / MONTHS * perfezionamentiTaskDipendenti.tempi) / HOURS_PER_MONTH
+    };
+  }
+
   panel.innerHTML = structHeaderHtml(s, 'Contratti e perfezionamenti credito ordinario - Lending') + `
-    <div class="section-title">Pratiche completate perfezionate nel 2026</div>
-    
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+    <div>
+      <div class="card" style="position:relative; height:380px; display:flex; flex-direction:column; justify-content:center;">
+        <h3 style="margin:0; margin-top:-10px;">Perfezionamento e erogazione Corporate 2026</h3>
+        <canvas id="CorporateChart" style="flex:1; width:100%; height:650px; max-width:100%; margin-top:20px;"></canvas>
+        <div style="position:absolute; top:12px; right:12px; padding:4px; font-size:0.8em; line-height:1;">
+          ${renderKPITable(taskDataPerfezionamenti1)}
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="position:relative; height:380px; display:flex; flex-direction:column; justify-content:center;">
+        <h3 style="margin:0; margin-top:-10px;">Perfezionamento e erogazione Retail 2026, data quality check necessario</h3>
+        <canvas id="RetailChart" style="flex:1; width:100%; height:650px; max-width:100%; margin-top:20px;"></canvas>
+        <div style="position:absolute; top:12px; right:12px; padding:4px; font-size:0.8em; line-height:1;">
+          ${renderKPITable(taskDataPerfezionamenti2)}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:16px; position:relative;">
+    <h3 style="margin:0 0 4px;">Erogazioni mutui e fidi dipendenti 2026</h3>
+    <p class="card-sub">pratiche completate per mese</p>
+    <div style="position:absolute; top:12px; right:12px;">
+      ${renderKPITable(taskDataPerfezionamentiDip)}
+    </div>
+    <canvas id="DipChart" style="width:100%; max-height:280px;"></canvas>
+  </div>
+
+    <div class="section-title">Approfondimenti su pratiche completate perfezionate nel 2026</div>
+
     <div class="kpi-row">
       <div class="kpi" style="--kc:${PALETTE.info}">
         <div class="lbl">Pratiche perfezionate 2026</div>
@@ -689,14 +859,21 @@ function renderPerfezionamenti(panel, s){
       <p class="card-sub">Pratiche 2026</p>
       <canvas id="crBuChart"></canvas>
     </div>
-
-    ${renderTaskTable(getTasksForSheet(s.sheetName))}
   `;
 
   // ============================================================
   // CHART: PERFEZIONAMENTI STACKED PER BU
   // ============================================================
 
+  mkChart('CorporateChart', {type:'bar', data:{labels:corporateGroup.monthsData.map(d=>d.month), datasets:[{label:'Pratiche', data:corporateGroup.monthsData.map(d=>d.totale), backgroundColor:PALETTE.accent}, {label:'Media Mensile', data:Array(corporateGroup.monthsData.length).fill(corporateGroup.monthlyAvg), type:'line', borderColor:PALETTE.navy, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[0]}}, {label:'Target', data:Array(corporateGroup.monthsData.length).fill(46), type:'line', borderColor:PALETTE.grey, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[5,5]}}]},
+    options:{indexAxis:'x', plugins:{legend:{display:true, position:'bottom', labels:{usePointStyle:true, generateLabels:(chart)=>{return chart.data.datasets.map((d,i)=>{const isLine = d.type === 'line'; return {text:d.label, fillStyle:isLine ? 'transparent' : d.backgroundColor, strokeStyle:isLine ? d.borderColor : 'transparent', lineWidth:isLine ? 2 : 0, pointStyle:isLine ? 'line' : 'rect', hidden:!chart.isDatasetVisible(i), index:i};})}}}}, scales:{x:{grid:{color:PALETTE.grid}, stacked:true}, y:{grid:{display:true, color:PALETTE.grid}, ticks:{font:{size:12}}, stacked:false}}}});
+
+  mkChart('RetailChart', {type:'bar', data:{labels:retailGroup.monthsData.map(d=>d.month), datasets:[{label:'Pratiche', data:retailGroup.monthsData.map(d=>d.totale), backgroundColor:PALETTE.accent}, {label:'Media Mensile', data:Array(retailGroup.monthsData.length).fill(retailGroup.monthlyAvg), type:'line', borderColor:PALETTE.navy, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[0]}}, {label:'Target', data:Array(retailGroup.monthsData.length).fill(100), type:'line', borderColor:PALETTE.grey, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[5,5]}}]},
+    options:{indexAxis:'x', plugins:{legend:{display:true, position:'bottom', labels:{usePointStyle:true, generateLabels:(chart)=>{return chart.data.datasets.map((d,i)=>{const isLine = d.type === 'line'; return {text:d.label, fillStyle:isLine ? 'transparent' : d.backgroundColor, strokeStyle:isLine ? d.borderColor : 'transparent', lineWidth:isLine ? 2 : 0, pointStyle:isLine ? 'line' : 'rect', hidden:!chart.isDatasetVisible(i), index:i};})}}}}, scales:{x:{grid:{color:PALETTE.grid}, stacked:true}, y:{grid:{display:true, color:PALETTE.grid}, ticks:{font:{size:12}}, stacked:false}}}});
+
+  mkChart('DipChart', {type:'bar', data:{labels:DIPGroup.monthsData.map(d=>d.month), datasets:[{label:'Pratiche', data:DIPGroup.monthsData.map(d=>d.totale), backgroundColor:PALETTE.accent}, {label:'Media Mensile', data:Array(DIPGroup.monthsData.length).fill(DIPGroup.monthlyAvg), type:'line', borderColor:PALETTE.navy, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[0]}}, {label:'Target', data:Array(DIPGroup.monthsData.length).fill(10), type:'line', borderColor:PALETTE.grey, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[5,5]}}]},
+    options:{indexAxis:'x', plugins:{legend:{display:true, position:'bottom', labels:{usePointStyle:true, generateLabels:(chart)=>{return chart.data.datasets.map((d,i)=>{const isLine = d.type === 'line'; return {text:d.label, fillStyle:isLine ? 'transparent' : d.backgroundColor, strokeStyle:isLine ? d.borderColor : 'transparent', lineWidth:isLine ? 2 : 0, pointStyle:isLine ? 'line' : 'rect', hidden:!chart.isDatasetVisible(i), index:i};})}}}}, scales:{x:{grid:{color:PALETTE.grid}, stacked:true}, y:{grid:{display:true, color:PALETTE.grid}, ticks:{font:{size:12}}, stacked:false}}}});
+ 
   const datasetsPerfezionati = buArray.map(bu => ({
     label: bu,
     data: months.map(m => perfByMonthBU[m]?.[bu] || 0),
@@ -705,82 +882,17 @@ function renderPerfezionamenti(panel, s){
     borderWidth: 0
   }));
 
-  mkChart('crPerfezionatiChart', {
-    type: 'bar',
-    data: {
-      labels: months,
-      datasets: datasetsPerfezionati
-    },
-    options: {
-      scales: {
-        x: {stacked: true, grid: {display: false}},
-        y: {stacked: true, grid: {color: PALETTE.grid}}
-      },
-      plugins: {
-        legend: {position: 'bottom', labels: {boxWidth: 10, font: {size: 10.5}}}
-      }
-    }
-  });
+  mkChart('crPerfezionatiChart', {type:'bar', data:{labels:months, datasets:datasetsPerfezionati},
+    options:{scales:{x:{stacked:true, grid:{display:false}}, y:{stacked:true, grid:{color:PALETTE.grid}}}, plugins:{legend:{position:'bottom', labels:{boxWidth:10, font:{size:10.5}}}}}});
 
-  // ============================================================
-  // CHART: GIORNI MEDI
-  // ============================================================
+  mkChart('crGiorniDelibOpChart', {type:'line', data:{labels:months, datasets:[{label:'Giorni medi', data:months.map(m=>{const val=avgGiorniByMonth[m]; return val?Number(val.toFixed(1)):0;}),
+    borderColor:PALETTE.warn, backgroundColor:'rgba(184,159,132,0.1)', tension:0.4, fill:true, pointRadius:4, pointBackgroundColor:PALETTE.warn}]},
+    options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
 
-  mkChart('crGiorniDelibOpChart', {
-    type: 'line',
-    data: {
-      labels: months,
-      datasets: [{
-        label: 'Giorni medi',
-        data: months.map(m => {
-          const val = avgGiorniByMonth[m];
-          return val ? Number(val.toFixed(1)) : 0;
-        }),
-        borderColor: PALETTE.warn,
-        backgroundColor: 'rgba(184,159,132,0.1)',
-        tension: 0.4,
-        fill: true,
-        pointRadius: 4,
-        pointBackgroundColor: PALETTE.warn
-      }]
-    },
-    options: {
-      plugins: {
-        legend: {display: false}
-      },
-      scales: {
-        x: {grid: {display: false}},
-        y: {grid: {color: PALETTE.grid}}
-      }
-    }
-  });
-
-  // ============================================================
-  // CHART: BUSINESS UNIT
-  // ============================================================
-
-  mkChart('crBuChart', {
-    type: 'bar',
-    data: {
-      labels: byBU.map(x => x[0]),
-      datasets: [{
-        label: 'Pratiche',
-        data: byBU.map(x => x[1]),
-        backgroundColor: PALETTE.info
-      }]
-    },
-    options: {
-      indexAxis: 'y',
-      plugins: {
-        legend: {display: false}
-      },
-      scales: {
-        x: {grid: {color: PALETTE.grid}},
-        y: {grid: {display: false}, ticks: {font: {size: 10}}}
-      }
-    }
-  });
+  mkChart('crBuChart', {type:'bar', data:{labels:byBU.map(x=>x[0]), datasets:[{label:'Pratiche', data:byBU.map(x=>x[1]), backgroundColor:PALETTE.info}]},
+    options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false}, ticks:{font:{size:10}}}}}});
 }
+
 
 /* ============================================================
    PANEL: FACTORING
@@ -949,12 +1061,69 @@ function renderFactoring(panel, s){
   ])].sort();
 
   // ============================================================
+  // AGGREGAZIONI
+  // ============================================================
+
+  const tasksFactoring = getTasksForSheet(FACTORING_ID);
+
+  const debitoriFactoring = tasksFactoring[0];
+  if (debitoriFactoring) {
+    taskDataDebitoriFactoring = {
+      pezzi: debitoriFactoring.pezzi,
+      fte_teorico: debitoriFactoring.fte_teorico,
+      pezzi_actual: totalDebitori / debitoriFactoring.fte_teorico,
+      fte_actual: totalDebitori / debitoriFactoring.pezzi
+    };
+  }
+
+  const cedentiFactoring = tasksFactoring[1];
+  if (cedentiFactoring) {
+    taskDataCedentiFactoring = {
+      pezzi: cedentiFactoring.pezzi,
+      fte_teorico: cedentiFactoring.fte_teorico,
+      pezzi_actual: totalPraticheCedenti / cedentiFactoring.fte_teorico,
+      fte_actual: totalPraticheCedenti / cedentiFactoring.pezzi
+    };
+  }
+
+  const perfezionamentiFactoring = tasksFactoring[2];
+  if (perfezionamentiFactoring) {
+    taskDataPerfezionamentiFactoring = {
+      pezzi: perfezionamentiFactoring.pezzi,
+      fte_teorico: perfezionamentiFactoring.fte_teorico,
+      pezzi_actual: totalPraticheCedenti / MONTHS,
+      fte_actual: (totalPraticheCedenti / MONTHS * perfezionamentiFactoring.tempi) / HOURS_PER_MONTH
+    };
+  }
+  
+  // ============================================================
   // RENDER HTML
   // ============================================================
   const factoringDimRow = findDimRow(FACTORING_ID);
   panel.innerHTML = structHeaderHtml({sheetName: FACTORING_ID, dimRow: factoringDimRow}, 'Factoring - Lending') + `
+    <div style="display:flex; gap:16px; margin-bottom:16px; align-items:stretch;">
+      <div style="display:flex; flex-direction:column; gap:20px;">
+        <div class="card" style="padding:28px 24px; display:inline-block; flex:1;">
+          <h3 style="margin:0 0 16px 0;">Gestione debitori factoring al 31/07/2026</h3>
+          ${renderKPITableFactoring(taskDataDebitoriFactoring)}
+        </div>
+        <div class="card" style="padding:28px 24px; display:inline-block; flex:1;">
+          <h3 style="margin:0 0 16px 0;">Gestione cedenti factoring al 31/07/2026</h3>
+          ${renderKPITableFactoring(taskDataCedentiFactoring)}
+        </div>
+      </div>
+      <div class="card" style="flex:1; position:relative; display:flex; flex-direction:column; justify-content:flex-end;">
+        <h3 style="margin:0 0 4px;">Perfezionamenti Factoring 2026, errore nel calcolo FTE Teorico da excel</h3>
+        <p class="card-sub">pratiche completate per mese</p>
+        <div style="position:absolute; top:12px; right:12px;">
+          ${renderKPITable(taskDataPerfezionamentiFactoring)}
+        </div>
+        <canvas id="PerfezionamentiChart" style="width:100%; max-height:240px;"></canvas>
+      </div>
+    </div>
+    
     <!-- ========== CEDENTI ========== -->
-    <div class="section-title">Riepilogo nuove pratiche factoring cedenti nel periodo 2026</div>
+    <div class="section-title">Riepilogo e approfondimenti nuove pratiche factoring cedenti nel periodo 2026</div>
     
     <div class="kpi-row">
       <div class="kpi" style="--kc:${PALETTE.info}">
@@ -977,7 +1146,7 @@ function renderFactoring(panel, s){
 
     <div class="grid cols-2">
       <div class="card">
-        <h3>Nuove pratiche per mese</h3>
+        <h3>Nuove pratiche per mese, ripetizione KPI, si toglie in un secondo</h3>
         <p class="card-sub">COUNT(ndg) per mese</p>
         <canvas id="npPratichePerMeseChart"></canvas>
       </div>
@@ -1002,7 +1171,7 @@ function renderFactoring(panel, s){
     </div>
 
     <!-- ========== DEBITORI ========== -->
-    <div class="section-title">Riepilogo nuove pratiche factoring debitori nel periodo 2026</div>
+    <div class="section-title">Riepilogo e approfondimenti nuove pratiche factoring debitori nel periodo 2026</div>
     
     <div class="kpi-row">
       <div class="kpi" style="--kc:${PALETTE.info}">
@@ -1031,1033 +1200,31 @@ function renderFactoring(panel, s){
         <canvas id="dbNdgPerProdotto"></canvas>
       </div>
     </div>
-
-    ${renderTaskTable(getTasksForSheet(FACTORING_ID))}
   `;
 
+  mkChart('PerfezionamentiChart', {type:'bar', data:{labels:monthsCedenti, datasets: [{ label: 'Pratiche', data: monthsCedenti.map(m => pratichePerMeseCedenti[m] || 0), backgroundColor:PALETTE.accent}, {label:'Media Mensile', data:Array(monthsCedenti.length).fill(totalPraticheCedenti/MONTHS), type:'line', borderColor:PALETTE.navy, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[0]}}, {label:'Target', data:Array(monthsCedenti.length).fill(26), type:'line', borderColor:PALETTE.grey, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[5,5]}}]},
+    options:{indexAxis:'x', plugins:{legend:{display:true, position:'bottom', labels:{usePointStyle:true, generateLabels:(chart)=>{return chart.data.datasets.map((d,i)=>{const isLine = d.type === 'line'; return {text:d.label, fillStyle:isLine ? 'transparent' : d.backgroundColor, strokeStyle:isLine ? d.borderColor : 'transparent', lineWidth:isLine ? 2 : 0, pointStyle:isLine ? 'line' : 'rect', hidden:!chart.isDatasetVisible(i), index:i};})}}}}, scales:{x:{grid:{color:PALETTE.grid}, stacked:true}, y:{grid:{display:true, color:PALETTE.grid}, ticks:{font:{size:12}}, stacked:false}}}});
+  
   // ============================================================
   // CHART: PRATICHE PER MESE (CEDENTI)
   // ============================================================
 
-  mkChart('npPratichePerMeseChart', {
-    type: 'bar',
-    data: {
-      labels: monthsCedenti,
-      datasets: [{
-        label: 'Pratiche',
-        data: monthsCedenti.map(m => pratichePerMeseCedenti[m] || 0),
-        backgroundColor: PALETTE.navy,
-        borderColor: PALETTE.info,
-        borderWidth: 0
-      }]
-    },
-    options: {
-      plugins: {legend: {display: false}},
-      scales: {
-        x: {grid: {display: false}},
-        y: {grid: {color: PALETTE.grid}}
-      }
-    }
-  });
+  mkChart('npPratichePerMeseChart', {type: 'bar', data: { labels: monthsCedenti, datasets: [{ label: 'Pratiche', data: monthsCedenti.map(m => pratichePerMeseCedenti[m] || 0), backgroundColor: PALETTE.navy, borderColor: PALETTE.info, borderWidth: 0 }] },
+    options: { plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { grid: { color: PALETTE.grid } } } }});
 
-  // ============================================================
-  // CHART: ACCORDATO PER MESE (CEDENTI)
-  // ============================================================
+  mkChart('npAccordatoPerMeseChart', {type: 'line', data: { labels: monthsCedenti, datasets: [{ label: 'Accordato', data: monthsCedenti.map(m => accordatoPerMeseCedenti[m] || 0), borderColor: PALETTE.pos, backgroundColor: 'rgba(111,146,119,0.15)', tension: 0.4, fill: true, pointRadius: 4, pointBackgroundColor: PALETTE.pos, pointBorderColor: PALETTE.navy, pointBorderWidth: 0 }] },
+    options: { plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { grid: { color: PALETTE.grid }, ticks: { callback: v => fmtCurrency.format(v) } } } }});
 
-  mkChart('npAccordatoPerMeseChart', {
-    type: 'line',
-    data: {
-      labels: monthsCedenti,
-      datasets: [{
-        label: 'Accordato',
-        data: monthsCedenti.map(m => accordatoPerMeseCedenti[m] || 0),
-        borderColor: PALETTE.pos,
-        backgroundColor: 'rgba(111,146,119,0.15)',
-        tension: 0.4,
-        fill: true,
-        pointRadius: 4,
-        pointBackgroundColor: PALETTE.pos,
-        pointBorderColor: PALETTE.navy,
-        pointBorderWidth: 0
-      }]
-    },
-    options: {
-      plugins: {legend: {display: false}},
-      scales: {
-        x: {grid: {display: false}},
-        y: {grid: {color: PALETTE.grid}, ticks: {callback: v => fmtCurrency.format(v)}}
-      }
-    }
-  });
+  mkChart('npPraticheFiliale', {type: 'bar', data: { labels: pratichePerFilialeCedenti.map(x => x[0]), datasets: [{ label: 'Pratiche', data: pratichePerFilialeCedenti.map(x => x[1]), backgroundColor: PALETTE.pos, borderColor: PALETTE.navy, borderWidth: 0 }] },
+    options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { grid: { color: PALETTE.grid } }, y: { grid: { display: false }, ticks: { font: { size: 9.5 } } } } }});
 
-  // ============================================================
-  // CHART: PRATICHE PER FILIALE (CEDENTI)
-  // ============================================================
+  const accordatoFilialeCedentiSorted = Object.entries(accordatoPerFilialeCedenti).sort((a, b) => b[1] - a[1]);
+  mkChart('npAccordatoFiliale', {type: 'bar', data: { labels: accordatoFilialeCedentiSorted.map(x => x[0]), datasets: [{ label: 'Accordato', data: accordatoFilialeCedentiSorted.map(x => x[1]), backgroundColor: PALETTE.danger, borderColor: PALETTE.navy, borderWidth: 0 }] },
+    options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { grid: { color: PALETTE.grid }, ticks: { callback: v => fmtCurrency.format(v) } }, y: { grid: { display: false }, ticks: { font: { size: 9.5 } } } } }});
 
-  mkChart('npPraticheFiliale', {
-    type: 'bar',
-    data: {
-      labels: pratichePerFilialeCedenti.map(x => x[0]),
-      datasets: [{
-        label: 'Pratiche',
-        data: pratichePerFilialeCedenti.map(x => x[1]),
-        backgroundColor: PALETTE.pos,
-        borderColor: PALETTE.navy,
-        borderWidth: 0
-      }]
-    },
-    options: {
-      indexAxis: 'y',
-      plugins: {legend: {display: false}},
-      scales: {
-        x: {grid: {color: PALETTE.grid}},
-        y: {grid: {display: false}, ticks: {font: {size: 9.5}}}
-      }
-    }
-  });
+  mkChart('dbAccordatoPerMeseChart', {type: 'bar', data: { labels: monthsDebitori, datasets: [{ label: 'Accordato Solvendo', data: monthsDebitori.map(m => accordatoPerMeseSolvendo[m] || 0), backgroundColor: PALETTE.pos, borderColor: PALETTE.navy, borderWidth: 0 }, { label: 'Accordato Soluto', data: monthsDebitori.map(m => accordatoPerMeseSoluto[m] || 0), backgroundColor: PALETTE.info, borderColor: PALETTE.navy, borderWidth: 0 }] },
+    options: { plugins: { legend: { display: true } }, scales: { x: { grid: { display: false }, stacked: true }, y: { grid: { color: PALETTE.grid }, stacked: true, ticks: { callback: v => fmtCurrency.format(v) } } } }});
 
-  // ============================================================
-  // CHART: ACCORDATO PER FILIALE (CEDENTI)
-  // ============================================================
-
-  const accordatoFilialeCedentiSorted = Object.entries(accordatoPerFilialeCedenti)
-    .map(([k, v]) => [k, v])
-    .sort((a, b) => b[1] - a[1]);
-
-  mkChart('npAccordatoFiliale', {
-    type: 'bar',
-    data: {
-      labels: accordatoFilialeCedentiSorted.map(x => x[0]),
-      datasets: [{
-        label: 'Accordato',
-        data: accordatoFilialeCedentiSorted.map(x => x[1]),
-        backgroundColor: PALETTE.danger,
-        borderColor: PALETTE.navy,
-        borderWidth: 0
-      }]
-    },
-    options: {
-      indexAxis: 'y',
-      plugins: {legend: {display: false}},
-      scales: {
-        x: {grid: {color: PALETTE.grid}, ticks: {callback: v => fmtCurrency.format(v)}},
-        y: {grid: {display: false}, ticks: {font: {size: 9.5}}}
-      }
-    }
-  });
-
-  // ============================================================
-  // CHART: ACCORDATO PER MESE (DEBITORI - SOLVENDO VS SOLUTO)
-  // ============================================================
-
-  mkChart('dbAccordatoPerMeseChart', {
-    type: 'bar',
-    data: {
-      labels: monthsDebitori,
-      datasets: [
-        {
-          label: 'Accordato Solvendo',
-          data: monthsDebitori.map(m => accordatoPerMeseSolvendo[m] || 0),
-          backgroundColor: PALETTE.pos,
-          borderColor: PALETTE.navy,
-          borderWidth: 0
-        },
-        {
-          label: 'Accordato Soluto',
-          data: monthsDebitori.map(m => accordatoPerMeseSoluto[m] || 0),
-          backgroundColor: PALETTE.info,
-          borderColor: PALETTE.navy,
-          borderWidth: 0
-        }
-      ]
-    },
-    options: {
-      plugins: {legend: {display: true}},
-      scales: {
-        x: {grid: {display: false}, stacked: true},
-        y: {grid: {color: PALETTE.grid}, stacked: true, ticks: {callback: v => fmtCurrency.format(v)}}
-      }
-    }
-  });
-
-  // ============================================================
-  // CHART: DISTRIBUZIONE PRODOTTI DEBITORI
-  // ============================================================
-
-  mkChart('dbNdgPerProdotto', {
-    type: 'bar',
-    data: {
-      labels: datiFinaliProdotti.map(x => x[0]),
-      datasets: [{
-        label: 'NDG per Prodotto',
-        data: datiFinaliProdotti.map(x => x[1]),
-        backgroundColor: [
-          PALETTE.pos,
-          PALETTE.danger,
-          PALETTE.warn,
-          PALETTE.info,
-          PALETTE.navy,
-        ],
-        borderColor: PALETTE.navy,
-        borderWidth: 0
-      }]
-    },
-    options: {
-      plugins: {
-        legend: {display: false}
-      }
-    }
-  });
-}
-
-/* ============================================================
-   PANEL: ANAGRAFE
-   ============================================================ */
-function renderAnagrafe(panel, s){
-  const ALLOWED_BU = ['', '-', 'smes'];
-  const isAllowedBU = (v)=>{
-    const t = (v===null||v===undefined) ? '' : String(v).trim().toLowerCase();
-    return ALLOWED_BU.includes(t);
-  };
-
-  const rows = s.rows.filter(r=> isAllowedBU(r.des_business_unit));
-  const excludedCount = s.rows.length - rows.length;
-  const dates = rows.map(r=> toDate(r.dta_censimento)).filter(Boolean);
-  const naturaCounts = topN(mapToSorted(countBy(rows, 'des_natura_giuridica')), 12);
-  const statusCounts = mapToSorted(countBy(rows, 'des_status_generic'));
-
-  const byMonth = new Map();
-  dates.forEach(d=>{ const k = monthKey(d); byMonth.set(k, (byMonth.get(k)||0)+1); });
-  const months = [...byMonth.keys()].sort();
-
-  const minD = dates.length ? new Date(Math.min(...dates)) : null;
-  const maxD = dates.length ? new Date(Math.max(...dates)) : null;
-  const nDeceduti = rows.filter(r=> toDate(r.dta_decesso)).length;
-
-  panel.innerHTML = structHeaderHtml(s, 'Anagrafe - ORGANIZATION, ICT & HR') + `
-    <div class="section-title">Statistiche censimenti anagrafe 2026</div>
-    <div class="kpi-row">
-      <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Nominativi censiti</div><div class="val">${fmtInt.format(rows.length)}</div></div>
-      <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">Nature giuridiche distinte</div><div class="val">${new Set(rows.map(r=>r.des_natura_giuridica)).size}</div></div>
-      <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">Periodo censimento</div><div class="val" style="font-size:15px">${fmtDate(minD)} → ${fmtDate(maxD)}</div></div>
-    </div>
-    <div class="card" style="margin-bottom:16px">
-      <h3>Trend censimenti nel tempo</h3><p class="card-sub">conteggio mensile per data censimento</p><canvas id="anTrendChart"></canvas>
-    </div>
-    <div class="grid cols-2" style="margin-bottom:16px">
-      <div class="card"><h3>Natura giuridica (top 12)</h3><p class="card-sub">forma societaria dei nominativi censiti</p><canvas id="anNaturaChart"></canvas></div>
-      <div class="card"><h3>Stato cliente</h3><p class="card-sub">${statusCounts.length? 'des_status_generic' : 'dato non disponibile'}</p><canvas id="anStatusChart"></canvas></div>
-    </div>
-
-    ${renderTaskTable(getTasksForSheet(s.sheetName))}
-  `;
-
-  mkChart('anTrendChart', {type:'line', data:{labels:months, datasets:[{label:'Censimenti', data:months.map(m=>byMonth.get(m)), borderColor:PALETTE.info, backgroundColor:'rgba(47,111,179,0.12)', fill:true, tension:.3}]},
-    options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
-
-  mkChart('anNaturaChart', {type:'bar', data:{labels:naturaCounts.map(x=>x[0]), datasets:[{label:'Nominativi', data:naturaCounts.map(x=>x[1]), backgroundColor:PALETTE.navy}]},
-    options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false}, ticks:{font:{size:10}}}}}});
-
-  mkChart('anStatusChart', {type:'pie', data:{labels:statusCounts.map(x=>x[0]), datasets:[{data:statusCounts.map(x=>x[1]), backgroundColor:CHART_SERIES}]},
-    options:{plugins:{legend:{position:'right', labels:{boxWidth:10, font:{size:10.5}}}}}});
-}
-
-/* ============================================================
-   PANEL: ANTIFRODE
-   ============================================================ */
-function renderAntifrode(panel, s){
-
-  const rows = s.rows;
-  const countKey = rows[0].hasOwnProperty('conteggio') ? 'conteggio' : Object.keys(rows[0]).find(k=> typeof rows[0][k] === 'number');
-  const total = rows.reduce((a,r)=> a + (Number(r[countKey])||0), 0);
-
-  const byClass = sumBy(rows, 'classificazione', countKey);
-  const byCluster = sumBy(rows, 'cluster_frode', countKey);
-  const confermate = byClass.get('FRODE CONFERMATA') || 0;
-  const tassoConferma = total ? (confermate/total*100) : 0;
-
-  const byMonthClass = new Map(); // month -> classificazione -> sum
-  rows.forEach(r=>{
-    const d = toDate(r.mese);
-    const k = d ? monthKey(d) : String(r.mese);
-    const cl = r.classificazione || '(n.d.)';
-    if(!byMonthClass.has(k)) byMonthClass.set(k, new Map());
-    const mm = byMonthClass.get(k);
-    mm.set(cl, (mm.get(cl)||0) + (Number(r[countKey])||0));
-  });
-  const months = [...byMonthClass.keys()].sort();
-  const classifications = [...new Set(rows.map(r=>r.classificazione).filter(Boolean))];
-
-  const clusterSorted = mapToSorted(byCluster);
-  const classSorted = mapToSorted(byClass);
-
-  panel.innerHTML = structHeaderHtml(s, 'Antifrode - ORGANIZATION, ICT & HR') + `
-    <div class="section-title">Statistiche generali antifrode 2026</div>
-    <div class="kpi-row">
-      <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Segnalazioni totali</div><div class="val">${fmtInt.format(total)}</div></div>
-      <div class="kpi" style="--kc:${PALETTE.danger}"><div class="lbl">Frodi confermate</div><div class="val">${fmtInt.format(confermate)}</div><div class="sub">${fmtDec.format(tassoConferma)}% del totale</div></div>
-      <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">Falsi positivi</div><div class="val">${fmtInt.format(byClass.get('FALSO POSITIVO FRODE')||0)}</div></div>
-      <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">Cluster di frode monitorati</div><div class="val">${clusterSorted.length}</div></div>
-    </div>
-    <div class="grid cols-2" style="margin-bottom:16px">
-      <div class="card"><h3>Andamento mensile per classificazione</h3><p class="card-sub">frodi confermate / falsi positivi / non classificabili</p><canvas id="afTrendChart"></canvas></div>
-      <div class="card"><h3>Distribuzione per classificazione</h3><canvas id="afClassChart"></canvas></div>
-    </div>
-    <div class="grid cols-2" style="margin-bottom:16px">
-      <div class="card" style="grid-column:1/-1"><h3>Volumi per cluster di frode</h3><p class="card-sub">tipologia di frode rilevata</p><canvas id="afClusterChart"></canvas></div>
-    </div>
-
-    ${renderTaskTable(getTasksForSheet(s.sheetName))}
-  `;
-
-  const classColors = {'FRODE CONFERMATA':PALETTE.danger, 'FALSO POSITIVO FRODE':PALETTE.warn, 'NON CLASSIFICABILE':PALETTE.info};
-  mkChart('afTrendChart', {type:'bar', data:{labels:months, datasets: classifications.map((c,i)=>({
-      label:c, data: months.map(m=> byMonthClass.get(m).get(c)||0),
-      backgroundColor: classColors[c] || CHART_SERIES[i%CHART_SERIES.length]
-    }))},
-    options:{plugins:{legend:{position:'bottom', labels:{boxWidth:10,font:{size:10.5}}}}, scales:{x:{stacked:true, grid:{display:false}}, y:{stacked:true, grid:{color:PALETTE.grid}}}}});
-
-  mkChart('afClassChart', {type:'doughnut', data:{labels:classSorted.map(x=>x[0]), datasets:[{data:classSorted.map(x=>x[1]), backgroundColor: classSorted.map(x=> classColors[x[0]] || PALETTE.info)}]},
-    options:{plugins:{legend:{position:'right', labels:{boxWidth:10, font:{size:10.5}}}}}});
-
-  mkChart('afClusterChart', {type:'bar', data:{labels:clusterSorted.map(x=>x[0]), datasets:[{label:'Conteggio', data:clusterSorted.map(x=>x[1]), backgroundColor:PALETTE.info}]},
-    options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false}, ticks:{font:{size:10.5}}}}}});
-}
-
-/* ============================================================
-   PANEL: OPS AML
-   ============================================================ */
-function renderOpsAml(panel, s){
-
-  const rows = s.rows;
-  const isAlto = (r)=> String(r.fascia_rischio||'').toLowerCase().includes('alt');
-  const altoRows = rows.filter(isAlto);
-  const isDone = (r)=> !!toDate(r.data_uscita);
-  const completedAlto = altoRows.filter(isDone);
-  const pendingAlto = altoRows.filter(r=> !isDone(r));
-
-  const altoNdg = distinctCount(altoRows);
-  const completedAltoNdg = distinctCount(completedAlto);
-  const pendingAltoNdg = distinctCount(pendingAlto);
-
-  // Tempo medio di lavorazione per le completate a rischio alto
-  const giorniAlto = completedAlto.map(r=>{
-    const din = toDate(r.data_inserimento);
-    const dout = toDate(r.data_uscita);
-    if(!din || !dout) return null;
-    return Math.round((dout - din) / 86400000);
-  }).filter(v=> v!==null && v>=0);
-  const avgGiorniAlto = giorniAlto.length ? giorniAlto.reduce((a,b)=>a+b,0)/giorniAlto.length : 0;
-
-  // Scadute: rischio alto, ancora in lavorazione, con data_scadenza_adv nel passato
-  const today = new Date();
-  const scaduteRows = pendingAlto.filter(r=>{ const d = toDate(r.data_scadenza_adv); return d && d < today; });
-  const scaduteNdg = distinctCount(scaduteRows);
-
-  // Trend mensile completate a rischio alto
-  const byMonthSet = new Map();
-  completedAlto.forEach(r=>{
-    const d = toDate(r.data_uscita);
-    const k = monthKey(d);
-    if(!byMonthSet.has(k)) byMonthSet.set(k, new Set());
-    byMonthSet.get(k).add(r.ndg);
-  });
-  const months = [...byMonthSet.keys()].sort();
-
-  const byBU = topN(mapToSorted(countDistinctBy(altoRows, 'business_unit')), 12);
-  const byCluster = topN(mapToSorted(countDistinctBy(altoRows, 'cluster')), 12);
-  const byWorkflow = mapToSorted(countDistinctBy(altoRows, 'workflow'));
-  const byTipoVerifica = mapToSorted(countDistinctBy(altoRows, 'tipo_verifica'));
-
-  panel.innerHTML = structHeaderHtml(s, 'OPS AML - ORGANIZATION, ICT & HR') + `
-    <div class="section-title">Stato lavorazione adeguate verifiche su clientela a rischio alto <span class="count-badge">${fmtInt.format(altoNdg)} NDG</span></div>
-    <p class="section-desc">Focus sulle posizioni in fascia di rischio alto: avanzamento delle adeguate verifiche e tempi di lavorazione.</p>
-    
-    <div class="kpi-row">
-      <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Verifiche completate</div><div class="val">${fmtInt.format(completedAltoNdg)}</div><div class="sub">${fmtDec.format(altoNdg ? completedAltoNdg/altoNdg*100 : 0)}% del rischio alto</div></div>
-      <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">Da lavorare</div><div class="val">${fmtInt.format(pendingAltoNdg)}</div><div class="sub">${fmtDec.format(altoNdg ? pendingAltoNdg/altoNdg*100 : 0)}% del rischio alto</div></div>
-      <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Tempo medio</div><div class="val">${fmtDec.format(avgGiorniAlto)} gg</div><div class="sub">data uscita − inserimento</div></div>
-      <div class="kpi" style="--kc:${PALETTE.danger}"><div class="lbl">Scadute e non completate</div><div class="val">${fmtInt.format(scaduteNdg)}</div><div class="sub">data scadenza ADV superata</div></div>
-    </div>
-
-    <div class="card" style="margin-bottom:16px">
-      <h3>Verifiche completate per mese</h3><p class="card-sub">rischio alto, NDG distinti per mese su data uscita</p>
-      <canvas id="amlTrendChart"></canvas>
-    </div>
-
-    <div class="grid cols-2" style="margin-bottom:16px">
-      <div class="card"><h3>Rischio alto per Business Unit</h3><p class="card-sub">NDG distinti</p><canvas id="amlBuChart"></canvas></div>
-      <div class="card"><h3>Rischio alto per cluster</h3><p class="card-sub">NDG distinti</p><canvas id="amlClusterChart"></canvas></div>
-    </div>
-
-    <div class="grid cols-2">
-      <div class="card"><h3>Stato workflow (rischio alto)</h3><p class="card-sub">NDG distinti</p><canvas id="amlWorkflowChart"></canvas></div>
-      <div class="card"><h3>Tipo verifica (rischio alto)</h3><p class="card-sub">NDG distinti</p><canvas id="amlTipoChart"></canvas></div>
-    </div>
-
-    ${renderTaskTable(getTasksForSheet(s.sheetName))}
-  `;
-
-  // GRAFICI
-  mkChart('amlTrendChart', {type:'bar', data:{labels:months, datasets:[{label:'NDG completati', data:months.map(m=>byMonthSet.get(m).size), backgroundColor:PALETTE.danger}]},
-    options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
-
-  mkChart('amlBuChart', {type:'bar', data:{labels:byBU.map(x=>x[0]), datasets:[{label:'NDG', data:byBU.map(x=>x[1]), backgroundColor:PALETTE.info}]},
-    options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false}, ticks:{font:{size:10}}}}}});
-
-  mkChart('amlClusterChart', {type:'bar', data:{labels:byCluster.map(x=>x[0]), datasets:[{label:'NDG', data:byCluster.map(x=>x[1]), backgroundColor:PALETTE.warn}]},
-    options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false}, ticks:{font:{size:10}}}}}});
-
-  mkChart('amlWorkflowChart', {type:'pie', data:{labels:byWorkflow.map(x=>x[0]), datasets:[{data:byWorkflow.map(x=>x[1]), backgroundColor:CHART_SERIES}]},
-    options:{plugins:{legend:{position:'right', labels:{boxWidth:10, font:{size:10.5}}}}}});
-
-  mkChart('amlTipoChart', {type:'doughnut', data:{labels:byTipoVerifica.map(x=>x[0]), datasets:[{data:byTipoVerifica.map(x=>x[1]), backgroundColor:CHART_SERIES}]},
-    options:{plugins:{legend:{position:'right', labels:{boxWidth:10, font:{size:10.5}}}}}});
-}
-
-/* ============================================================ PANEL: BANCASSURANCE ============================================================ */
-function renderBancassurance(panel, s){
-
-  const rows = s.rows;
-  const bancassurance = rows.filter(r => r && r.data_ordine);
-  const statiSet = new Set(bancassurance.map(r => r.descrizione_stato).filter(Boolean));
-  const statiArray = Array.from(statiSet).sort();
-  const statoColorMap = Object.fromEntries(statiArray.map((stato, i) => [stato, CHART_SERIES[i % CHART_SERIES.length]]));
-  const ordiniByMonthStato = {};
-  bancassurance.forEach(r => { const d = toDate(r.data_ordine); const k = monthKey(d); const stato = r.descrizione_stato || 'N.D.'; if (!ordiniByMonthStato[k]) ordiniByMonthStato[k] = {}; ordiniByMonthStato[k][stato] = (ordiniByMonthStato[k][stato] || 0) + 1; });
-  const volumeByMonth = {};
-  bancassurance.forEach(r => { const d = toDate(r.data_ordine); const k = monthKey(d); volumeByMonth[k] = (volumeByMonth[k] || 0) + (parseFloat(r.tot_generale_euro) || 0); });
-  const months = [...new Set([...Object.keys(ordiniByMonthStato), ...Object.keys(volumeByMonth)])].sort();
-  const byStato = Object.entries(bancassurance.reduce((acc, r) => { const stato = r.descrizione_stato || 'N.D.'; acc[stato] = (acc[stato] || 0) + 1; return acc; }, {})).sort((a, b) => b[1] - a[1]);
-  const volumeTotal = Object.values(volumeByMonth).reduce((a, b) => a + b, 0);
-  const volumeAvg = months.length ? volumeTotal / months.length : 0;
-  
-  panel.innerHTML = structHeaderHtml(s, 'Wealth & Bancassurance - ORGANIZATION, ICT & HR') + `
-    <div class="section-title">Statistiche su ordini di trasferimento titoli, fondi, ecc... 2026</div>
-    <div class="kpi-row">
-      <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Ordini totali</div><div class="val">${fmtInt.format(bancassurance.length)}</div></div>
-      <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Volume totale</div><div class="val">€ ${fmtInt.format(volumeTotal)}</div></div>
-      <div class="kpi" style="--kc:${PALETTE.warn}"><div class="lbl">Volume medio mensile</div><div class="val">€ ${fmtInt.format(volumeAvg)}</div></div>
-    </div>
-    <div class="grid cols-2">
-      <div class="card">
-        <h3>Ordini mensili per stato</h3>
-        <p class="card-sub">data_ordine, suddiviso per descrizione_stato</p>
-        <canvas id="baOrdiniChart"></canvas>
-      </div>
-      <div class="card">
-        <h3>Volume mensile</h3>
-        <p class="card-sub">tot_generale_euro per mese</p>
-        <canvas id="baVolumeChart"></canvas>
-      </div>
-    </div>
-
-    ${renderTaskTable(getTasksForSheet(s.sheetName))}
-  `;
-
-  mkChart('baOrdiniChart', { type: 'bar', data: { labels: months, datasets: statiArray.map(stato => ({ label: stato, data: months.map(m => ordiniByMonthStato[m]?.[stato] || 0), backgroundColor: statoColorMap[stato], borderColor: statoColorMap[stato], borderWidth: 0 })) }, options: { scales: { x: {stacked: true, grid: {display: false}}, y: {stacked: true, grid: {color: PALETTE.grid}} }, plugins: { legend: {position: 'bottom', labels: {boxWidth: 10, font: {size: 10.5}}} } } });
-
-  mkChart('baVolumeChart', { type: 'bar', data: { labels: months, datasets: [{ label: 'Volume (€)', data: months.map(m => volumeByMonth[m] || 0), backgroundColor: PALETTE.pos, borderColor: PALETTE.pos, borderWidth: 0 }] }, options: { scales: { x: {grid: {display: false}}, y: {grid: {color: PALETTE.grid}} }, plugins: { legend: {display: false} } } });
-}
-
-/* ============================================================
-   PANEL: DIGITAL
-   ============================================================ */
-const DIGITAL_BANK_ID = '10001100023100042100130';
-
-function renderDigital(panel){
-
-  const rapporti = STATE.domainSheets.find(s=>s.type==='digital_rapporti');
-  const frodi = STATE.domainSheets.find(s=>s.type==='digital_frodi');
-  const raisin = STATE.domainSheets.find(s=>s.type==='digital_raisin');
-
-  const rapportiRows = rapporti ? rapporti.rows : [];
-  const frodiRows = frodi ? frodi.rows : [];
-  const raisinRows = raisin ? raisin.rows : [];
-
-  // ============================================================
-  // RAPPORTI DIGITAL CON CATEGORIE
-  // ============================================================
-
-  const rapportiAperti = rapportiRows.filter(r=>{
-    const d = toDate(r.dta_rapporto_apert);
-    return d && d.getFullYear()===2026;
-  });
-
-  // Estrai categorie uniche
-  const categoriSet = new Set(rapportiAperti.map(r=>r.des_categoria_rapporto).filter(Boolean));
-  const categoriArray = Array.from(categoriSet).sort();
-  const categoriColorMap = Object.fromEntries(
-    categoriArray.map((c,i) => [c, CHART_SERIES[i % CHART_SERIES.length]])
-  );
-
-  const rapportiChiusi = rapportiRows.filter(r=>{
-    const d = toDate(r.dta_rapporto_estinzione);
-    return d && d.getFullYear()===2026;
-  });
-
-  // trend mensile rapporti aperti/chiusi PER CATEGORIA
-  const apertiMonthByCateg = {};
-  rapportiAperti.forEach(r=>{
-    const d = toDate(r.dta_rapporto_apert);
-    const k = monthKey(d);
-    const categ = r.des_categoria_rapporto || 'N.D.';
-    
-    if(!apertiMonthByCateg[k]) apertiMonthByCateg[k] = {};
-    apertiMonthByCateg[k][categ] = (apertiMonthByCateg[k][categ] || 0) + 1;
-  });
-
-  const chiusiMonth = {};
-  rapportiChiusi.forEach(r=>{
-    const d = toDate(r.dta_rapporto_estinzione);
-    const k = monthKey(d);
-    chiusiMonth[k] = (chiusiMonth[k]||0)+1;
-  });
-
-  // ============================================================
-  // FRODI DIGITAL
-  // ============================================================
-
-  const frodi2026 = frodiRows.filter(r=>{
-    const d = toDate(r['Campo personalizzato (Data operazione (FR))']);
-    return d && d.getFullYear()===2026;
-  });
-
-  const frodiMonth = {};
-  frodi2026.forEach(r=>{
-    const d = toDate(r['Campo personalizzato (Data operazione (FR))']);
-    const k = monthKey(d);
-    frodiMonth[k] = (frodiMonth[k]||0)+1;
-  });
-
-  const byClusterFrode = mapToSorted(
-    countBy(
-      frodi2026,
-      'Campo personalizzato (Cluster Frode Banca)'
-    )
-  );
-
-  // ============================================================
-  // RAISIN
-  // ============================================================
-
-  const raisin2026 = raisinRows.filter(r=>{
-    const d = toDate(r.data_inserimento);
-    return d && d.getFullYear()===2026;
-  });
-
-  const raisinMonth = {};
-  raisin2026.forEach(r=>{
-    const d = toDate(r.data_inserimento);
-    const k = monthKey(d);
-    raisinMonth[k] = (raisinMonth[k]||0)+1;
-  });
-
-  const months = [...new Set([
-    ...Object.keys(apertiMonthByCateg),
-    ...Object.keys(chiusiMonth),
-    ...Object.keys(frodiMonth),
-    ...Object.keys(raisinMonth)
-  ])].sort();
-
-  const digitalDimRow = findDimRow(DIGITAL_BANK_ID);
-  panel.innerHTML = structHeaderHtml({sheetName: DIGITAL_BANK_ID, dimRow: digitalDimRow}, 'Digital Bank - ORGANIZATION, ICT & HR') + `
-    <div class="section-title">KPI Digital Bank 2026</div>
-
-    <div class="kpi-row">
-      <div class="kpi" style="--kc:${PALETTE.info}">
-        <div class="lbl">Rapporti aperti 2026</div>
-        <div class="val">${fmtInt.format(rapportiAperti.length)}</div>
-      </div>
-
-      <div class="kpi" style="--kc:${PALETTE.warn}">
-        <div class="lbl">Rapporti chiusi 2026</div>
-        <div class="val">${fmtInt.format(rapportiChiusi.length)}</div>
-      </div>
-
-      <div class="kpi" style="--kc:${PALETTE.danger}">
-        <div class="lbl">Frodi segnalate 2026</div>
-        <div class="val">${fmtInt.format(frodi2026.length)}</div>
-      </div>
-
-      <div class="kpi" style="--kc:${PALETTE.info}">
-        <div class="lbl">Bonifici Raisin controllati 2026</div>
-        <div class="val">${fmtInt.format(raisin2026.length)}</div>
-      </div>
-    </div>
-
-    <div class="section-title">Rapporti nuovi/estinti</div>
-    <div class="grid cols-2" style="margin-bottom:16px">
-      <div class="card">
-        <h3>Rapporti aperti per mese</h3>
-        <p class="card-sub">Nuovi rapporti Digital Bank</p>
-        <canvas id="digitalApertiChart"></canvas>
-      </div>
-
-      <div class="card">
-        <h3>Rapporti chiusi per mese</h3>
-        <p class="card-sub">Rapporti estinti</p>
-        <canvas id="digitalChiusiChart"></canvas>
-      </div>
-    </div>
-
-    <div class="section-title">Segnalazioni ad antifrode</div>
-    <div class="grid cols-2">
-      <div class="card">
-        <h3>Frodi segnalate per mese</h3>
-        <p class="card-sub">Data operazione frode - 2026</p>
-        <canvas id="digitalFrodiChart"></canvas>
-      </div>
-
-      <div class="card">
-        <h3>Cluster frode</h3>
-        <p class="card-sub">Distribuzione segnalazioni 2026</p>
-        <canvas id="digitalClusterChart"></canvas>
-      </div>
-    </div>
-
-    <div class="section-title">Controlli su bonifici Raisin</div>
-    <div class="card" style="margin-top:16px">
-      <h3>Bonifici Raisin controllati per mese</h3>
-      <p class="card-sub">Numero bonifici analizzati - 2026</p>
-      <canvas id="digitalRaisinChart"></canvas>
-    </div>
-
-    ${renderTaskTable(getTasksForSheet(DIGITAL_BANK_ID))}
-  `;
-
-  // ============================================================
-  // CHART: RAPPORTI APERTI STACKED PER CATEGORIA
-  // ============================================================
-
-  const datasetsAperti = categoriArray.map(categ => ({
-    label: categ,
-    data: months.map(m => apertiMonthByCateg[m]?.[categ] || 0),
-    backgroundColor: categoriColorMap[categ],
-    borderColor: categoriColorMap[categ],
-    borderWidth: 0
-  }));
-
-  mkChart('digitalApertiChart',{
-    type:'bar',
-    data:{
-      labels:months,
-      datasets: datasetsAperti
-    },
-    options:{
-      scales:{
-        x:{stacked:true},
-        y:{stacked:true}
-      }
-    }
-  });
-
-  mkChart('digitalChiusiChart',{
-    type:'bar',
-    data:{
-      labels:months,
-      datasets:[{
-        label:'Rapporti chiusi',
-        data:months.map(m=>chiusiMonth[m]||0),
-        backgroundColor:PALETTE.warn
-      }]
-    }
-  });
-
-  mkChart('digitalFrodiChart',{
-    type:'line',
-    data:{
-      labels:months,
-      datasets:[{
-        label:'Frodi',
-        data:months.map(m=>frodiMonth[m]||0),
-        borderColor:PALETTE.danger
-      }]
-    }
-  });
-
-  mkChart('digitalClusterChart',{
-    type:'doughnut',
-    data:{
-      labels:byClusterFrode.map(x=>x[0]),
-      datasets:[{
-        data:byClusterFrode.map(x=>x[1]),
-        backgroundColor:CHART_SERIES
-      }]
-    }
-  });
-
-  mkChart('digitalRaisinChart',{
-    type:'bar',
-    data:{
-      labels:months,
-      datasets:[{
-        label:'Bonifici Raisin',
-        data:months.map(m=>raisinMonth[m]||0),
-        backgroundColor:PALETTE.info
-      }]
-    }
-  });
-}
-
-/* ============================================================
-   PANEL: MONETICA
-   ============================================================ */
-const MONETICA_ID = '10001100023100036';
-
-function renderMonetica(panel){
-
-  const bonifici = STATE.domainSheets.find(s=>s.type==='monetica_bonifici_banca');
-  const cassa = STATE.domainSheets.find(s=>s.type==='monetica_cassa');
-  const cassette = STATE.domainSheets.find(s=>s.type==='monetica_cassette');
-  const bonifici_estero = STATE.domainSheets.find(s=>s.type==='monetica_bonifici_estero');
-
-  const bonificiRows = bonifici ? bonifici.rows : [];
-  const cassaRows = cassa ? cassa.rows : [];
-  const cassetteRows = cassette ? cassette.rows : [];
-  const bonificiEsteroRows = bonifici_estero ? bonifici_estero.rows : [];
-
-  /* ============================================================ BONIFICI ============================================================ */
-  const bonifici2026 = bonificiRows.filter(r=>{
-    const d = toDate(r.data_valuta_fissa_al_beneficiario) || toDate(r.data_regolamento);
-    return d && d.getFullYear()===2026;
-  });
-
-  const bonificiMonth = {};
-  const volumeMonth = {};
-  bonifici2026.forEach(r=>{
-    const d = toDate(r.data_valuta_fissa_al_beneficiario) || toDate(r.data_regolamento);
-    const k = monthKey(d);
-    bonificiMonth[k] = (bonificiMonth[k]||0)+1;
-    volumeMonth[k] = (volumeMonth[k]||0)+(parseFloat(r.importo_bonifico)||0);
-  });
-
-  /* ============================================================ BONIFICI ESTERO ============================================================ */
-  const bonificiDaEstero = bonificiEsteroRows.filter(r=>{
-    const paese = String(r.paese_ord||'').toUpperCase();
-    return paese && paese !== 'IT';
-  });
-
-  const bonificiVersoEstero = bonificiEsteroRows.filter(r=>{
-    const paese = String(r.paese_beneficiario||'').toUpperCase();
-    return paese && paese !== 'IT';
-  });
-
-  // Da estero: per mese
-  const daEsteroMonth = {};
-  const daEsteroVolMonth = {};
-  bonificiDaEstero.forEach(r=>{
-    const d = toDate(r.data_inserimento);
-    if(!d) return;
-    const k = monthKey(d);
-    daEsteroMonth[k] = (daEsteroMonth[k]||0)+1;
-    daEsteroVolMonth[k] = (daEsteroVolMonth[k]||0)+(parseFloat(r.importo_bonifico)||0);
-  });
-
-  // Da estero: per paese di origine
-  const daEsteroPaese = {};
-  bonificiDaEstero.forEach(r=>{
-    const paese = r.paese_ord || 'N.D.';
-    daEsteroPaese[paese] = (daEsteroPaese[paese]||0)+1;
-  });
-
-  // Verso estero: per mese
-  const versoEsteroMonth = {};
-  const versoEsteroVolMonth = {};
-  bonificiVersoEstero.forEach(r=>{
-    const d = toDate(r.data_inserimento);
-    if(!d) return;
-    const k = monthKey(d);
-    versoEsteroMonth[k] = (versoEsteroMonth[k]||0)+1;
-    versoEsteroVolMonth[k] = (versoEsteroVolMonth[k]||0)+(parseFloat(r.importo_bonifico)||0);
-  });
-
-  // Verso estero: per paese di destinazione
-  const versoEsteroPaese = {};
-  bonificiVersoEstero.forEach(r=>{
-    const paese = r.paese_beneficiario || 'N.D.';
-    versoEsteroPaese[paese] = (versoEsteroPaese[paese]||0)+1;
-  });
-
-  // Union mesi per bonifici estero
-  const mesiEstero = [...new Set([
-    ...Object.keys(daEsteroMonth),
-    ...Object.keys(versoEsteroMonth)
-  ])].sort();
-
-  // Paesi da/verso estero ordinati
-  const paeseListDaEstero = Object.keys(daEsteroPaese).sort();
-  const paeseListVersoEstero = Object.keys(versoEsteroPaese).sort();
-
-  /* ============================================================ CASSA ============================================================ */
-  const cambiali76 = r => String(r.tg04_causale1||'').includes('76');
-  const operTesoreria = r => ['00','4M','5C','5R'].some(c => String(r.tg04_causale1||'').includes(c));
-  const assCircolari = r => String(r.tg04_causale1||'').includes('11');
-
-  const cassa2026 = cassaRows.filter(r=>{
-    const d = toDate(r.d_data_cont);
-    return d && d.getFullYear()===2026;
-  });
-
-  const totCambiali = cassa2026.filter(cambiali76).length;
-  const totTesoreria = cassa2026.filter(operTesoreria).length;
-  const totCircolari = cassa2026.filter(assCircolari).length;
-
-  // Grafico numero operazioni per mese e tipo
-  const cassaMonthByType = {};
-  cassa2026.forEach(r=>{
-    const d = toDate(r.d_data_cont);
-    const k = monthKey(d);
-    if(!cassaMonthByType[k]) cassaMonthByType[k] = {cambiali:0, tesoreria:0, circolari:0, totale:0};
-    
-    if(cambiali76(r)) {
-      cassaMonthByType[k].cambiali++;
-      cassaMonthByType[k].totale++;
-    }
-    else if(operTesoreria(r)) {
-      cassaMonthByType[k].tesoreria++;
-      cassaMonthByType[k].totale++;
-    }
-    else if(assCircolari(r)) {
-      cassaMonthByType[k].circolari++;
-      cassaMonthByType[k].totale++;
-    }
-  });
-
-  // Operazioni per filiale e tipo (CON VERIFICA)
-  const operByFilialeType = {};
-  cassa2026.forEach(r=>{
-    const fil = r.descrizione_filiale || 'N.D.';
-    if(!operByFilialeType[fil]) operByFilialeType[fil] = {cambiali:0, tesoreria:0, circolari:0, totale:0};
-    
-    if(cambiali76(r)) {
-      operByFilialeType[fil].cambiali++;
-      operByFilialeType[fil].totale++;
-    }
-    else if(operTesoreria(r)) {
-      operByFilialeType[fil].tesoreria++;
-      operByFilialeType[fil].totale++;
-    }
-    else if(assCircolari(r)) {
-      operByFilialeType[fil].circolari++;
-      operByFilialeType[fil].totale++;
-    }
-  });
-
-  // Preparazione dati per il grafico filiale (non stacked)
-  const filialArray = Object.keys(operByFilialeType).sort();
-  const filialeDatasets = [
-    {label:'Cambiali', data:filialArray.map(f=>operByFilialeType[f].cambiali||0), backgroundColor:PALETTE.info},
-    {label:'Tesoreria', data:filialArray.map(f=>operByFilialeType[f].tesoreria||0), backgroundColor:PALETTE.warn},
-    {label:'Circolari', data:filialArray.map(f=>operByFilialeType[f].circolari||0), backgroundColor:PALETTE.warn}
-  ];
-
-  /* ============================================================ CASSETTE ============================================================ */
-  const cassette2026 = cassetteRows.filter(r=>{
-    const d = toDate(r.dta_rapporto_apert);
-    return d && d.getFullYear()===2026;
-  });
-
-  const cassetteMonth = {};
-  cassette2026.forEach(r=>{
-    const d = toDate(r.dta_rapporto_apert);
-    const k = monthKey(d);
-    cassetteMonth[k] = (cassetteMonth[k]||0)+1;
-  });
-
-  const byBuCassette = mapToSorted(countBy(cassette2026, 'des_business_unit'));
-
-  // Union mesi
-  const months = [...new Set([
-    ...Object.keys(bonificiMonth),
-    ...Object.keys(cassaMonthByType),
-    ...Object.keys(cassetteMonth)
-  ])].sort();
-
-  const moneticaDimRow = findDimRow(MONETICA_ID);
-  panel.innerHTML = structHeaderHtml({sheetName: MONETICA_ID, dimRow: moneticaDimRow}, 'OPS Incassi, Pagamenti e Monetica - ORGANIZATION, ICT & HR') + `
-    <div class="section-title">KPI OPS Incassi, Pagamenti e Monetica 2026</div>
-    <div class="kpi-row">
-      <div class="kpi" style="--kc:${PALETTE.info}">
-        <div class="lbl">Bonifici banca eseguiti</div>
-        <div class="val">${fmtInt.format(bonifici2026.length)}</div>
-      </div>
-      <div class="kpi" style="--kc:${PALETTE.info}">
-        <div class="lbl">C/C aperti con portabilità</div>
-        <div class="val">${fmtInt.format(196)}</div>
-      </div>
-      <div class="kpi" style="--kc:${PALETTE.pos}">
-        <div class="lbl">C/C chiusi con portabilità</div>
-        <div class="val">${fmtInt.format(206)}</div>
-      </div>
-      <div class="kpi" style="--kc:${PALETTE.danger}">
-        <div class="lbl">Operazioni cassa (Ass. Circolari, Cambiali, Op. Tesoreria)</div>
-        <div class="val">${fmtInt.format(cassa2026.length)}</div>
-      </div>
-      <div class="kpi" style="--kc:${PALETTE.warn}">
-        <div class="lbl">Cassette di sicurezza aperte</div>
-        <div class="val">${fmtInt.format(cassette2026.length)}</div>
-      </div>
-    </div>
-
-    <div class="section-title">Bonifici banca <span class="count-badge">${fmtInt.format(bonifici2026.length)} operazioni</span></div>
-    <div class="grid cols-2">
-      <div class="card">
-        <h3>Bonifici per mese</h3>
-        <p class="card-sub">Numero operazioni</p>
-        <canvas id="monBonificiChart"></canvas>
-      </div>
-      <div class="card">
-        <h3>Volume bonifici per mese</h3>
-        <p class="card-sub">Volume operazioni</p>
-        <canvas id="monVolumeBonificiChart"></canvas>
-      </div>
-    </div>
-
-    <div class="section-title">Bonifici da estero <span class="count-badge">${fmtInt.format(bonificiDaEstero.length)} operazioni</span></div>
-    <div class="kpi-row">
-      <div class="kpi" style="--kc:${PALETTE.info}">
-        <div class="lbl">Bonifici da estero</div>
-        <div class="val">${fmtInt.format(bonificiDaEstero.length)}</div>
-      </div>
-      <div class="kpi" style="--kc:${PALETTE.info}">
-        <div class="lbl">Volume totale</div>
-        <div class="val">€ ${fmtInt.format(Object.values(daEsteroVolMonth).reduce((a,b)=>a+b,0))}</div>
-      </div>
-    </div>
-    <div class="grid cols-2">
-      <div class="card">
-        <h3>Bonifici da estero per mese</h3>
-        <p class="card-sub">Numero operazioni (data_inserimento)</p>
-        <canvas id="monDaEsteroMonthChart"></canvas>
-      </div>
-      <div class="card">
-        <h3>Volume bonifici da estero per mese</h3>
-        <p class="card-sub">Importo in valore assoluto</p>
-        <canvas id="monDaEsteroVolChart"></canvas>
-      </div>
-    </div>
-    <div class="card" style="margin-top:16px">
-      <h3>Bonifici da estero per paese di provenienza</h3>
-      <p class="card-sub">Distribuzione per paese</p>
-      <canvas id="monDaEsteroPaeseChart"></canvas>
-    </div>
-
-    <div class="section-title">Bonifici verso estero <span class="count-badge">${fmtInt.format(bonificiVersoEstero.length)} operazioni</span></div>
-    <div class="kpi-row">
-      <div class="kpi" style="--kc:${PALETTE.warn}">
-        <div class="lbl">Bonifici verso estero</div>
-        <div class="val">${fmtInt.format(bonificiVersoEstero.length)}</div>
-      </div>
-      <div class="kpi" style="--kc:${PALETTE.warn}">
-        <div class="lbl">Volume totale</div>
-        <div class="val">€ ${fmtInt.format(Object.values(versoEsteroVolMonth).reduce((a,b)=>a+b,0))}</div>
-      </div>
-    </div>
-    <div class="grid cols-2">
-      <div class="card">
-        <h3>Bonifici verso estero per mese</h3>
-        <p class="card-sub">Numero operazioni (data_inserimento)</p>
-        <canvas id="monVersoEsteroMonthChart"></canvas>
-      </div>
-      <div class="card">
-        <h3>Volume bonifici verso estero per mese</h3>
-        <p class="card-sub">Importo in valore assoluto</p>
-        <canvas id="monVersoEsteroVolChart"></canvas>
-      </div>
-    </div>
-    <div class="card" style="margin-top:16px">
-      <h3>Bonifici verso estero per paese di destinazione</h3>
-      <p class="card-sub">Distribuzione per paese</p>
-      <canvas id="monVersoEsteroPaeseChart"></canvas>
-    </div>
-
-    <div class="section-title">Cassa <span class="count-badge">${fmtInt.format(cassa2026.length)} operazioni</span></div>
-    <div class="kpi-row">
-      <div class="kpi" style="--kc:${PALETTE.info}">
-        <div class="lbl">Cambiali</div>
-        <div class="val">${fmtInt.format(totCambiali)}</div>
-      </div>
-      <div class="kpi" style="--kc:${PALETTE.info}">
-        <div class="lbl">Operazioni tesoreria</div>
-        <div class="val">${fmtInt.format(totTesoreria)}</div>
-      </div>
-      <div class="kpi" style="--kc:${PALETTE.warn}">
-        <div class="lbl">Ass. circolari</div>
-        <div class="val">${fmtInt.format(totCircolari)}</div>
-      </div>
-    </div>
-    <div class="card" style="margin-top:16px">
-      <h3>Operazioni per mese per tipo</h3>
-      <p class="card-sub">Cambiali, tesoreria, circolari</p>
-      <canvas id="monCassaOperChart"></canvas>
-    </div>
-    <div class="card" style="margin-top:16px">
-      <h3>Operazioni per filiale e tipo</h3>
-      <p class="card-sub">Distribuzione per filiale</p>
-      <canvas id="monFilialeChart"></canvas>
-    </div>
-
-    <div class="section-title">Cassette di sicurezza <span class="count-badge">${fmtInt.format(cassette2026.length)} rapporti</span></div>
-    <div class="grid cols-2">
-      <div class="card">
-        <h3>Cassette aperte per mese</h3>
-        <p class="card-sub">Nuove cassette</p>
-        <canvas id="monCassetteChart"></canvas>
-      </div>
-      <div class="card">
-        <h3>Cassette per business unit</h3>
-        <p class="card-sub">Distribuzione</p>
-        <canvas id="monBuCassetteChart"></canvas>
-      </div>
-    </div>
-
-    ${renderTaskTable(getTasksForSheet(MONETICA_ID))}
-  `;
-
-  mkChart('monBonificiChart',{type:'bar', data:{labels:months, datasets:[{label:'Bonifici',data:months.map(m=>bonificiMonth[m]||0),backgroundColor:PALETTE.info}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
-
-  mkChart('monVolumeBonificiChart',{type:'bar', data:{labels:months, datasets:[{label:'Volume (€)',data:months.map(m=>volumeMonth[m]||0),backgroundColor:PALETTE.navy}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
-
-  mkChart('monDaEsteroMonthChart',{type:'bar', data:{labels:mesiEstero, datasets:[{label:'Operazioni',data:mesiEstero.map(m=>daEsteroMonth[m]||0),backgroundColor:PALETTE.pos}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
-
-  mkChart('monDaEsteroVolChart',{type:'bar', data:{labels:mesiEstero, datasets:[{label:'Volume (€)',data:mesiEstero.map(m=>daEsteroVolMonth[m]||0),backgroundColor:PALETTE.danger}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
-
-  mkChart('monDaEsteroPaeseChart',{type:'bar', data:{labels:paeseListDaEstero, datasets:[{label:'Bonifici',data:paeseListDaEstero.map(p=>daEsteroPaese[p]||0),backgroundColor:PALETTE.warn}]}, options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false},ticks:{font:{size:10}}}}}});
-
-  mkChart('monVersoEsteroMonthChart',{type:'bar', data:{labels:mesiEstero, datasets:[{label:'Operazioni',data:mesiEstero.map(m=>versoEsteroMonth[m]||0),backgroundColor:PALETTE.warn}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
-
-  mkChart('monVersoEsteroVolChart',{type:'bar', data:{labels:mesiEstero, datasets:[{label:'Volume (€)',data:mesiEstero.map(m=>versoEsteroVolMonth[m]||0),backgroundColor:PALETTE.pos}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
-
-  mkChart('monVersoEsteroPaeseChart',{type:'bar', data:{labels:paeseListVersoEstero, datasets:[{label:'Bonifici',data:paeseListVersoEstero.map(p=>versoEsteroPaese[p]||0),backgroundColor:PALETTE.danger}]}, options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false},ticks:{font:{size:10}}}}}});
-
-  mkChart('monCassaOperChart',{type:'bar', data:{labels:months, datasets:[{label:'Cambiali',data:months.map(m=>cassaMonthByType[m]?.cambiali||0),backgroundColor:PALETTE.navy},{label:'Tesoreria',data:months.map(m=>cassaMonthByType[m]?.tesoreria||0),backgroundColor:PALETTE.warn},{label:'Circolari',data:months.map(m=>cassaMonthByType[m]?.circolari||0),backgroundColor:PALETTE.pos}]}, options:{scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,grid:{color:PALETTE.grid}}}, plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10.5}}}}}});
-
-  mkChart('monFilialeChart',{type:'bar', data:{labels:filialArray, datasets:[{label:'Cambiali',data:filialArray.map(f=>operByFilialeType[f].cambiali),backgroundColor:PALETTE.navy},{label:'Tesoreria',data:filialArray.map(f=>operByFilialeType[f].tesoreria),backgroundColor:PALETTE.warn},{label:'Circolari',data:filialArray.map(f=>operByFilialeType[f].circolari),backgroundColor:PALETTE.pos}]}, options:{scales:{x:{grid:{display:false}},y:{grid:{color:PALETTE.grid}, ticks:{font:{size:10}}}}, plugins:{legend:{position:'bottom', labels:{boxWidth:10, font:{size:10.5}}}}}});
-
-  mkChart('monCassetteChart',{type:'bar', data:{labels:months, datasets:[{label:'Cassette',data:months.map(m=>cassetteMonth[m]||0),backgroundColor:PALETTE.warn}]}, options:{plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:PALETTE.grid}}}}});
-
-  mkChart('monBuCassetteChart',{type:'bar', data:{labels:byBuCassette.map(x=>x[0]), datasets:[{label:'Cassette',data:byBuCassette.map(x=>x[1]),backgroundColor:PALETTE.danger}]}, options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:PALETTE.grid}}, y:{grid:{display:false},ticks:{font:{size:10}}}}}});
-}
-
-/* ============================================================
-   PANEL: GENERIC (unrecognized sheet)
-   ============================================================ */
-function renderGeneric(panel, s){
-
-  const rows = s.rows;
-  const headers = s.headers;
-  const sample = rows.slice(0,50);
-  panel.innerHTML = structHeaderHtml(s, 'Foglio dati non classificato') + `
-    <div class="kpi-row">
-      <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Righe</div><div class="val">${fmtInt.format(rows.length)}</div></div>
-      <div class="kpi" style="--kc:${PALETTE.info}"><div class="lbl">Colonne</div><div class="val">${headers.length}</div></div>
-    </div>
-    <p class="hint">Questo foglio non corrisponde alla firma di colonne attesa per Anagrafe, Antifrode o Credito & Factoring. Anteprima delle prime 50 righe:</p>
-    <div class="table-wrap scroll">
-      <table class="dt"><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead>
-        <tbody>${sample.map(r=>`<tr>${headers.map(h=>`<td>${r[h]??''}</td>`).join('')}</tr>`).join('')}</tbody>
-      </table>
-    </div>
-  `;
+  mkChart('dbNdgPerProdotto', {type: 'bar', data: { labels: datiFinaliProdotti.map(x => x[0]), datasets: [{ label: 'NDG per Prodotto', data: datiFinaliProdotti.map(x => x[1]), backgroundColor: [PALETTE.pos, PALETTE.danger, PALETTE.warn, PALETTE.info, PALETTE.navy], borderColor: PALETTE.navy, borderWidth: 0 }] },
+    options: { plugins: { legend: { display: false } } }});
 }

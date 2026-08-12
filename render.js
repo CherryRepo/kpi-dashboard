@@ -22,8 +22,8 @@ function buildSidebar(){
   const moneticaTypes = ['monetica_bonifici_banca','monetica_cassa','monetica_cassette','monetica_bonifici_estero'];
   const factoringTypes = ['factoring_cedenti','factoring_debitori'];
   const labelMap = {
-    ordinario:'Credito Ordinario & Factoring',
-    speciale:'Credito Speciale',
+    ordinario:'Credito ordinario & factoring',
+    speciale:'Credito speciale',
     perfezionamenti:'Perfezionamenti credito ordinario',
     anagrafe:'Anagrafe',
     antifrode:'Antifrode',
@@ -45,34 +45,18 @@ function buildSidebar(){
   });
 
   if(STATE.domainSheets.some(s=>digitalTypes.includes(s.type))){
-    items.push({
-      key:'digital',
-      label:'Digital Bank',
-      tag:'DIG'
-    });
+    items.push({ key:'digital', label:'Digital Bank', tag:'DIG' });
   }
-
   if(STATE.domainSheets.some(s=>moneticaTypes.includes(s.type))){
-    items.push({
-      key:'monetica',
-      label:'OPS Incassi, Pagamenti e Monetica',
-      tag:'MON'
-    });
+    items.push({ key:'monetica', label:'OPS Incassi, Pagamenti e Monetica', tag:'MON' });
   }
-
   if(STATE.domainSheets.some(s=>factoringTypes.includes(s.type))){
-    items.push({
-      key:'factoring',
-      label:'Factoring',
-      tag:'FAC'
-    });
+    items.push({ key:'factoring', label:'Factoring', tag:'FAC' });
   }
 
   items.sort((a, b) => {
-    const indexA = itemOrder.indexOf(a.key);
-    const indexB = itemOrder.indexOf(b.key);
-    const posA = indexA === -1 ? 999 : indexA;
-    const posB = indexB === -1 ? 999 : indexB;
+    const posA = itemOrder.indexOf(a.key) === -1 ? 999 : itemOrder.indexOf(a.key);
+    const posB = itemOrder.indexOf(b.key) === -1 ? 999 : itemOrder.indexOf(b.key);
     return posA - posB;
   });
 
@@ -85,24 +69,20 @@ function buildSidebar(){
 
   const tree = document.getElementById('treeView');
   tree.innerHTML = '';
-
   if(!STATE.dimRows.length){
     tree.appendChild(el('div','hint','Nessun dimensionamento disponibile'));
     return;
   }
 
   const maxAbs = Math.max(1, ...STATE.dimRows.map(r=>Math.abs(Number(r['Need/Surplus'])||0)));
-
   STATE.dimRows.forEach(r=>{
     const ns = Number(r['Need/Surplus'])||0;
     const depth = ['uo1livello_descrizione','uo2livello_descrizione','uo3livello_descrizione','uo4livello_descrizione','nucleo_descrizione'].filter(k=>r[k] && String(r[k]).trim() !== '').length;
     const color = ns < -0.5 ? PALETTE.danger : ns > 0.5 ? PALETTE.warn : PALETTE.info;
     const barH = 6 + Math.round((Math.abs(ns)/maxAbs)*16);
-
     const row = el('div','tree-row');
     row.style.paddingLeft = (8 + Math.max(0,depth-1)*14) + 'px';
     row.title = 'HC: ' + (r.HC ?? '—') + ' · FTE Stimati: ' + (r['FTE Stimati']!=null ? fmtDec.format(r['FTE Stimati']) : '—') + ' · Need/Surplus: ' + fmtDec.format(ns);
-
     row.innerHTML = `<span class="tree-bar" style="background:${color};height:${barH}px"></span><span class="tree-label">${r['UO LAST'] || ''}</span><span class="tree-val">${ns>0?'+':''}${fmtDec.format(ns)}</span>`;
     tree.appendChild(row);
   });
@@ -112,88 +92,185 @@ function buildSidebar(){
    TABS
    ============================================================ */
 function buildTabs(){
-  const bar = document.getElementById('tabsBar');
-  const panels = document.getElementById('panels');
-  bar.innerHTML = '';
+  const bar     = document.getElementById('tabsBar');
+  const panels  = document.getElementById('panels');
+  bar.innerHTML    = '';
   panels.innerHTML = '';
 
-  const tabOrder = ['overview', 'ordinario', 'speciale', 'perfezionamenti', 'factoring', 'anagrafe', 'antifrode', 'ops_aml', 'bancassurance', 'digital', 'monetica'];
-  const tabDefs = [{key:'overview', label:'Overview'}];
-  const digitalTypes = ['digital_rapporti','digital_frodi','digital_raisin'];
-  const moneticaTypes = ['monetica_bonifici_banca','monetica_cassa','monetica_cassette', 'monetica_bonifici_estero'];
+  /* ── tipi per raggruppamento ── */
+  const digitalTypes   = ['digital_rapporti','digital_frodi','digital_raisin'];
+  const moneticaTypes  = ['monetica_bonifici_banca','monetica_cassa','monetica_cassette','monetica_bonifici_estero'];
   const factoringTypes = ['factoring_cedenti','factoring_debitori'];
-  const hasDigital = STATE.domainSheets.some(s => digitalTypes.includes(s.type));
-  const hasMonetica = STATE.domainSheets.some(s => moneticaTypes.includes(s.type));
+
+  /* tipi che finiscono nel menu Lending */
+  const lendingTypes   = ['ordinario','factoring','perfezionamenti','speciale'];
+
+  const hasDigital   = STATE.domainSheets.some(s => digitalTypes.includes(s.type));
+  const hasMonetica  = STATE.domainSheets.some(s => moneticaTypes.includes(s.type));
   const hasFactoring = STATE.domainSheets.some(s => factoringTypes.includes(s.type));
 
-  const labelMap = {ordinario:'Credito ordinario & factoring', speciale:'Credito speciale', perfezionamenti:'Contratti e perfezionamenti credito ordinario', anagrafe:'Anagrafe', antifrode:'Antifrode', ops_aml:'OPS AML', bancassurance:'Wealth & Bancassurance'};
+  const labelMap = {
+    ordinario      : 'Credito Ordinario & Factoring',
+    speciale       : 'Credito Speciale',
+    perfezionamenti: 'Contratti e Perfezionamenti Credito Ordinario',
+    factoring      : 'Factoring',
+    anagrafe       : 'Anagrafe',
+    antifrode      : 'Antifrode',
+    ops_aml        : 'OPS AML',
+    bancassurance  : 'Wealth & Bancassurance'
+  };
+
+  /* ordine interno ai due menu */
+  const lendingOrder    = ['perfezionamenti','factoring','ordinario','speciale'];
+  const operationsOrder = ['anagrafe','antifrode','ops_aml','monetica','digital','bancassurance'];
+
+  /* raccoglie tab per i due gruppi */
+  const lendingTabs    = [];
+  const operationsTabs = [];
 
   STATE.domainSheets.forEach((s, idx)=>{
     if(digitalTypes.includes(s.type) || moneticaTypes.includes(s.type) || factoringTypes.includes(s.type)) return;
-    tabDefs.push({
-      key:'d'+idx, 
-      label:labelMap[s.type] || 'Dati (' + s.sheetName + ')', 
-      type: s.type
+    const tab = { key:'d'+idx, label: labelMap[s.type] || ('Dati (' + s.sheetName + ')'), type: s.type };
+    if(lendingTypes.includes(s.type)) lendingTabs.push(tab);
+    else                              operationsTabs.push(tab);
+  });
+
+  /* aggregati speciali */
+  if(hasFactoring) lendingTabs.push({ key:'factoring', label:'Factoring', type:'factoring' });
+  if(hasDigital)   operationsTabs.push({ key:'digital',  label:'Digital Bank', type:'digital' });
+  if(hasMonetica)  operationsTabs.push({ key:'monetica', label:'OPS Incassi, Pagamenti e Monetica', type:'monetica' });
+
+  /* ordina i due gruppi */
+  const sortByOrder = (arr, order) =>
+    arr.sort((a,b)=>{
+      const pa = order.indexOf(a.type ?? a.key);
+      const pb = order.indexOf(b.type ?? b.key);
+      return (pa===-1?999:pa) - (pb===-1?999:pb);
     });
-  });
+  sortByOrder(lendingTabs, lendingOrder);
+  sortByOrder(operationsTabs, operationsOrder);
 
-  if(hasDigital) tabDefs.push({key:'digital', label:'Digital Bank', type:'digital'});
-  if(hasMonetica) tabDefs.push({key:'monetica', label:'OPS Incassi, Pagamenti e Monetica', type:'monetica'});
-  if(hasFactoring) tabDefs.push({key:'factoring', label:'Factoring', type:'factoring'});
+  /* ── costruisce i panel per TUTTI i tab (li creiamo tutti subito) ── */
+  const allTabs = [...lendingTabs, ...operationsTabs];
 
-  tabDefs.sort((a, b) => {
-    let posA = tabOrder.indexOf(a.key);
-    let posB = tabOrder.indexOf(b.key);
-    
-    if(posA === -1 && a.type) posA = tabOrder.indexOf(a.type);
-    if(posB === -1 && b.type) posB = tabOrder.indexOf(b.type);
-    
-    posA = posA === -1 ? 999 : posA;
-    posB = posB === -1 ? 999 : posB;
-    
-    return posA - posB;
-  });
+  /* panel Overview */
+  _createPanel(panels, 'overview');
 
-  tabDefs.forEach(t=>{
-    const tab = el('div','tab',`<span>${t.label}</span>`);
-    tab.dataset.key = t.key;
-    tab.onclick = ()=>activateTab(t.key);
-    bar.appendChild(tab);
+  allTabs.forEach(t => _createPanel(panels, t.key));
 
-    const panel = el('div','panel','');
-    panel.id = 'panel-' + t.key;
-    panels.appendChild(panel);
-  });
+  /* ── barra: Overview singolo ── */
+  const overviewTab = el('div','tab','<span>Overview</span>');
+  overviewTab.dataset.key = 'overview';
+  overviewTab.onclick = ()=> activateTab('overview');
+  bar.appendChild(overviewTab);
+
+  /* ── barra: dropdown Lending ── */
+  if(lendingTabs.length){
+    bar.appendChild(_buildDropdown('Lending', lendingTabs));
+  }
+
+  /* ── barra: dropdown Operations ── */
+  if(operationsTabs.length){
+    bar.appendChild(_buildDropdown('Operations', operationsTabs));
+  }
 
   activateTab('overview');
 }
 
+/* crea un div.panel vuoto */
+function _createPanel(container, key){
+  const panel = el('div','panel','');
+  panel.id = 'panel-' + key;
+  container.appendChild(panel);
+}
+
+/* costruisce un elemento dropdown nella tab-bar */
+function _buildDropdown(groupLabel, tabs){
+  const wrapper = el('div','tab-dropdown');
+
+  const btn = el('div','tab tab-group-btn',
+    `<span>${groupLabel}</span><span class="tab-arrow">▾</span>`);
+  btn.dataset.group = groupLabel;
+
+  const list = el('div','tab-dropdown-list');
+  tabs.forEach(t=>{
+    const item = el('div','tab-dropdown-item',`<span>${t.label}</span>`);
+    item.dataset.key = t.key;
+    item.onclick = (e)=>{
+      e.stopPropagation();
+      activateTab(t.key);
+      list.classList.remove('open');
+    };
+    list.appendChild(item);
+  });
+
+  btn.onclick = (e)=>{
+    e.stopPropagation(); // ← blocca la propagazione al document
+    document.querySelectorAll('.tab-dropdown-list.open').forEach(l=>{
+      if(l !== list) l.classList.remove('open');
+    });
+    list.classList.toggle('open');
+  };
+
+  wrapper.appendChild(btn);
+  wrapper.appendChild(list);
+  return wrapper;
+}
+
+/* chiudi dropdown cliccando fuori */
+document.addEventListener('click', ()=>{
+  document.querySelectorAll('.tab-dropdown-list.open').forEach(l=> l.classList.remove('open'));
+});
+
+/* ============================================================
+   ACTIVATE TAB
+   ============================================================ */
 function activateTab(key){
   STATE.activeTab = key;
-  document.querySelectorAll('.tab').forEach(t=> t.classList.toggle('active', t.dataset.key===key));
-  document.querySelectorAll('.nav-item').forEach(t=> t.classList.toggle('active', t.dataset.key===key));
-  document.querySelectorAll('.panel').forEach(p=> p.classList.toggle('active', p.id === 'panel-'+key));
+
+  /* evidenzia tab singoli */
+  document.querySelectorAll('.tab:not(.tab-group-btn)').forEach(t=>
+    t.classList.toggle('active', t.dataset.key === key));
+
+  /* evidenzia il bottone gruppo se uno dei suoi item è attivo */
+  document.querySelectorAll('.tab-group-btn').forEach(btn=>{
+    const list = btn.nextElementSibling;
+    const hasActive = [...list.querySelectorAll('.tab-dropdown-item')]
+      .some(i => i.dataset.key === key);
+    btn.classList.toggle('active', hasActive);
+  });
+
+  /* evidenzia item dropdown */
+  document.querySelectorAll('.tab-dropdown-item').forEach(i=>
+    i.classList.toggle('active', i.dataset.key === key));
+
+  /* sidebar */
+  document.querySelectorAll('.nav-item').forEach(t=>
+    t.classList.toggle('active', t.dataset.key === key));
+
+  /* panel */
+  document.querySelectorAll('.panel').forEach(p=>
+    p.classList.toggle('active', p.id === 'panel-'+key));
 
   const panel = document.getElementById('panel-'+key);
-  if(!panel) return;
-  if(panel.dataset.built) return;
+  if(!panel || panel.dataset.built) return;
   panel.dataset.built = '1';
 
-  if(key === 'overview'){ renderOverview(panel); return; }
-  if(key === 'digital'){ renderDigital(panel); return; }
-  if(key === 'monetica'){ renderMonetica(panel); return; }
-  if(key === 'factoring'){ renderFactoring(panel); return; }
+  if(key === 'overview')  { renderOverview(panel);  return; }
+  if(key === 'digital')   { renderDigital(panel);   return; }
+  if(key === 'monetica')  { renderMonetica(panel);  return; }
+  if(key === 'factoring') { renderFactoring(panel); return; }
 
   const idx = Number(key.slice(1));
-  const s = STATE.domainSheets[idx];
+  const s   = STATE.domainSheets[idx];
 
-  if(s.type === 'anagrafe') renderAnagrafe(panel, s);
-  else if(s.type === 'antifrode') renderAntifrode(panel, s);
-  else if(s.type === 'ordinario') renderCredito(panel, s);
-  else if(s.type === 'speciale') renderCreditoSpeciale(panel, s);
-  else if(s.type === 'ops_aml') renderOpsAml(panel, s);
+  if(s.type === 'anagrafe')        renderAnagrafe(panel, s);
+  else if(s.type === 'antifrode')  renderAntifrode(panel, s);
+  else if(s.type === 'ordinario')  renderCredito(panel, s);
+  else if(s.type === 'speciale')   renderCreditoSpeciale(panel, s);
+  else if(s.type === 'ops_aml')    renderOpsAml(panel, s);
   else if(s.type === 'perfezionamenti') renderPerfezionamenti(panel, s);
-  else if(s.type === 'bancassurance') renderBancassurance(panel, s);
+  else if(s.type === 'bancassurance')   renderBancassurance(panel, s);
   else renderGeneric(panel, s);
 }
 
@@ -211,13 +288,12 @@ function renderOverview(panel) {
     return;
   }
 
-  const totHC = rows.reduce((a, r) => a + (Number(r.HC) || 0), 0);
+  const totHC      = rows.reduce((a, r) => a + (Number(r.HC) || 0), 0);
   const totFteAsIs = rows.reduce((a, r) => a + (Number(r['FTE AS IS - in forza']) || 0), 0);
   const totFteStim = rows.reduce((a, r) => a + (Number(r['FTE Stimati']) || 0), 0);
-  const totNS = rows.reduce((a, r) => a + (Number(r['Need/Surplus']) || 0), 0);
-  const nDeficit = rows.filter(r => (Number(r['Need/Surplus']) || 0) < 0).length;
-  const nSurplus = rows.filter(r => (Number(r['Need/Surplus']) || 0) > 0).length;
-
+  const totNS      = rows.reduce((a, r) => a + (Number(r['Need/Surplus']) || 0), 0);
+  const nDeficit   = rows.filter(r => (Number(r['Need/Surplus']) || 0) < 0).length;
+  const nSurplus   = rows.filter(r => (Number(r['Need/Surplus']) || 0) > 0).length;
 
   const uo1Options = [...new Set(rows.map(r => r.uo1livello_descrizione).filter(Boolean))];
 
@@ -256,25 +332,19 @@ function renderOverview(panel) {
     <p class="hint" style="margin:6px 0 18px">
       Delta FTE = FTE Need − FTE as-is. Verde: capacità adeguata o in surplus · Ambra: fabbisogno aggiuntivo.
     </p>
-    <h3 style="font-family:var(--font-display);font-size:14px;color:var(--navy-2);margin:4px 0 10px">
-      Vista tabellare dettagliata
-    </h3>
-    <div class="table-wrap scroll">
-      <table class="dt" id="ovTable"></table>
-    </div>
   `;
 
   function draw() {
     const uo1 = document.getElementById('ovFilterUo1').value;
-    const q = document.getElementById('ovSearch').value.toLowerCase();
-    let f = rows.filter(r =>
+    const q   = document.getElementById('ovSearch').value.toLowerCase();
+    const f   = rows.filter(r =>
       (!uo1 || r.uo1livello_descrizione === uo1) &&
-      (!q || String(r['UO LAST'] || '').toLowerCase().includes(q))
+      (!q   || String(r['UO LAST'] || '').toLowerCase().includes(q))
     );
 
-    // grouped area tables (visual style: banner per area + pill values)
-    const areaGrid = document.getElementById('ovAreaGrid');
+    const areaGrid  = document.getElementById('ovAreaGrid');
     const areaOrder = [...new Set(f.map(r => r.uo1livello_descrizione || '(area non specificata)'))];
+
     areaGrid.innerHTML = areaOrder.map(area => {
       const areaRows = f.filter(r =>
         (r.uo1livello_descrizione || '(area non specificata)') === area
@@ -291,13 +361,13 @@ function renderOverview(panel) {
               <tr class="col-label-row">
                 <th>UO</th>
                 <th class="spacer"></th>
-                <th>FTE AS-IS</th><th>FTE NEED</th><th>Delta FTE</th>
+                <th>FTE AS-IS</th>
+                <th>FTE NEED</th>
+                <th>Delta FTE</th>
               </tr>
             </thead>
             <tbody>
-              ${areaRows
-                .map(
-                  r => `
+              ${areaRows.map(r => `
                 <tr>
                   <td>${r['UO LAST'] || ''}</td>
                   <td class="tdspacer"></td>
@@ -305,66 +375,18 @@ function renderOverview(panel) {
                   <td class="numcell">${pillFte(r['FTE Stimati'])}</td>
                   <td class="numcell">${pillDelta(r['Need/Surplus'])}</td>
                 </tr>`
-                )
-                .join('')}
+              ).join('')}
             </tbody>
           </table>
         </div>
       `;
     }).join('');
-
-    const table = document.getElementById('ovTable');
-    table.innerHTML = `
-      <thead>
-        <tr class="table-header-org">
-          <th>Struttura</th>
-          <th>UO1</th>
-          <th>UO2</th>
-          <th>HC</th>
-          <th>HC in forza</th>
-        </tr>
-        <tr class="table-header-lending">
-          <th>FTE as-is</th>
-          <th>FTE Need</th>
-          <th>Delta FTE</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${f
-          .map(r => {
-            const ns = Number(r['Need/Surplus']) || 0;
-            return `
-            <tr class="table-row-org">
-              <td>${r['UO LAST'] || ''}</td>
-              <td>${r.uo1livello_descrizione || ''}</td>
-              <td>${r.uo2livello_descrizione || ''}</td>
-              <td>${r.HC ?? ''}</td>
-              <td>${r['HC - in forza'] ?? ''}</td>
-            </tr>
-            <tr class="table-row-lending">
-              <td>${
-                r['FTE AS IS - in forza'] != null
-                  ? fmtDec.format(r['FTE AS IS - in forza'])
-                  : ''
-              }</td>
-              <td>${r['FTE Stimati'] != null ? fmtDec.format(r['FTE Stimati']) : ''}</td>
-              <td>
-                <span class="badge ${ns < 0 ? 'danger' : 'pos'}">
-                  ${ns > 0 ? '+' : ''}${fmtDec.format(ns)}
-                </span>
-              </td>
-            </tr>`;
-          })
-          .join('')}
-      </tbody>
-    `;
   }
 
   document.getElementById('ovFilterUo1').onchange = draw;
-  document.getElementById('ovSearch').oninput = draw;
+  document.getElementById('ovSearch').oninput     = draw;
   draw();
 }
-
 
 /* ============================================================
    Shared: struttura header card for domain panels
@@ -450,7 +472,7 @@ function renderKPITable(taskData) {
   const statusColor = fteTeorico !== null && fteActual !== null && fteTeorico > fteActual ? '#22c55e' : '#ef4444';
 
   return `
-    <div style="display:flex; align-items:stretch; gap:0; height:40px; border:1px solid ${PALETTE.grey666}; border-radius:8px; overflow:hidden; background:#f5f5f5; max-width:400px; width:100%;">
+    <div style="display:flex; align-items:stretch; gap:0; height:40px; border:1px solid ${PALETTE.grey666}; border-radius:8px; overflow:hidden; background:#f5f5f5; width:fit-content;">
       <div style="min-width:70px; padding:5px 12px; display:flex; flex-direction:column; justify-content:center; align-items:center; background:${PALETTE.grid}; border-right:1px solid #fff;">
         <div style="font-size:11px; font-weight:400; line-height:1.1; color:#666666">Target</div>
         <div style="font-size:14px; font-weight:700; line-height:1.2; margin-top:3px;">${taskData.pezzi !== null ? fmtIntRound.format(taskData.pezzi) : '—'}</div>
@@ -461,6 +483,42 @@ function renderKPITable(taskData) {
       </div>
       <div style="min-width:70px; padding:5px 12px; display:flex; flex-direction:column; justify-content:center; align-items:center; background:${PALETTE.grid}; border-right:1px solid #fff;">
         <div style="font-size:11px; font-weight:400; line-height:1.1; color:#666666;">Media Mensile</div>
+        <div style="font-size:14px; font-weight:700; line-height:1.2; margin-top:3px;">${taskData.pezzi_actual !== null ? fmtIntRound.format(taskData.pezzi_actual) : '—'}</div>
+      </div>
+      <div style="min-width:70px; padding:5px 12px; display:flex; align-items:center; justify-content:center; gap:10px; background:${PALETTE.grid};">
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center;">
+          <div style="font-size:11px; font-weight:400; line-height:1.1; color:#666666;">FTE Actual</div>
+          <div style="font-size:14px; font-weight:700; line-height:1.2; margin-top:3px;">${taskData.fte_actual !== null ? fmtDec.format(taskData.fte_actual) : '—'}</div>
+        </div>
+        <span style="width:9px; height:9px; min-width:9px; border-radius:50%; background:${statusColor}; display:inline-block;"></span>
+      </div>
+    </div>
+  `;
+}
+
+function renderKPITableFactoring(taskData) {
+  if (!taskData) {
+    return '<p class="hint">Nessun dato task disponibile.</p>';
+  }
+
+  const fteTeorico = taskData.fte_teorico;
+  const fteActual = taskData.fte_actual;
+
+  // Verde se FTE Teorico > FTE Actual, rosso altrimenti
+  const statusColor = fteTeorico !== null && fteActual !== null && fteTeorico > fteActual ? '#22c55e' : '#ef4444';
+
+  return `
+    <div style="display:flex; align-items:stretch; gap:0; height:40px; border:1px solid ${PALETTE.grey666}; border-radius:8px; overflow:hidden; background:#f5f5f5; max-width:400px; width:100%;">
+      <div style="min-width:70px; padding:5px 12px; display:flex; flex-direction:column; justify-content:center; align-items:center; background:${PALETTE.grid}; border-right:1px solid #fff;">
+        <div style="font-size:11px; font-weight:400; line-height:1.1; color:#666666">Target per FTE</div>
+        <div style="font-size:14px; font-weight:700; line-height:1.2; margin-top:3px;">${taskData.pezzi !== null ? fmtIntRound.format(taskData.pezzi) : '—'}</div>
+      </div>
+      <div style="min-width:70px; padding:5px 12px; display:flex; flex-direction:column; justify-content:center; align-items:center; background:${PALETTE.grid}; border-right:1px solid #fff;">
+        <div style="font-size:11px; font-weight:400; line-height:1.1; color:#666666;">FTE Teorico</div>
+        <div style="font-size:14px; font-weight:700; line-height:1.2; margin-top:3px;">${taskData.fte_teorico !== null ? fmtDec.format(taskData.fte_teorico) : '—'}</div>
+      </div>
+      <div style="min-width:70px; padding:5px 12px; display:flex; flex-direction:column; justify-content:center; align-items:center; background:${PALETTE.grid}; border-right:1px solid #fff;">
+        <div style="font-size:11px; font-weight:400; line-height:1.1; color:#666666;">Media per FTE</div>
         <div style="font-size:14px; font-weight:700; line-height:1.2; margin-top:3px;">${taskData.pezzi_actual !== null ? fmtIntRound.format(taskData.pezzi_actual) : '—'}</div>
       </div>
       <div style="min-width:70px; padding:5px 12px; display:flex; align-items:center; justify-content:center; gap:10px; background:${PALETTE.grid};">

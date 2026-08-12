@@ -318,3 +318,65 @@ footer.note{margin-top:14px;font-size:11.5px;color:var(--text-faint);font-family
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
 }
+
+/* ── Dropdown nella tab-bar ── */
+.tab-dropdown {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+}
+
+.tab-group-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.tab-arrow {
+  font-size: 10px;
+  opacity: .7;
+  transition: transform .2s;
+}
+
+.tab-dropdown-list {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 260px;
+  background: var(--panel);          /* #ffffff come le card */
+  border: 1px solid var(--border);   /* #e2e6e8 come il resto */
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(46,72,87,0.12);
+  z-index: 999;
+  padding: 4px 0;
+  margin-top: 4px;
+}
+
+.tab-dropdown-list.open {
+  display: block;
+}
+
+.tab-dropdown-item {
+  padding: 9px 16px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-dim);            /* stesso colore del .tab non attivo */
+  cursor: pointer;
+  transition: background .15s, color .15s;
+  white-space: nowrap;
+}
+
+.tab-dropdown-item:hover {
+  background: var(--panel-2);        /* #eef2f5 come hover nav-item */
+  color: var(--navy-2);
+}
+
+.tab-dropdown-item.active {
+  color: var(--navy-2);
+  font-weight: 700;
+  background: var(--accent-dim);     /* #eef2f4 come nav-item attivo */
+}
