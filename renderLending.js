@@ -1228,3 +1228,35 @@ function renderFactoring(panel, s){
   mkChart('dbNdgPerProdotto', {type: 'bar', data: { labels: datiFinaliProdotti.map(x => x[0]), datasets: [{ label: 'NDG per Prodotto', data: datiFinaliProdotti.map(x => x[1]), backgroundColor: [PALETTE.pos, PALETTE.danger, PALETTE.warn, PALETTE.info, PALETTE.navy], borderColor: PALETTE.navy, borderWidth: 0 }] },
     options: { plugins: { legend: { display: false } } }});
 }
+
+/* ============================================================
+   PANEL: SPECIALTY FINANCE
+   ============================================================ */
+const SPECIALTY_FINANCE_ID = '10004100067100081';
+
+function renderSpecialty(panel) {
+  const censimenti = STATE.domainSheets.find(s=>s.type==='specialty_censimenti');
+  const adv = STATE.domainSheets.find(s=>s.type==='specialty_adv');
+  const rapporti = STATE.domainSheets.find(s=>s.type==='specialty_rapporti');
+  const perfezionamentispf = STATE.domainSheets.find(s=>s.type==='specialty_perfezionamenti');
+
+  const specialtyDimRow = findDimRow(SPECIALTY_FINANCE_ID);
+  panel.innerHTML = structHeaderHtml({sheetName: SPECIALTY_FINANCE_ID, dimRow: specialtyDimRow}, 'Specialty Finance - Lending') + `
+    ${renderTaskTable(getTasksForSheet(SPECIALTY_FINANCE_ID))}
+  `;
+}
+
+/* ============================================================
+   PANEL: SEGRETERIA FIDI
+   ============================================================ */
+const SEGRETERIA_FIDI_ID = '10004100067100078';
+
+function renderFidi(panel) {
+  const nfidi = STATE.domainSheets.find(s=>s.type==='fidi');
+  const collegamenti = STATE.domainSheets.find(s=>s.type==='fidi_collegamenti');
+
+  const fidiDimRow = findDimRow(SEGRETERIA_FIDI_ID);
+  panel.innerHTML = structHeaderHtml({sheetName: SEGRETERIA_FIDI_ID, dimRow: fidiDimRow}, 'Segreteria fidi - Lending') + `
+    ${renderTaskTable(getTasksForSheet(SEGRETERIA_FIDI_ID))}
+  `;
+}

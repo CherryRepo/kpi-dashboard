@@ -16,11 +16,13 @@ async function waitWithLoadingBar(startTime) {
 function buildSidebar(){
   const nav = document.getElementById('navList');
   nav.innerHTML = '';
-  const itemOrder = ['overview', 'ordinario', 'speciale', 'perfezionamenti', 'factoring', 'anagrafe', 'antifrode', 'ops_aml', 'bancassurance', 'digital', 'monetica'];
+  const itemOrder = ['overview', 'ordinario', 'speciale', 'perfezionamenti', 'factoring', 'specialty', 'fidi', 'anagrafe', 'antifrode', 'ops_aml', 'bancassurance', 'digital', 'monetica'];
   const items = [{key:'overview', label:'Panoramica dimensionamento', tag:'DIM'}];
   const digitalTypes = ['digital_rapporti','digital_frodi','digital_raisin'];
   const moneticaTypes = ['monetica_bonifici_banca','monetica_cassa','monetica_cassette','monetica_bonifici_estero'];
   const factoringTypes = ['factoring_cedenti','factoring_debitori'];
+  const fidiTypes = ['fidi','fidi_collegamenti'];
+  const specialtyTypes = ['specialty_censimenti','specialty_adv','specialty_rapporti','specialty_perfezionamenti'];
   const labelMap = {
     ordinario:'Credito ordinario & factoring',
     speciale:'Credito speciale',
@@ -52,6 +54,12 @@ function buildSidebar(){
   }
   if(STATE.domainSheets.some(s=>factoringTypes.includes(s.type))){
     items.push({ key:'factoring', label:'Factoring', tag:'FAC' });
+  }
+  if(STATE.domainSheets.some(s=>fidiTypes.includes(s.type))){
+    items.push({ key:'fidi', label:'Segreteria Fidi', tag:'FIDI' });
+  }
+  if(STATE.domainSheets.some(s=>specialtyTypes.includes(s.type))){
+    items.push({ key:'specialty', label:'Specialty Finance', tag:'SPF' });
   }
 
   items.sort((a, b) => {
@@ -101,19 +109,25 @@ function buildTabs(){
   const digitalTypes   = ['digital_rapporti','digital_frodi','digital_raisin'];
   const moneticaTypes  = ['monetica_bonifici_banca','monetica_cassa','monetica_cassette','monetica_bonifici_estero'];
   const factoringTypes = ['factoring_cedenti','factoring_debitori'];
+  const fidiTypes = ['fidi','fidi_collegamenti'];
+  const specialtyTypes = ['specialty_censimenti','specialty_adv','specialty_rapporti','specialty_perfezionamenti'];
 
   /* tipi che finiscono nel menu Lending */
-  const lendingTypes   = ['ordinario','factoring','perfezionamenti','speciale'];
+  const lendingTypes   = ['ordinario','factoring','perfezionamenti','speciale','specialty','fidi'];
 
   const hasDigital   = STATE.domainSheets.some(s => digitalTypes.includes(s.type));
   const hasMonetica  = STATE.domainSheets.some(s => moneticaTypes.includes(s.type));
   const hasFactoring = STATE.domainSheets.some(s => factoringTypes.includes(s.type));
+  const hasFidi = STATE.domainSheets.some(s => fidiTypes.includes(s.type));
+  const hasSpecialty = STATE.domainSheets.some(s => specialtyTypes.includes(s.type));
 
   const labelMap = {
     ordinario      : 'Credito Ordinario & Factoring',
     speciale       : 'Credito Speciale',
     perfezionamenti: 'Contratti e Perfezionamenti Credito Ordinario',
     factoring      : 'Factoring',
+    specialty      : 'Specialty Finance',
+    fidi           : 'Segreteria Fidi',
     anagrafe       : 'Anagrafe',
     antifrode      : 'Antifrode',
     ops_aml        : 'OPS AML',
@@ -121,7 +135,7 @@ function buildTabs(){
   };
 
   /* ordine interno ai due menu */
-  const lendingOrder    = ['perfezionamenti','factoring','ordinario','speciale'];
+  const lendingOrder    = ['perfezionamenti','factoring','fidi','specialty','ordinario','speciale'];
   const operationsOrder = ['anagrafe','antifrode','ops_aml','monetica','digital','bancassurance'];
 
   /* raccoglie tab per i due gruppi */
@@ -129,7 +143,7 @@ function buildTabs(){
   const operationsTabs = [];
 
   STATE.domainSheets.forEach((s, idx)=>{
-    if(digitalTypes.includes(s.type) || moneticaTypes.includes(s.type) || factoringTypes.includes(s.type)) return;
+    if(digitalTypes.includes(s.type) || moneticaTypes.includes(s.type) || factoringTypes.includes(s.type) || fidiTypes.includes(s.type) || specialtyTypes.includes(s.type)) return;
     const tab = { key:'d'+idx, label: labelMap[s.type] || ('Dati (' + s.sheetName + ')'), type: s.type };
     if(lendingTypes.includes(s.type)) lendingTabs.push(tab);
     else                              operationsTabs.push(tab);
@@ -137,6 +151,8 @@ function buildTabs(){
 
   /* aggregati speciali */
   if(hasFactoring) lendingTabs.push({ key:'factoring', label:'Factoring', type:'factoring' });
+  if(hasFidi)  lendingTabs.push({ key:'fidi', label:'Segreteria Fidi', type:'fidi' });
+  if(hasSpecialty)  lendingTabs.push({ key:'specialty', label:'Specialty Finance', type:'specialty' });
   if(hasDigital)   operationsTabs.push({ key:'digital',  label:'Digital Bank', type:'digital' });
   if(hasMonetica)  operationsTabs.push({ key:'monetica', label:'OPS Incassi, Pagamenti e Monetica', type:'monetica' });
 
@@ -260,6 +276,8 @@ function activateTab(key){
   if(key === 'digital')   { renderDigital(panel);   return; }
   if(key === 'monetica')  { renderMonetica(panel);  return; }
   if(key === 'factoring') { renderFactoring(panel); return; }
+  if(key === 'fidi')      { renderFidi(panel);      return; }
+  if(key === 'specialty') { renderSpecialty(panel); return; }
 
   const idx = Number(key.slice(1));
   const s   = STATE.domainSheets[idx];

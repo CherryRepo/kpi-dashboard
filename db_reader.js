@@ -251,7 +251,7 @@ function parseWorkbook(wb) {
     STATE.domainSheets.push({ sheetName: name, type, headers, rows, dimRow });
   }
   
-  const typeOrder = ['ordinario', 'speciale', 'perfezionamenti', 'anagrafe', 'antifrode', 'ops_aml', 'bancassurance', 'generic'];
+  const typeOrder = ['ordinario', 'speciale', 'perfezionamenti', 'anagrafe', 'antifrode', 'ops_aml', 'bancassurance', 'fidi', 'specialty', 'generic'];
   STATE.domainSheets.sort((a, b) => {
     const orderA = typeOrder.indexOf(a.type);
     const orderB = typeOrder.indexOf(b.type);
@@ -275,6 +275,12 @@ function classifySheet(sheetName) {
   if (name.includes('10004100067100079')) return 'perfezionamenti';
   if (name.includes('10004100067100080v1')) return 'factoring_cedenti';
   if (name.includes('10004100067100080v2')) return 'factoring_debitori';
+  if (name.includes('10004100067100078v1')) return 'fidi';
+  if (name.includes('10004100067100078v2')) return 'fidi_collegamenti';
+  if (name.includes('10004100067100081v1')) return 'specialty_censimenti';
+  if (name.includes('10004100067100081v2')) return 'specialty_adv';
+  if (name.includes('10004100067100081v3')) return 'specialty_rapporti';
+  if (name.includes('10004100067100081v4')) return 'specialty_perfezionamenti';
   if (name.includes('10004100051')) return 'speciale';
   if (name.includes('10004100052')) return 'ordinario';
   return 'generic';
