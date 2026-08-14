@@ -797,6 +797,7 @@ function renderPerfezionamenti(panel, s){
     <div>
       <div class="card" style="position:relative; height:380px; display:flex; flex-direction:column; justify-content:center;">
         <h3 style="margin:0; margin-top:-10px;">Perfezionamento e erogazione Corporate 2026</h3>
+        <p class="card-sub">KPI cannato bisogna estrarre attraverso NDG i Corporate OLD che ora sono nel Retail, valutiamo al rientro vista la necessità di elaborazione a mano e non scarico diretto da DWH</p>
         <canvas id="CorporateChart" style="flex:1; width:100%; height:650px; max-width:100%; margin-top:20px;"></canvas>
         <div style="position:absolute; top:12px; right:12px; padding:4px; font-size:0.8em; line-height:1;">
           ${renderKPITable(taskDataPerfezionamenti1)}
