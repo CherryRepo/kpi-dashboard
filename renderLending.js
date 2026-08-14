@@ -1240,10 +1240,208 @@ function renderSpecialty(panel) {
   const rapporti = STATE.domainSheets.find(s=>s.type==='specialty_rapporti');
   const perfezionamentispf = STATE.domainSheets.find(s=>s.type==='specialty_perfezionamenti');
 
+  const censimentiRows      = censimenti      ? censimenti.rows      : [];
+  const advRows             = adv             ? adv.rows             : [];
+  const rapportiRows        = rapporti        ? rapporti.rows        : [];
+  const perfezionamentiRows = perfezionamentispf  ? perfezionamentispf.rows : [];
+
+  const SPF_BU = new Set([
+    'Finanza Strutturata',
+    'Special Situations',
+    'Turnaround & Strategic Finance',
+  ]);
+
+  // UTILITY LOCALI
+  const countUnique = (arr, col) =>
+    new Set(arr.map(r => r[col]).filter(Boolean)).size;
+
+  // AGGREGAZIONI: CENSIMENTI
+  const censimentiFiltrati = censimentiRows.filter(r => {
+    const d = toDate(r['dta_censimento']);
+    return d && d.getFullYear() === 2026 && SPF_BU.has(String(r['des_business_unit'] ?? '').trim());
+  });
+  const totalCensimenti = censimentiFiltrati.length;
+  const censimentiPerMese = {};
+  censimentiFiltrati.forEach(r => {
+    const d = toDate(r['dta_censimento']);
+    const k = monthKey(d);
+    if (k) censimentiPerMese[k] = (censimentiPerMese[k] || 0) + 1;
+  });
+  const censimentiPerBu = {};
+  censimentiFiltrati.forEach(r => {
+    const bu = String(r['des_business_unit'] ?? '').trim() || 'N/D';
+    censimentiPerBu[bu] = (censimentiPerBu[bu] || 0) + 1;
+  });
+
+  // AGGREGAZIONI: ADV
+  const advFiltrate = advRows.filter(r => {
+    const d = toDate(r['data_inserimento']);
+    return d && d.getFullYear() === 2026;
+  });
+  const totalAdv = countUnique(advFiltrate, 'ndg');
+  const advNdgPerMese = {};   // ym → Set<ndg>
+  advFiltrate.forEach(r => {
+    const d   = toDate(r['data_inserimento']);
+    const k   = monthKey(d);
+    const ndg = r['ndg'];
+    if (!k || ndg == null) return;
+    if (!advNdgPerMese[k]) advNdgPerMese[k] = new Set();
+    advNdgPerMese[k].add(String(ndg).trim());
+  });
+  // Converte Set → count
+  const advPerMese = {};
+  Object.entries(advNdgPerMese).forEach(([k, set]) => {
+    advPerMese[k] = set.size;
+  });
+  const advPerFascia = {};
+  advFiltrate.forEach(r => {
+    const fascia = String(r['fascia_rischio'] ?? '').trim() || 'N/D';
+    advPerFascia[fascia] = (advPerFascia[fascia] || 0) + 1;
+  });
+
+  // AGGREGAZIONI: RAPPORTI CIB APERTI
+  const rapportiFiltrati = rapportiRows.filter(r => {
+    const d = toDate(r['dta_rapporto_apert']);
+    return d && d.getFullYear() === 2026 && d.getMonth() !== 7;
+  });
+
+  const totalRapporti = rapportiFiltrati.length;
+  const rapportiPerMese = {};
+  rapportiFiltrati.forEach(r => {
+    const d = toDate(r['dta_rapporto_apert']);
+    const k = monthKey(d);
+    if (k) rapportiPerMese[k] = (rapportiPerMese[k] || 0) + 1;
+  });
+
+  // AGGREGAZIONI: PERFEZIONAMENTI
+    const perfezionamentiFiltrati = perfezionamentiRows.filter(r => {
+    const d = toDate(r['dta_operativa']);
+    return d && d.getFullYear() === 2026;
+  });
+  const totalPerfezionamenti = countUnique(perfezionamentiFiltrati, 'cod_identif_fido');
+  const perfFidoPerMese = {};  // ym → Set<cod_identif_fido>
+  perfezionamentiFiltrati.forEach(r => {
+    const d   = toDate(r['dta_operativa']);
+    const k   = monthKey(d);
+    const cod = r['cod_identif_fido'];
+    if (!k || cod == null) return;
+    if (!perfFidoPerMese[k]) perfFidoPerMese[k] = new Set();
+    perfFidoPerMese[k].add(String(cod).trim());
+  });
+  // Converte Set → count
+  const perfezionamentiPerMese = {};
+  Object.entries(perfFidoPerMese).forEach(([k, set]) => {
+    perfezionamentiPerMese[k] = set.size;
+  });
+
+  const allMonths = [...new Set([
+    ...Object.keys(censimentiPerMese),
+    ...Object.keys(advPerMese),
+    ...Object.keys(rapportiPerMese),
+    ...Object.keys(perfezionamentiPerMese),
+  ])].sort().filter(m => !m.endsWith('-08'));
+
+  const censimentiMensili       = allMonths.map(k => censimentiPerMese[k]       || 0);
+  const advMensili              = allMonths.map(k => advPerMese[k]              || 0);
+  const rapportiMensili         = allMonths.map(k => rapportiPerMese[k]         || 0);
+  const perfezionamentiMensili  = allMonths.map(k => perfezionamentiPerMese[k]  || 0);
+
+  // ---- task KPI ----
+  const tasksSpecialty = getTasksForSheet(SPECIALTY_FINANCE_ID);
+
+  const specialtyTask1 = tasksSpecialty[3];
+  if (specialtyTask1) {
+    taskDataSpecialty1 = {
+      pezzi: specialtyTask1.pezzi,
+      fte_teorico: specialtyTask1.fte_teorico,
+      pezzi_actual: totalAdv / MONTHS,
+      fte_actual: (totalAdv / MONTHS * specialtyTask1.tempi) / HOURS_PER_MONTH
+    };
+  }
+
+  const specialtyTask2 = tasksSpecialty[1];
+  if (specialtyTask2) {
+    taskDataSpecialty2 = {
+      pezzi: specialtyTask2.pezzi,
+      fte_teorico: specialtyTask2.fte_teorico,
+      pezzi_actual: totalCensimenti / MONTHS,
+      fte_actual: (totalCensimenti / MONTHS * specialtyTask2.tempi) / HOURS_PER_MONTH
+    };
+  }
+
+  const specialtyTask3 = tasksSpecialty[2];
+  if (specialtyTask3) {
+    taskDataSpecialty3 = {
+      pezzi: specialtyTask3.pezzi,
+      fte_teorico: specialtyTask3.fte_teorico,
+      pezzi_actual: totalRapporti / MONTHS,
+      fte_actual: (totalRapporti / MONTHS * specialtyTask3.tempi) / HOURS_PER_MONTH
+    };
+  }
+
+  const specialtyTask4 = tasksSpecialty[4];
+  if (specialtyTask4) {
+    taskDataSpecialty4 = {
+      pezzi: specialtyTask4.pezzi,
+      fte_teorico: specialtyTask4.fte_teorico,
+      pezzi_actual: totalPerfezionamenti / MONTHS,
+      fte_actual: (totalPerfezionamenti / MONTHS * specialtyTask4.tempi) / HOURS_PER_MONTH
+    };
+  }
+
   const specialtyDimRow = findDimRow(SPECIALTY_FINANCE_ID);
   panel.innerHTML = structHeaderHtml({sheetName: SPECIALTY_FINANCE_ID, dimRow: specialtyDimRow}, 'Specialty Finance - Lending') + `
+  <div style="display:flex; flex-direction:column; gap:16px; margin-bottom:16px;">
+    <div style="display:flex; gap:16px;">
+      <div class="card" style="flex:1; position:relative; display:flex; flex-direction:column; justify-content:flex-end;">
+        <h3 style="margin:0 0 4px;">	Adeguate verifiche CIB</h3>
+        <p class="card-sub">ADV completate per mese</p>
+        <div style="position:absolute; top:12px; right:12px;">
+          ${renderKPITable(taskDataSpecialty1)}
+        </div>
+        <canvas id="ADVChart" style="width:100%; max-height:240px;"></canvas>
+      </div>
+      <div class="card" style="flex:1; position:relative; display:flex; flex-direction:column; justify-content:flex-end;">
+        <h3 style="margin:0 0 4px;">Censimento clienti</h3>
+        <p class="card-sub">numero censimenti per mese</p>
+        <div style="position:absolute; top:12px; right:12px;">
+          ${renderKPITable(taskDataSpecialty2)}
+        </div>
+        <canvas id="CensimentiChart" style="width:100%; max-height:240px;"></canvas>
+      </div>
+    </div>
+  </div>
+    <div style="display:flex; flex-direction:column; gap:16px; margin-bottom:16px;">
+    <div style="display:flex; gap:16px;">
+      <div class="card" style="flex:1; position:relative; display:flex; flex-direction:column; justify-content:flex-end;">
+        <h3 style="margin:0 0 4px;">Apertura C/C e linea fido; accensione rapporto di mutuo</h3>
+        <p class="card-sub">numero nuovi rapporti per mese</p>
+        <div style="position:absolute; top:12px; right:12px;">
+          ${renderKPITable(taskDataSpecialty3)}
+        </div>
+        <canvas id="rapportiChart" style="width:100%; max-height:240px;"></canvas>
+      </div>
+      <div class="card" style="flex:1; position:relative; display:flex; flex-direction:column; justify-content:flex-end;">
+        <h3 style="margin:0 0 4px;">Perfezionamento e erogazione</h3>
+        <p class="card-sub">numero perfezionamenti per mese</p>
+        <div style="position:absolute; top:12px; right:12px;">
+          ${renderKPITable(taskDataSpecialty4)}
+        </div>
+        <canvas id="perfezionamentiChart" style="width:100%; max-height:240px;"></canvas>
+      </div>
+    </div>
+  </div>
     ${renderTaskTable(getTasksForSheet(SPECIALTY_FINANCE_ID))}
   `;
+
+mkChart('ADVChart', {type:'bar',  data:{labels:allMonths, datasets:[{label:'ADV', data:advMensili, backgroundColor:PALETTE.accent}, {label:'Media Mensile', data:Array(allMonths.length).fill(totalAdv / MONTHS), type:'line', borderColor:PALETTE.navy, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[0]}}, {label:'Target', data:Array(allMonths.length).fill(4), type:'line', borderColor:PALETTE.grey, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[5,5]}}]},
+    options:{indexAxis:'x', plugins:{legend:{display:true, position:'bottom', labels:{usePointStyle:true, generateLabels:(chart)=>{return chart.data.datasets.map((d,i)=>{const isLine = d.type === 'line'; return {text:d.label, fillStyle:isLine ? 'transparent' : d.backgroundColor, strokeStyle:isLine ? d.borderColor : 'transparent', lineWidth:isLine ? 2 : 0, pointStyle:isLine ? 'line' : 'rect', hidden:!chart.isDatasetVisible(i), index:i};})}}}}, scales:{x:{grid:{color:PALETTE.grid}, stacked:true}, y:{grid:{display:true, color:PALETTE.grid}, ticks:{font:{size:12}}, stacked:false}}}});
+mkChart('CensimentiChart', {type:'bar', data:{labels:allMonths, datasets:[{label:'Censimenti', data:censimentiMensili, backgroundColor:PALETTE.accent}, {label:'Media Mensile', data:Array(allMonths.length).fill(totalCensimenti / MONTHS), type:'line', borderColor:PALETTE.navy, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[0]}}, {label:'Target', data:Array(allMonths.length).fill(50), type:'line', borderColor:PALETTE.grey, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[5,5]}}]},
+    options:{indexAxis:'x', plugins:{legend:{display:true, position:'bottom', labels:{usePointStyle:true, generateLabels:(chart)=>{return chart.data.datasets.map((d,i)=>{const isLine = d.type === 'line'; return {text:d.label, fillStyle:isLine ? 'transparent' : d.backgroundColor, strokeStyle:isLine ? d.borderColor : 'transparent', lineWidth:isLine ? 2 : 0, pointStyle:isLine ? 'line' : 'rect', hidden:!chart.isDatasetVisible(i), index:i};})}}}}, scales:{x:{grid:{color:PALETTE.grid}, stacked:true}, y:{grid:{display:true, color:PALETTE.grid}, ticks:{font:{size:12}}, stacked:false}}}});
+mkChart('rapportiChart', {type:'bar',  data:{labels:allMonths, datasets:[{label:'Nuovi Rapporti', data:rapportiMensili, backgroundColor:PALETTE.accent}, {label:'Media Mensile', data:Array(allMonths.length).fill(totalRapporti / MONTHS), type:'line', borderColor:PALETTE.navy, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[0]}}, {label:'Target', data:Array(allMonths.length).fill(7), type:'line', borderColor:PALETTE.grey, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[5,5]}}]},
+    options:{indexAxis:'x', plugins:{legend:{display:true, position:'bottom', labels:{usePointStyle:true, generateLabels:(chart)=>{return chart.data.datasets.map((d,i)=>{const isLine = d.type === 'line'; return {text:d.label, fillStyle:isLine ? 'transparent' : d.backgroundColor, strokeStyle:isLine ? d.borderColor : 'transparent', lineWidth:isLine ? 2 : 0, pointStyle:isLine ? 'line' : 'rect', hidden:!chart.isDatasetVisible(i), index:i};})}}}}, scales:{x:{grid:{color:PALETTE.grid}, stacked:true}, y:{grid:{display:true, color:PALETTE.grid}, ticks:{font:{size:12}}, stacked:false}}}});
+mkChart('perfezionamentiChart', {type:'bar', data:{labels:allMonths, datasets:[{label:'Perfezionamenti', data:perfezionamentiMensili, backgroundColor:PALETTE.accent}, {label:'Media Mensile', data:Array(allMonths.length).fill(totalPerfezionamenti / MONTHS), type:'line', borderColor:PALETTE.navy, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[0]}}, {label:'Target', data:Array(allMonths.length).fill(7), type:'line', borderColor:PALETTE.grey, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[5,5]}}]},
+    options:{indexAxis:'x', plugins:{legend:{display:true, position:'bottom', labels:{usePointStyle:true, generateLabels:(chart)=>{return chart.data.datasets.map((d,i)=>{const isLine = d.type === 'line'; return {text:d.label, fillStyle:isLine ? 'transparent' : d.backgroundColor, strokeStyle:isLine ? d.borderColor : 'transparent', lineWidth:isLine ? 2 : 0, pointStyle:isLine ? 'line' : 'rect', hidden:!chart.isDatasetVisible(i), index:i};})}}}}, scales:{x:{grid:{color:PALETTE.grid}, stacked:true}, y:{grid:{display:true, color:PALETTE.grid}, ticks:{font:{size:12}}, stacked:false}}}});
 }
 
 /* ============================================================
@@ -1253,10 +1451,102 @@ const SEGRETERIA_FIDI_ID = '10004100067100078';
 
 function renderFidi(panel) {
   const nfidi = STATE.domainSheets.find(s=>s.type==='fidi');
-  const collegamenti = STATE.domainSheets.find(s=>s.type==='fidi_collegamenti');
+  const gruppi = STATE.domainSheets.find(s=>s.type==='fidi_collegamenti');
 
+  const fidiRows     = nfidi  ? nfidi.rows   : [];
+  const gruppiRows   = gruppi ? gruppi.rows  : [];
+
+  // proxy bilanci riclassificati
+  const fidiFiltrati = fidiRows.filter(r => {
+    const d = toDate(r['dta_istruttoria']);
+    return d && d.getFullYear() === 2026;
+  });
+
+  const totalFidi = fidiFiltrati.length;
+  const fidiPerMese = {};
+  fidiFiltrati.forEach(r => {
+    const d = toDate(r['dta_istruttoria']);
+    const k = monthKey(d);
+    if (k) fidiPerMese[k] = (fidiPerMese[k] || 0) + 1;
+  });
+
+  // gruppi economici
+  const gruppiFiltrati = gruppiRows.filter(r => {
+    const d = toDate(r['dta_censim_collegato']);
+    return d && d.getFullYear() === 2026;
+  });
+
+  const gruppiNdgPerMese = {};   // ym → Set<ndg>
+  gruppiFiltrati.forEach(r => {
+    const d   = toDate(r['dta_censim_collegato']);
+    const k   = monthKey(d);
+    const ndg = r['cod_ndg_rete'];
+    if (!k || ndg == null) return;
+    if (!gruppiNdgPerMese[k]) gruppiNdgPerMese[k] = new Set();
+    gruppiNdgPerMese[k].add(String(ndg).trim());
+  });
+
+  const totalGruppi = Object.values(gruppiNdgPerMese).reduce((sum, set) => sum + set.size, 0);
+
+  const allMonths = [...new Set([
+    ...Object.keys(fidiPerMese),
+    ...Object.keys(gruppiNdgPerMese),
+  ])].sort().filter(m => !m.endsWith('-08'));
+
+  const fidiMensili       = allMonths.map(k => fidiPerMese[k]             || 0);
+  const gruppiMensili     = allMonths.map(k => gruppiNdgPerMese[k]?.size  || 0);
+
+  // ---- task KPI ----
+  const tasksFidi = getTasksForSheet(SEGRETERIA_FIDI_ID);
+
+  const fidiTask1 = tasksFidi[0];
+  if (fidiTask1) {
+    taskDataFidi1 = {
+      pezzi: fidiTask1.pezzi,
+      fte_teorico: fidiTask1.fte_teorico,
+      pezzi_actual: totalFidi / MONTHS,
+      fte_actual: (totalFidi / MONTHS * fidiTask1.tempi) / HOURS_PER_MONTH
+    };
+  }
+
+  const fidiTask2 = tasksFidi[6];
+  if (fidiTask2) {
+    taskDataFidi2 = {
+      pezzi: fidiTask2.pezzi,
+      fte_teorico: fidiTask2.fte_teorico,
+      pezzi_actual: totalGruppi / MONTHS,
+      fte_actual: (totalGruppi / MONTHS * fidiTask2.tempi) / HOURS_PER_MONTH
+    };
+  }
   const fidiDimRow = findDimRow(SEGRETERIA_FIDI_ID);
   panel.innerHTML = structHeaderHtml({sheetName: SEGRETERIA_FIDI_ID, dimRow: fidiDimRow}, 'Segreteria fidi - Lending') + `
+  <div style="display:flex; flex-direction:column; gap:16px; margin-bottom:16px;">
+    <div style="display:flex; gap:16px;">
+      <div class="card" style="flex:1; position:relative; display:flex; flex-direction:column; justify-content:flex-end;">
+        <h3 style="margin:0 0 4px;">Riclassificazione bilanci provvisori nuovi affidamenti</h3>
+        <p class="card-sub">Proxy bilanci riclassificati per mese</p>
+        <div style="position:absolute; top:12px; right:12px;">
+          ${renderKPITable(taskDataFidi1)}
+        </div>
+        <canvas id="FidiChart" style="width:100%; max-height:240px;"></canvas>
+      </div>
+      <div class="card" style="flex:1; position:relative; display:flex; flex-direction:column; justify-content:flex-end;">
+        <h3 style="margin:0 0 4px;">Creazione / Verifica / richiesta integrazione gruppi economici e giuridici</h3>
+        <p class="card-sub">Operazioni per mese</p>
+        <div style="position:absolute; top:12px; right:12px;">
+          ${renderKPITable(taskDataFidi2)}
+        </div>
+        <canvas id="GruppiChart" style="width:100%; max-height:240px;"></canvas>
+      </div>
+    </div>
+  </div>
     ${renderTaskTable(getTasksForSheet(SEGRETERIA_FIDI_ID))}
   `;
+
+  mkChart('FidiChart', {type:'bar', data:{labels:allMonths, datasets:[{label:'Fidi', data:fidiMensili, backgroundColor:PALETTE.accent}, {label:'Media Mensile', data:Array(allMonths.length).fill(totalFidi / MONTHS), type:'line', borderColor:PALETTE.navy, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[0]}}, {label:'Target', data:Array(allMonths.length).fill(4), type:'line', borderColor:PALETTE.grey, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[5,5]}}]},
+    options:{indexAxis:'x', plugins:{legend:{display:true, position:'bottom', labels:{usePointStyle:true, generateLabels:(chart)=>{return chart.data.datasets.map((d,i)=>{const isLine = d.type === 'line'; return {text:d.label, fillStyle:isLine ? 'transparent' : d.backgroundColor, strokeStyle:isLine ? d.borderColor : 'transparent', lineWidth:isLine ? 2 : 0, pointStyle:isLine ? 'line' : 'rect', hidden:!chart.isDatasetVisible(i), index:i};})}}}}, scales:{x:{grid:{color:PALETTE.grid}, stacked:true}, y:{grid:{display:true, color:PALETTE.grid}, ticks:{font:{size:12}}, stacked:false}}}});
+
+  mkChart('GruppiChart', {type:'bar', data:{labels:allMonths, datasets:[{label:'Gruppi', data:gruppiMensili, backgroundColor:PALETTE.accent}, {label:'Media Mensile', data:Array(allMonths.length).fill(totalGruppi / MONTHS), type:'line', borderColor:PALETTE.navy, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[0]}}, {label:'Target', data:Array(allMonths.length).fill(50), type:'line', borderColor:PALETTE.grey, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[5,5]}}]},
+    options:{indexAxis:'x', plugins:{legend:{display:true, position:'bottom', labels:{usePointStyle:true, generateLabels:(chart)=>{return chart.data.datasets.map((d,i)=>{const isLine = d.type === 'line'; return {text:d.label, fillStyle:isLine ? 'transparent' : d.backgroundColor, strokeStyle:isLine ? d.borderColor : 'transparent', lineWidth:isLine ? 2 : 0, pointStyle:isLine ? 'line' : 'rect', hidden:!chart.isDatasetVisible(i), index:i};})}}}}, scales:{x:{grid:{color:PALETTE.grid}, stacked:true}, y:{grid:{display:true, color:PALETTE.grid}, ticks:{font:{size:12}}, stacked:false}}}});
+
 }

@@ -55,7 +55,7 @@ function renderAnagrafe(panel, s){
     </div>
   `;
 
-  mkChart('censimentiChart', {type:'bar', data:{labels:months, datasets:[{label:'Censimenti', data:months.map(m=>byMonth.get(m)), backgroundColor:PALETTE.info}, {label:'Media mensile', data:Array(months.length).fill(rows.length / MONTHS), type:'line', borderColor:PALETTE.navy, borderWidth:2, fill:false, pointRadius:0, borderDash:[0]},
+  mkChart('censimentiChart', {type:'bar', data:{labels:months, datasets:[{label:'Censimenti', data:months.map(m=>byMonth.get(m)), backgroundColor:PALETTE.accent}, {label:'Media mensile', data:Array(months.length).fill(rows.length / MONTHS), type:'line', borderColor:PALETTE.navy, borderWidth:2, fill:false, pointRadius:0, borderDash:[0]},
     {label:'Target', data:Array(months.length).fill(1250), type:'line', borderColor:PALETTE.grey, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[5,5]}}]},
     options:{plugins:{legend:{display:true, position:'bottom', labels:{usePointStyle:true, generateLabels:(chart)=>chart.data.datasets.map((d,i)=>({text:d.label, fillStyle:d.type==='line'?'transparent':d.backgroundColor, strokeStyle:d.type==='line'?d.borderColor:'transparent', lineWidth:d.type==='line'?2:0, pointStyle:d.type==='line'?'line':'rect', hidden:!chart.isDatasetVisible(i), index:i}))}}}, scales:{x:{grid:{color:PALETTE.grid}, stacked:false}, y:{grid:{color:PALETTE.grid}, stacked:false}}}});
 
@@ -133,7 +133,7 @@ function renderAntifrode(panel, s){
     </div>
   `;
 
-  mkChart('frodiChart', {type:'bar', data:{labels:months, datasets:[{label:'Frodi', data:months.map(m=>[...byMonthClass.get(m).values()].reduce((a,b)=>a+b,0)), backgroundColor:PALETTE.info}, {label:'Media mensile', data:Array(months.length).fill(total / 6), type:'line', borderColor:PALETTE.navy, borderWidth:2, fill:false, pointRadius:0, borderDash:[0]},
+  mkChart('frodiChart', {type:'bar', data:{labels:months, datasets:[{label:'Frodi', data:months.map(m=>[...byMonthClass.get(m).values()].reduce((a,b)=>a+b,0)), backgroundColor:PALETTE.accent}, {label:'Media mensile', data:Array(months.length).fill(total / 6), type:'line', borderColor:PALETTE.navy, borderWidth:2, fill:false, pointRadius:0, borderDash:[0]},
     {label:'Target', data:Array(months.length).fill(42), type:'line', borderColor:PALETTE.grey, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[5,5]}}]},
     options:{plugins:{legend:{display:true, position:'bottom', labels:{usePointStyle:true, generateLabels:(chart)=>chart.data.datasets.map((d,i)=>({text:d.label, fillStyle:d.type==='line'?'transparent':d.backgroundColor, strokeStyle:d.type==='line'?d.borderColor:'transparent', lineWidth:d.type==='line'?2:0, pointStyle:d.type==='line'?'line':'rect', hidden:!chart.isDatasetVisible(i), index:i}))}}}, scales:{x:{grid:{color:PALETTE.grid}, stacked:false}, y:{grid:{color:PALETTE.grid}, stacked:false}}}});
 
@@ -241,7 +241,7 @@ function renderOpsAml(panel, s){
   `;
 
   // GRAFICI
-  mkChart('amlChart', {type:'bar', data:{labels:months, datasets:[{label:'NDG completati', data:months.map(m=>byMonthSet.get(m).size), backgroundColor:PALETTE.info}, {label:'Media mensile', data:Array(months.length).fill(completedAltoNdg / MONTHS), type:'line', borderColor:PALETTE.navy, borderWidth:2, fill:false, pointRadius:0, borderDash:[0]},
+  mkChart('amlChart', {type:'bar', data:{labels:months, datasets:[{label:'NDG completati', data:months.map(m=>byMonthSet.get(m).size), backgroundColor:PALETTE.accent}, {label:'Media mensile', data:Array(months.length).fill(completedAltoNdg / MONTHS), type:'line', borderColor:PALETTE.navy, borderWidth:2, fill:false, pointRadius:0, borderDash:[0]},
     {label:'Target', data:Array(months.length).fill(112.5), type:'line', borderColor:PALETTE.grey, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[5,5]}}]},
     options:{plugins:{legend:{display:true, position:'bottom', labels:{usePointStyle:true, generateLabels:(chart)=>chart.data.datasets.map((d,i)=>({text:d.label, fillStyle:d.type==='line'?'transparent':d.backgroundColor, strokeStyle:d.type==='line'?d.borderColor:'transparent', lineWidth:d.type==='line'?2:0, pointStyle:d.type==='line'?'line':'rect', hidden:!chart.isDatasetVisible(i), index:i}))}}}, scales:{x:{grid:{color:PALETTE.grid}, stacked:false}, y:{grid:{color:PALETTE.grid}, stacked:false}}}});
 
@@ -905,7 +905,7 @@ function renderDigital(panel){
   // CHARTS
   // ============================================================
 
-  mkChart('ContiChart', {type:'bar', data:{labels:months, datasets:[{label:'Rapporti aperti', data:months.map(m=>Object.values(apertiMonthByCateg[m]||{}).reduce((a,b)=>a+b,0)), backgroundColor:PALETTE.info}, {label:'Rapporti chiusi', data:months.map(m=>chiusiMonth[m]||0), backgroundColor:PALETTE.danger}, {label:'Media Mensile', data:Array(months.length).fill((rapportiAperti.length + rapportiChiusi.length) / MONTHS), type:'line', borderColor:PALETTE.navy, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[0]}}, {label:'Target', data:Array(months.length).fill(46), type:'line', borderColor:PALETTE.grey, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[5,5]}}]},
+  mkChart('ContiChart', {type:'bar', data:{labels:months, datasets:[{label:'Rapporti aperti', data:months.map(m=>Object.values(apertiMonthByCateg[m]||{}).reduce((a,b)=>a+b,0)), backgroundColor:PALETTE.accent}, {label:'Rapporti chiusi', data:months.map(m=>chiusiMonth[m]||0), backgroundColor:PALETTE.danger}, {label:'Media Mensile', data:Array(months.length).fill((rapportiAperti.length + rapportiChiusi.length) / MONTHS), type:'line', borderColor:PALETTE.navy, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[0]}}, {label:'Target', data:Array(months.length).fill(46), type:'line', borderColor:PALETTE.grey, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[5,5]}}]},
     options:{indexAxis:'x', plugins:{legend:{display:true, position:'bottom', labels:{usePointStyle:true, generateLabels:(chart)=>{return chart.data.datasets.map((d,i)=>{const isLine=d.type==='line'; return {text:d.label, fillStyle:isLine?'transparent':d.backgroundColor, strokeStyle:isLine?d.borderColor:'transparent', lineWidth:isLine?2:0, pointStyle:isLine?'line':'rect', hidden:!chart.isDatasetVisible(i), index:i};});}}}},
     scales:{x:{grid:{color:PALETTE.grid}, stacked:true}, y:{grid:{display:true, color:PALETTE.grid}, ticks:{font:{size:12}}, stacked:true}}}});
 
@@ -991,7 +991,7 @@ function renderBancassurance(panel, s){
 
 
   mkChart('OrdiniChart', {type:'bar', data:{labels:months, datasets:[
-    {label:'Ordini eseguiti', data:months.map(m=>Object.entries(ordiniByMonthStato[m]||{}).filter(([stato])=>stato.toLowerCase().includes('eseguit')).reduce((a,[,v])=>a+v,0)), backgroundColor:PALETTE.info},
+    {label:'Ordini eseguiti', data:months.map(m=>Object.entries(ordiniByMonthStato[m]||{}).filter(([stato])=>stato.toLowerCase().includes('eseguit')).reduce((a,[,v])=>a+v,0)), backgroundColor:PALETTE.accent},
     {label:'Ordini da perfezionare', data:months.map(m=>Object.entries(ordiniByMonthStato[m]||{}).filter(([stato])=>!stato.toLowerCase().includes('eseguit')).reduce((a,[,v])=>a+v,0)), backgroundColor:PALETTE.danger},
     {label:'Media Mensile', data:Array(months.length).fill(bancassurance.length/MONTHS), type:'line', borderColor:PALETTE.navy, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[0]}},
     {label:'Target', data:Array(months.length).fill(527), type:'line', borderColor:PALETTE.grey, borderWidth:2, fill:false, pointRadius:0, borderSkipped:false, segment:{borderDash:()=>[5,5]}}]},
